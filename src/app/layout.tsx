@@ -1,0 +1,30 @@
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import { ConsentBanner } from '@/components/lgpd/ConsentBanner'
+import './globals.css'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: 'NeuroLearn — Sistema Operacional de Aprendizagem',
+  description: 'Plataforma cognitiva de aprendizagem baseada em neurociência. Revisão espaçada, recuperação ativa e consolidação de habilidades.',
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR" data-theme="dark" suppressHydrationWarning>
+      <head>
+        {/* Aplica o tema antes de qualquer pintura para eliminar o flash dark→light */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('nl_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
+          }}
+        />
+      </head>
+      <body className={inter.className}>
+        {children}
+        <ConsentBanner />
+      </body>
+    </html>
+  )
+}

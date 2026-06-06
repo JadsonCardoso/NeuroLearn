@@ -1,0 +1,37 @@
+# Credenciais e configurações locais
+.claude/
+.env.local
+.env*.local
+
+# Dependências
+node_modules/
+
+# Build
+.next/
+out/
+
+# Supabase local
+supabase/.temp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentação interna e estratégia de produto (não versionar)
+progress.md
+CLAUDE.md
+PRD.md
+.specs/
+.cursor/
+.windsurf/
+
+# E2E auth session (gerado em runtime pelo global.setup.ts)
+tests/e2e/.auth/
+
+# Logs do servidor dev
+dev-server.log
+dev-server-err.log
+
+# Resultados de testes gerados
+test-results/
+tests/reports/playwright/

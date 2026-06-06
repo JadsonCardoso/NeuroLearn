@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroLearn — Sistema Operacional de Aprendizagem</title>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── TOKENS dark ──────────────────────────────────────────────── */
+    :root {
+      --bg:      #0a0b0f;
+      --bg2:     #0d0e14;
+      --card:    #13141a;
+      --card2:   #1a1b22;
+      --border:  #1e2028;
+      --border2: #2d2f3a;
+      --text:    #f1f5f9;
+      --text2:   #e2e8f0;
+      --text3:   #64748b;
+      --text4:   #94a3b8;
+      --shadow:  rgba(0,0,0,.5);
+    }
+
+    /* ── TOKENS light ─────────────────────────────────────────────── */
+    [data-theme="light"] {
+      --bg:      #f8fafc;
+      --bg2:     #f1f5f9;
+      --card:    #ffffff;
+      --card2:   #f4f6fa;
+      --border:  #e2e8f0;
+      --border2: #cbd5e1;
+      --text:    #0f172a;
+      --text2:   #1e293b;
+      --text3:   #64748b;
+      --text4:   #94a3b8;
+      --shadow:  rgba(0,0,0,.08);
+    }
+
+    /* ── BASE ─────────────────────────────────────────────────────── */
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Inter',sans-serif;
+      background:var(--bg);color:var(--text);
+      min-height:100vh;transition:background .25s,color .25s;
+    }
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:var(--bg2)}
+    ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+    /* ── COMPONENTS ───────────────────────────────────────────────── */
+    .card{
+      background:var(--card);border:1px solid var(--border);
+      border-radius:12px;transition:background .25s,border-color .25s;
+    }
+    .btn-primary{
+      background:#7c3aed;color:#fff;border:none;border-radius:8px;
+      padding:8px 16px;cursor:pointer;font-weight:600;font-size:13px;
+      transition:all .2s;font-family:'Inter',sans-serif;
+    }
+    .btn-primary:hover{background:#6d28d9;transform:translateY(-1px)}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .btn-secondary{
+      background:var(--card2);color:var(--text2);
+      border:1px solid var(--border2);border-radius:8px;
+      padding:8px 16px;cursor:pointer;font-weight:500;font-size:13px;
+      transition:all .2s;font-family:'Inter',sans-serif;
+    }
+    .btn-secondary:hover{background:var(--border)}
+    .progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:3px;transition:width .6s ease}
+    .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+    .input{
+      background:var(--card2);border:1px solid var(--border2);border-radius:8px;
+      color:var(--text);padding:10px 14px;width:100%;
+      font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s;
+    }
+    .input:focus{border-color:#7c3aed}
+    .textarea{
+      background:var(--card2);border:1px solid var(--border2);border-radius:8px;
+      color:var(--text);padding:12px 14px;width:100%;
+      font-family:'Inter',sans-serif;font-size:13px;resize:vertical;
+      min-height:100px;outline:none;transition:border-color .2s;line-height:1.6;
+    }
+    .textarea:focus{border-color:#7c3aed}
+    .textarea::placeholder,.input::placeholder{color:var(--text3)}
+    select.input{cursor:pointer}
+    select.input option{background:var(--card);color:var(--text)}
+
+    /* ── SIDEBAR NAV ──────────────────────────────────────────────── */
+    .nav-item{
+      display:flex;align-items:center;gap:10px;padding:9px 12px;
+      border-radius:8px;cursor:pointer;transition:all .2s;
+      color:var(--text3);font-size:13px;font-weight:500;user-select:none;
+    }
+    .nav-item:hover{background:var(--card2);color:var(--text)}
+    .nav-item.active{background:rgba(124,58,237,.15);color:#a78bfa}
+
+    /* ── THEME TOGGLE ─────────────────────────────────────────────── */
+    .theme-toggle{
+      width:42px;height:23px;background:var(--border2);
+      border-radius:20px;cursor:pointer;position:relative;
+      border:none;transition:background .3s;flex-shrink:0;
+    }
+    .theme-toggle::after{
+      content:'';position:absolute;top:2px;left:2px;
+      width:19px;height:19px;border-radius:50%;
+      background:linear-gradient(135deg,#7c3aed,#06b6d4);
+      transition:transform .3s;
+    }
+    [data-theme="light"] .theme-toggle::after{transform:translateX(19px)}
+
+    /* ── ANIMATIONS ───────────────────────────────────────────────── */
+    @keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .slide-in{animation:slideIn .25s ease}
+    .flashcard-wrap{perspective:1000px;cursor:pointer}
+    .flashcard-inner{position:relative;width:100%;transition:transform .55s;transform-style:preserve-3d}
+    .flashcard-inner.flipped{transform:rotateY(180deg)}
+    .fc-front,.fc-back{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+    .fc-back{position:absolute;top:0;left:0;width:100%;transform:rotateY(180deg)}
+    .skill-card{transition:all .25s;cursor:pointer}
+    .skill-card:hover{transform:translateY(-2px)}
+    .content-card{transition:transform .2s,border-color .2s;cursor:pointer}
+    .content-card:hover{transform:translateY(-2px)}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+
+// ── Utils ──────────────────────────────────────────────────────────────────
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+
+function sm2(quality,ef=2.5,interval=1,reps=0){
+  let nef=Math.max(1.3,ef+(0.1-(5-quality)*(0.08+(5-quality)*0.02)));
+  let ni,nr;
+  if(quality<3){nr=0;ni=1}
+  else{nr=reps+1;ni=reps===0?1:reps===1?6:Math.round(interval*nef)}
+  return{ef:nef,interval:ni,repetitions:nr}
+}
+
+function calcRetention(card){
+  if(!card.lastReview)return 0;
+  const days=(Date.now()-new Date(card.lastReview))/(864e5);
+  return Math.max(0,Math.round(100*Math.exp(-days/(card.interval*card.ef))));
+}
+
+function isDue(card){
+  if(!card.nextReview)return true;
+  return new Date(card.nextReview)<=new Date();
+}
+
+function addDays(days,from=null){
+  const d=new Date(from||Date.now());
+  d.setDate(d.getDate()+days);
+  return d.toISOString();
+}
+
+function relDate(iso){
+  if(!iso)return'Nunca';
+  const diff=Math.round((new Date(iso)-Date.now())/864e5);
+  if(diff===0)return'Hoje';if(diff===1)return'Amanhã';if(diff===-1)return'Ontem';
+  if(diff<0)return`${Math.abs(diff)}d atrás`;return`em ${diff}d`;
+}
+
+// ── Storage ────────────────────────────────────────────────────────────────
+const SEED={
+  contents:[
+    {id:'c1',title:'Continuous Discovery Habits',type:'book',author:'Teresa Torres',desc:'Processo contínuo de discovery para construir produtos que clientes amam.',addedAt:addDays(-15),progress:65,color:'#7c3aed'},
+    {id:'c2',title:'Prompt Engineering para PMs',type:'course',author:'Udemy',desc:'Como usar IA generativa para acelerar o trabalho de Product Management.',addedAt:addDays(-5),progress:30,color:'#06b6d4'},
+    {id:'c3',title:'Inspired — Marty Cagan',type:'book',author:'Marty Cagan',desc:'Como as melhores empresas de tech criam produtos que clientes adoram.',addedAt:addDays(-30),progress:100,color:'#10b981'},
+  ],
+  cards:[
+    {id:'k1',cid:'c1',front:'O que é Opportunity Solution Tree?',back:'Árvore visual que conecta o outcome desejado → oportunidades → soluções → experimentos de validação.',ef:2.5,interval:1,reps:0,nextReview:new Date().toISOString(),lastReview:null,mastery:'new'},
+    {id:'k2',cid:'c1',front:'Diferença entre output e outcome?',back:'Output = o que você entrega (feature). Outcome = mudança de comportamento do usuário que gera valor ao negócio.',ef:2.8,interval:6,reps:2,nextReview:addDays(-1),lastReview:addDays(-7),mastery:'learning'},
+    {id:'k3',cid:'c1',front:'O que são Assumption Tests?',back:'Experimentos rápidos e baratos para validar premissas arriscadas antes de construir. Ex: entrevistas, protótipos, fake door.',ef:2.2,interval:1,reps:1,nextReview:new Date().toISOString(),lastReview:addDays(-2),mastery:'learning'},
+    {id:'k4',cid:'c2',front:'O que é Chain-of-Thought prompting?',back:'Instrui o modelo a "pensar passo a passo" antes de responder, melhorando raciocínio e qualidade de respostas complexas.',ef:2.5,interval:1,reps:0,nextReview:new Date().toISOString(),lastReview:null,mastery:'new'},
+    {id:'k5',cid:'c3',front:'4 grandes riscos de produto (Cagan)?',back:'1. Valor — usuário quer?\n2. Usabilidade — consegue usar?\n3. Viabilidade — conseguimos construir?\n4. Negócio — funciona comercialmente?',ef:3.2,interval:21,reps:4,nextReview:addDays(7),lastReview:addDays(-14),mastery:'strong'},
+    {id:'k6',cid:'c3',front:'Discovery vs Delivery?',back:'Discovery: encontrar a solução certa (validar). Delivery: executar e entregar com qualidade e velocidade.',ef:3.0,interval:14,reps:3,nextReview:addDays(5),lastReview:addDays(-9),mastery:'strong'},
+  ],
+  skills:[
+    {id:'s1',name:'Product Discovery',level:3,xp:340,maxXp:500,cat:'product',color:'#7c3aed'},
+    {id:'s2',name:'User Research',level:2,xp:180,maxXp:300,cat:'product',color:'#a78bfa'},
+    {id:'s3',name:'Prompt Engineering',level:1,xp:90,maxXp:200,cat:'tech',color:'#06b6d4'},
+    {id:'s4',name:'Product Strategy',level:2,xp:220,maxXp:300,cat:'product',color:'#10b981'},
+    {id:'s5',name:'Data Analysis',level:1,xp:60,maxXp:200,cat:'tech',color:'#f59e0b'},
+    {id:'s6',name:'Storytelling',level:2,xp:150,maxXp:300,cat:'soft',color:'#ec4899'},
+  ],
+  sessions:[],
+  streak:5,
+  lastStudyDate:new Date().toDateString(),
+  totalXp:1040,
+};
+
+function load(){
+  try{
+    const s=localStorage.getItem('nl_v2');
+    if(!s)return SEED;
+    const p=JSON.parse(s);
+    // Validar campos obrigatórios — evita crash com schema antigo ou corrompido
+    if(!p||!Array.isArray(p.contents)||!Array.isArray(p.cards)||!Array.isArray(p.skills)){
+      console.warn('[NeuroLearn] localStorage com schema inválido — usando SEED');
+      return SEED;
+    }
+    // Garantir campos opcionais
+    p.sessions=Array.isArray(p.sessions)?p.sessions:[];
+    p.streak=typeof p.streak==='number'?p.streak:0;
+    p.totalXp=typeof p.totalXp==='number'?p.totalXp:0;
+    p.lastStudyDate=p.lastStudyDate||'';
+    return p;
+  }catch(e){
+    console.warn('[NeuroLearn] Erro ao ler localStorage — usando SEED:',e);
+    return SEED;
+  }
+}
+function save(d){try{localStorage.setItem('nl_v2',JSON.stringify(d))}catch(e){console.warn('[NeuroLearn] Erro ao salvar:',e)}}
+
+// ── Icons ──────────────────────────────────────────────────────────────────
+const I={
+  Brain:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.87-3.21A3 3 0 0 1 4 12a3 3 0 0 1 1-2.28A2.5 2.5 0 0 1 4.5 7 2.5 2.5 0 0 1 9.5 2z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.87-3.21A3 3 0 0 0 20 12a3 3 0 0 0-1-2.28A2.5 2.5 0 0 0 19.5 7 2.5 2.5 0 0 0 14.5 2z"/></svg>,
+  Book:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+  Timer:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>,
+  Refresh:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>,
+  Zap:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  Tree:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 14l-5-5-5 5"/><path d="M12 3v16"/><path d="M5 21h14"/></svg>,
+  Plus:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  X:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  Warn:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  Chevron:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
+  Award:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>,
+  Sun:()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
+  Moon:()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
+  Help:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+};
+
+// ── Ring ───────────────────────────────────────────────────────────────────
+function Ring({value,size=80}){
+  const r=(size-10)/2,c=2*Math.PI*r;
+  const col=value>=70?'#10b981':value>=40?'#f59e0b':'#ef4444';
+  return(
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--border)" strokeWidth="8"/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={col} strokeWidth="8"
+        strokeDasharray={`${(value/100)*c} ${c}`} strokeLinecap="round"
+        transform={`rotate(-90 ${size/2} ${size/2})`}
+        style={{transition:'stroke-dasharray .8s ease'}}/>
+      <text x={size/2} y={size/2+1} textAnchor="middle" dominantBaseline="middle"
+        fill={col} fontSize={size/5} fontWeight="700" fontFamily="Inter">{value}%</text>
+    </svg>
+  );
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+function Dashboard({data,nav,startReview}){
+  const due=data.cards.filter(isDue);
+  const avgRet=data.cards.length?Math.round(data.cards.reduce((a,c)=>a+calcRetention(c),0)/data.cards.length):0;
+  const risk=data.cards.filter(c=>{const r=calcRetention(c);return r<50&&r>0});
+  const strong=data.cards.filter(c=>calcRetention(c)>=75).length;
+
+  const weekBars=[0,1,2,3,4,5,6].map(i=>({
+    day:['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][i],
+    n:data.cards.filter(c=>{
+      if(!c.nextReview)return false;
+      const t=new Date();t.setDate(t.getDate()+i);
+      return new Date(c.nextReview).toDateString()===t.toDateString();
+    }).length
+  }));
+  const maxBar=Math.max(...weekBars.map(b=>b.n),1);
+
+  return(
+    <div className="slide-in" style={{padding:'24px',maxWidth:'1200px',margin:'0 auto'}}>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'24px'}}>
+        <div style={{background:'linear-gradient(135deg,#7c3aed,#06b6d4)',borderRadius:'10px',padding:'8px',display:'flex'}}>
+          <I.Brain/>
+        </div>
+        <div>
+          <h1 style={{fontSize:'20px',fontWeight:'800',color:'var(--text)'}}>Bom dia! 👋</h1>
+          <p style={{fontSize:'12px',color:'var(--text3)'}}>{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'14px',marginBottom:'22px'}}>
+        {[
+          {l:'Sequência',v:data.streak+'d',icon:'🔥',c:'#f59e0b',bg:'rgba(245,158,11,.1)'},
+          {l:'Total XP',v:(data.totalXp||0).toLocaleString(),icon:'⚡',c:'#7c3aed',bg:'rgba(124,58,237,.1)'},
+          {l:'Para revisar',v:due.length,icon:'🔄',c:'#06b6d4',bg:'rgba(6,182,212,.1)'},
+          {l:'Retenção média',v:avgRet+'%',icon:'🧠',c:'#10b981',bg:'rgba(16,185,129,.1)'},
+        ].map((s,i)=>(
+          <div key={i} className="card" style={{padding:'16px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+              <div>
+                <p style={{fontSize:'11px',color:'var(--text3)',marginBottom:'3px'}}>{s.l}</p>
+                <p style={{fontSize:'22px',fontWeight:'800',color:s.c}}>{s.v}</p>
+              </div>
+              <div style={{background:s.bg,borderRadius:'8px',padding:'7px',fontSize:'16px'}}>{s.icon}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:'18px'}}>
+        {/* Left */}
+        <div style={{display:'flex',flexDirection:'column',gap:'18px'}}>
+          {/* Due today */}
+          <div className="card" style={{padding:'20px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
+              <h2 style={{fontSize:'14px',fontWeight:'700',color:'var(--text)',display:'flex',alignItems:'center',gap:'7px'}}><I.Refresh/>Revisões de Hoje</h2>
+              <span className="badge" style={{background:'rgba(124,58,237,.2)',color:'#a78bfa'}}>{due.length} cards</span>
+            </div>
+            {due.length>0?(
+              <div>
+                <div style={{display:'flex',flexDirection:'column',gap:'8px',marginBottom:'14px'}}>
+                  {due.slice(0,3).map(card=>{
+                    const ct=data.contents.find(c=>c.id===card.cid);
+                    const ret=calcRetention(card);
+                    return(
+                      <div key={card.id} style={{background:'var(--card2)',borderRadius:'8px',padding:'10px 14px',border:'1px solid var(--border2)'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                          <div style={{flex:1,marginRight:'10px'}}>
+                            <div style={{fontSize:'11px',color:'var(--text3)',marginBottom:'2px'}}>{ct?.title?.slice(0,30)}</div>
+                            <div style={{fontSize:'13px',color:'var(--text)',fontWeight:'500',lineHeight:'1.4'}}>{card.front.slice(0,60)}{card.front.length>60?'…':''}</div>
+                          </div>
+                          <span style={{fontSize:'10px',padding:'2px 7px',borderRadius:'10px',whiteSpace:'nowrap',
+                            background:ret>60?'rgba(16,185,129,.15)':ret>30?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)',
+                            color:ret>60?'#10b981':ret>30?'#f59e0b':'#ef4444'}}>
+                            {ret}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {due.length>3&&<div style={{fontSize:'12px',color:'var(--text3)',textAlign:'center'}}>+{due.length-3} mais</div>}
+                </div>
+                <button className="btn-primary" style={{width:'100%'}} onClick={startReview}>
+                  Iniciar Sessão de Revisão →
+                </button>
+              </div>
+            ):(
+              <div style={{textAlign:'center',padding:'24px',color:'var(--text3)'}}>
+                <div style={{fontSize:'36px',marginBottom:'8px'}}>✅</div>
+                <p style={{fontSize:'13px',fontWeight:'600',color:'var(--text4)'}}>Todas revisões concluídas!</p>
+                <p style={{fontSize:'11px',marginTop:'4px'}}>
+                  Próxima: {relDate(data.cards.sort((a,b)=>new Date(a.nextReview||0)-new Date(b.nextReview||0))[0]?.nextReview)}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Risk */}
+          {risk.length>0&&(
+            <div className="card" style={{padding:'16px',borderColor:'rgba(245,158,11,.3)',background:'rgba(245,158,11,.04)'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'7px',marginBottom:'10px'}}>
+                <span style={{color:'#f59e0b'}}><I.Warn/></span>
+                <h3 style={{fontSize:'13px',fontWeight:'700',color:'#fbbf24'}}>⚠ Risco de Esquecimento</h3>
+              </div>
+              <p style={{fontSize:'12px',color:'var(--text4)',marginBottom:'10px'}}>{risk.length} conteúdo(s) com retenção abaixo de 50%</p>
+              {risk.slice(0,3).map(c=>(
+                <div key={c.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',background:'rgba(245,158,11,.1)',borderRadius:'6px',marginBottom:'5px'}}>
+                  <span style={{fontSize:'12px',color:'var(--text)'}}>{c.front.slice(0,45)}…</span>
+                  <span style={{fontSize:'12px',color:'#f59e0b',fontWeight:'700'}}>{calcRetention(c)}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Week chart */}
+          <div className="card" style={{padding:'20px'}}>
+            <h2 style={{fontSize:'14px',fontWeight:'700',color:'var(--text)',marginBottom:'16px'}}>📅 Calendário de Revisões</h2>
+            <div style={{display:'flex',gap:'8px',alignItems:'flex-end',height:'80px'}}>
+              {weekBars.map((b,i)=>(
+                <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'4px',height:'100%',justifyContent:'flex-end'}}>
+                  {b.n>0&&<span style={{fontSize:'10px',color:'var(--text3)'}}>{b.n}</span>}
+                  <div style={{
+                    width:'100%',borderRadius:'4px',
+                    height:Math.max(4,(b.n/maxBar)*56)+'px',
+                    background:i===0?'linear-gradient(180deg,#7c3aed,#a78bfa)':'var(--border)',
+                    border:i===0?'none':'1px solid var(--border2)'
+                  }}/>
+                  <span style={{fontSize:'10px',color:i===0?'#a78bfa':'var(--text3)'}}>{b.day}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right */}
+        <div style={{display:'flex',flexDirection:'column',gap:'18px'}}>
+          {/* Retention */}
+          <div className="card" style={{padding:'20px',textAlign:'center'}}>
+            <h2 style={{fontSize:'13px',fontWeight:'700',color:'var(--text)',marginBottom:'14px'}}>Mapa de Retenção</h2>
+            <Ring value={avgRet} size={96}/>
+            <div style={{display:'flex',justifyContent:'space-around',marginTop:'14px'}}>
+              {[
+                {l:'Fortes',v:strong,c:'#10b981'},
+                {l:'Médios',v:data.cards.filter(c=>{const r=calcRetention(c);return r>=50&&r<75}).length,c:'#f59e0b'},
+                {l:'Fracos',v:data.cards.filter(c=>calcRetention(c)<50&&calcRetention(c)>0).length,c:'#ef4444'},
+              ].map((s,i)=>(
+                <div key={i} style={{textAlign:'center'}}>
+                  <div style={{fontSize:'18px',fontWeight:'800',color:s.c}}>{s.v}</div>
+                  <div style={{fontSize:'10px',color:'var(--text3)'}}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* In progress */}
+          <div className="card" style={{padding:'18px'}}>
+            <h2 style={{fontSize:'13px',fontWeight:'700',color:'var(--text)',marginBottom:'12px',display:'flex',alignItems:'center',gap:'7px'}}><I.Book/>Em Progresso</h2>
+            {data.contents.filter(c=>c.progress<100).slice(0,3).map(c=>(
+              <div key={c.id} style={{marginBottom:'10px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'3px'}}>
+                  <span style={{fontSize:'11px',color:'var(--text)',fontWeight:'500'}}>{c.title.slice(0,22)}…</span>
+                  <span style={{fontSize:'10px',color:'var(--text3)'}}>{c.progress}%</span>
+                </div>
+                <div className="progress-bar"><div className="progress-fill" style={{width:c.progress+'%',background:c.color}}/></div>
+              </div>
+            ))}
+            <button className="btn-secondary" style={{width:'100%',marginTop:'6px',fontSize:'12px'}} onClick={()=>nav('library')}>
+              Ver Biblioteca →
+            </button>
+          </div>
+
+          {/* Top skills */}
+          <div className="card" style={{padding:'18px'}}>
+            <h2 style={{fontSize:'13px',fontWeight:'700',color:'var(--text)',marginBottom:'12px',display:'flex',alignItems:'center',gap:'7px'}}><I.Award/>Habilidades</h2>
+            {[...data.skills].sort((a,b)=>b.level-a.level).slice(0,4).map(s=>(
+              <div key={s.id} style={{marginBottom:'10px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'3px'}}>
+                  <span style={{fontSize:'11px',color:'var(--text)'}}>{s.name}</span>
+                  <span style={{fontSize:'10px',color:s.color,fontWeight:'700'}}>Nv.{s.level}</span>
+                </div>
+                <div className="progress-bar"><div className="progress-fill" style={{width:(s.xp/s.maxXp*100)+'%',background:s.color}}/></div>
+              </div>
+            ))}
+            <button className="btn-secondary" style={{width:'100%',marginTop:'6px',fontSize:'12px'}} onClick={()=>nav('skills')}>
+              Árvore de Habilidades →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Library ────────────────────────────────────────────────────────────────
+function Library({data,setData,startSession}){
+  const [showAdd,setShowAdd]=useState(false);
+  const [form,setForm]=useState({title:'',type:'book',author:'',desc:''});
+  const TYPE={book:{icon:'📚',color:'#7c3aed'},course:{icon:'🎓',color:'#06b6d4'},video:{icon:'🎥',color:'#ef4444'},article:{icon:'📄',color:'#f59e0b'},note:{icon:'📝',color:'#10b981'}};
+
+  function add(){
+    if(!form.title.trim())return;
+    const c={id:uid(),...form,color:TYPE[form.type]?.color||'#7c3aed',addedAt:new Date().toISOString(),progress:0};
+    setData(p=>({...p,contents:[...p.contents,c]}));
+    setForm({title:'',type:'book',author:'',desc:''});
+    setShowAdd(false);
+  }
+
+  return(
+    <div className="slide-in" style={{padding:'24px',maxWidth:'1100px',margin:'0 auto'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'24px'}}>
+        <div>
+          <h1 style={{fontSize:'20px',fontWeight:'800',color:'var(--text)'}}>Biblioteca de Conhecimento</h1>
+          <p style={{fontSize:'12px',color:'var(--text3)',marginTop:'2px'}}>{data.contents.length} itens</p>
+        </div>
+        <button className="btn-primary" style={{display:'flex',alignItems:'center',gap:'6px'}} onClick={()=>setShowAdd(true)}>
+          <I.Plus/>Adicionar
+        </button>
+      </div>
+
+      {showAdd&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+          <div className="card slide-in" style={{padding:'24px',width:'100%',maxWidth:'440px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'18px'}}>
+              <h2 style={{fontSize:'15px',fontWeight:'700',color:'var(--text)'}}>Novo Conteúdo</h2>
+              <button onClick={()=>setShowAdd(false)} style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer'}}><I.X/></button>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:'11px'}}>
+              <input className="input" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Título *"/>
+              <select className="input" value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
+                <option value="book">📚 Livro</option>
+                <option value="course">🎓 Curso</option>
+                <option value="video">🎥 Vídeo</option>
+                <option value="article">📄 Artigo</option>
+                <option value="note">📝 Anotação</option>
+              </select>
+              <input className="input" value={form.author} onChange={e=>setForm({...form,author:e.target.value})} placeholder="Autor / Fonte"/>
+              <textarea className="textarea" value={form.desc} onChange={e=>setForm({...form,desc:e.target.value})} placeholder="Descrição..." style={{minHeight:'70px'}}/>
+              <div style={{display:'flex',gap:'10px',marginTop:'4px'}}>
+                <button className="btn-secondary" style={{flex:1}} onClick={()=>setShowAdd(false)}>Cancelar</button>
+                <button className="btn-primary" style={{flex:1}} onClick={add}>Adicionar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(290px,1fr))',gap:'16px'}}>
+        {data.contents.map(c=>{
+          const cards=data.cards.filter(k=>k.cid===c.id);
+          const avgR=cards.length?Math.round(cards.reduce((a,k)=>a+calcRetention(k),0)/cards.length):0;
+          const t=TYPE[c.type]||TYPE.book;
+          return(
+            <div key={c.id} className="card content-card" style={{padding:'20px'}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=c.color+'80'}
+              onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'12px'}}>
+                <div style={{background:c.color+'20',borderRadius:'8px',padding:'8px',fontSize:'20px',lineHeight:1}}>{t.icon}</div>
+                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'4px'}}>
+                  {c.progress===100&&<span className="badge" style={{background:'rgba(16,185,129,.2)',color:'#10b981'}}>✓ Concluído</span>}
+                  {cards.length>0&&<span style={{fontSize:'10px',color:'var(--text3)'}}>{avgR}% ret.</span>}
+                </div>
+              </div>
+              <h3 style={{fontSize:'14px',fontWeight:'700',color:'var(--text)',marginBottom:'3px'}}>{c.title}</h3>
+              {c.author&&<p style={{fontSize:'11px',color:'var(--text3)',marginBottom:'8px'}}>{c.author}</p>}
+              {c.desc&&<p style={{fontSize:'12px',color:'var(--text4)',marginBottom:'12px',lineHeight:'1.5'}}>{c.desc}</p>}
+              <div style={{marginBottom:'12px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'3px'}}>
+                  <span style={{fontSize:'10px',color:'var(--text3)'}}>Progresso</span>
+                  <span style={{fontSize:'10px',color:'var(--text3)'}}>{c.progress}%</span>
+                </div>
+                <div className="progress-bar"><div className="progress-fill" style={{width:c.progress+'%',background:c.color}}/></div>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span style={{fontSize:'11px',color:'var(--text3)'}}>{cards.length} flashcards</span>
+                <button className="btn-primary" style={{fontSize:'12px',padding:'6px 12px'}} onClick={()=>startSession(c)}>
+                  Estudar →
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        {data.contents.length===0&&(
+          <div style={{gridColumn:'1/-1',textAlign:'center',padding:'60px',color:'var(--text3)'}}>
+            <div style={{fontSize:'48px',marginBottom:'12px'}}>📚</div>
+            <p style={{fontSize:'15px',fontWeight:'600',marginBottom:'6px'}}>Biblioteca vazia</p>
+            <p style={{fontSize:'12px'}}>Adicione seu primeiro livro ou curso</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Focus Session ──────────────────────────────────────────────────────────
+function Focus({content,onDone,onBack}){
+  const [phase,setPhase]=useState('study');
+  const [secs,setSecs]=useState(25*60);
+  const [running,setRunning]=useState(false);
+  const [notes,setNotes]=useState('');
+  const [hi,setHi]=useState([]);
+  const [hiInput,setHiInput]=useState('');
+  const [teach,setTeach]=useState('');
+  const [qs,setQs]=useState({imp:'',gap:'',apply:''});
+  const [newCards,setNewCards]=useState([]);
+  const [cf,setCf]=useState({front:'',back:''});
+  const ref=useRef(null);
+
+  useEffect(()=>{
+    if(running){
+      ref.current=setInterval(()=>{
+        setSecs(t=>{
+          if(t<=1){clearInterval(ref.current);setRunning(false);if(phase==='study'){setPhase('extract');setSecs(5*60);}return 0;}
+          return t-1;
+        });
+      },1000);
+    }else clearInterval(ref.current);
+    return()=>clearInterval(ref.current);
+  },[running,phase]);
+
+  const TOTAL=phase==='study'?25*60:5*60;
+  const pct=((TOTAL-secs)/TOTAL)*100;
+  const r=44,c=2*Math.PI*r;
+  const offset=c-(pct/100)*c;
+  const mm=String(Math.floor(secs/60)).padStart(2,'0');
+  const ss=String(secs%60).padStart(2,'0');
+
+  function addHi(){if(!hiInput.trim())return;setHi(h=>[...h,hiInput.trim()]);setHiInput('');}
+  function addCard(){if(!cf.front||!cf.back)return;setNewCards(a=>[...a,{...cf,id:uid(),cid:content.id,ef:2.5,interval:1,reps:0,nextReview:new Date().toISOString(),lastReview:null,mastery:'new'}]);setCf({front:'',back:''});}
+
+  function finish(){
+    onDone({
+      session:{id:uid(),cid:content.id,date:new Date().toISOString(),duration:25,highlights:hi,notes,teach},
+      cards:newCards
+    });
+  }
+
+  const phases=[{id:'study',l:'1. Sessão de Foco'},{id:'extract',l:'2. Extração'},{id:'teach',l:'3. Ensinar'}];
+
+  return(
+    <div className="slide-in" style={{padding:'24px',maxWidth:'920px',margin:'0 auto'}}>
+      <button onClick={onBack} style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:'13px',marginBottom:'18px',display:'flex',alignItems:'center',gap:'5px'}}>
+        ← Voltar
+      </button>
+
+      {/* Phase tabs */}
+      <div style={{display:'flex',gap:0,marginBottom:'22px',background:'var(--card)',borderRadius:'10px',padding:'4px',border:'1px solid var(--border)',width:'fit-content'}}>
+        {phases.map(p=>(
+          <button key={p.id} onClick={()=>setPhase(p.id)} style={{
+            padding:'7px 15px',borderRadius:'7px',border:'none',cursor:'pointer',fontSize:'12px',fontWeight:'600',fontFamily:'Inter',
+            background:phase===p.id?'#7c3aed':'transparent',
+            color:phase===p.id?'#fff':'var(--text3)',transition:'all .2s'
+          }}>{p.l}</button>
+        ))}
+      </div>
+
+      {/* Content pill */}
+      <div className="card" style={{padding:'12px 16px',marginBottom:'18px',display:'flex',alignItems:'center',gap:'10px',borderColor:content.color+'40'}}>
+        <span style={{fontSize:'16px'}}>{({book:'📚',course:'🎓',video:'🎥',article:'📄',note:'📝'})[content.type]||'📚'}</span>
+        <div>
+          <div style={{fontSize:'13px',fontWeight:'600',color:'var(--text)'}}>{content.title}</div>
+          {content.author&&<div style={{fontSize:'11px',color:'var(--text3)'}}>{content.author}</div>}
+        </div>
+      </div>
+
+      {/* STUDY */}
+      {phase==='study'&&(
+        <div style={{display:'grid',gridTemplateColumns:'auto 1fr',gap:'22px'}}>
+          <div className="card" style={{padding:'22px',display:'flex',flexDirection:'column',alignItems:'center',gap:'14px',minWidth:'190px'}}>
+            <div style={{position:'relative'}}>
+              <svg width="110" height="110" viewBox="0 0 110 110">
+                <circle cx="55" cy="55" r={r} fill="none" stroke="var(--border)" strokeWidth="8"/>
+                <circle cx="55" cy="55" r={r} fill="none" stroke="#7c3aed" strokeWidth="8"
+                  strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
+                  transform="rotate(-90 55 55)" style={{transition:'stroke-dashoffset 1s linear'}}/>
+              </svg>
+              <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <span style={{fontSize:'20px',fontWeight:'800',color:'var(--text)',fontFamily:'monospace'}}>{mm}:{ss}</span>
+              </div>
+            </div>
+            <div style={{fontSize:'11px',color:'var(--text3)'}}>Pomodoro · 25 min</div>
+            <button className="btn-primary" style={{width:'100%'}} onClick={()=>setRunning(!running)}>
+              {running?'⏸ Pausar':'▶ Iniciar'}
+            </button>
+            <button className="btn-secondary" style={{width:'100%',fontSize:'12px'}} onClick={()=>{setSecs(25*60);setRunning(false);}}>
+              ↺ Resetar
+            </button>
+            <div style={{borderTop:'1px solid var(--border)',paddingTop:'10px',width:'100%'}}>
+              <p style={{fontSize:'10px',color:'var(--text3)',textAlign:'center',lineHeight:'1.5'}}>
+                💡 Foque em 1 coisa.<br/>Sem celular. Sem abas.
+              </p>
+            </div>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+            <div className="card" style={{padding:'18px'}}>
+              <h3 style={{fontSize:'13px',fontWeight:'700',color:'var(--text)',marginBottom:'10px'}}>✏️ Anotações</h3>
+              <textarea className="textarea" value={notes} onChange={e=>setNotes(e.target.value)}
+                placeholder="Escreva pontos principais, insights, dúvidas..." style={{minHeight:'130px'}}/>
+            </div>
+            <div className="card" style={{padding:'18px'}}>
+              <h3 style={{fontSize:'13px',fontWeight:'700',color:'var(--text)',marginBottom:'10px'}}>🔖 Highlights</h3>
+              <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
+                <input className="input" value={hiInput} onChange={e=>setHiInput(e.target.value)}
+                  placeholder="Conceito importante..." style={{flex:1}} onKeyDown={e=>e.key==='Enter'&&addHi()}/>
+                <button className="btn-primary" onClick={addHi}>+</button>
+              </div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:'5px'}}>
+                {hi.map((h,i)=>(
+                  <span key={i} className="badge" style={{background:'rgba(124,58,237,.15)',color:'#a78bfa',cursor:'pointer'}}
+                    onClick={()=>setHi(p=>p.filter((_,j)=>j!==i))}>{h} ×</span>
+                ))}
+              </div>
+            </div>
+            <button className="btn-primary" style={{alignSelf:'flex-end',paddingLeft:'24px',paddingRight:'24px'}}
+              onClick={()=>setPhase('extract')}>
+              Finalizar Sessão →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* EXTRACT */}
+      {phase==='extract'&&(
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px'}}>
+          <div className="card" style={{padding:'20px'}}>
+            <h3 style={{fontSize:'13px',fontWeight:'700',color:'var(--text)',marginBottom:'14px'}}>🧠 Reflexão Ativa</h3>
+            <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+              {[
+                {k:'imp',q:'O que foi mais importante nessa sessão?'},
+                {k:'gap',q:'O que você ainda não entende completamente?'},
+                {k:'apply',q:'Como aplicaria isso na prática?'},
+              ].map(({k,q})=>(
+                <div key={k}>
+                  <label style={{fontSize:'11px',color:'#a78bfa',display:'block',marginBottom:'5px'}}>{q}</label>
+                  <textarea className="textarea" value={qs[k]} onChange={e=>setQs({...qs,[k]:e.target.value})}
+                    style={{minHeight:'65px'}} placeholder="Responda com suas palavras..."/>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card" style={{padding:'20px'}}>
+            <h3 style={{fontSize:'13px',fontWeight:'700',color:'var(--text)',marginBottom:'14px'}}>🃏 Criar Flashcards</h3>
+            <div style={{display:'flex',flexDirection:'column',gap:'9px',marginBottom:'10px'}}>
+              <input className="input" value={cf.front} onChange={e=>setCf({...cf,front:e.target.value})} placeholder="Pergunta / Conceito"/>
+              <textarea className="textarea" value={cf.back} onChange={e=>setCf({...cf,back:e.target.value})}
+                placeholder="Resposta / Explicação" style={{minHeight:'70px'}}/>
+              <button className="btn-primary" onClick={addCard}>+ Adicionar Card</button>
+            </div>
+            <div style={{borderTop:'1px solid var(--border)',paddingTop:'10px'}}>
+              <div style={{fontSize:'11px',color:'var(--text3)',marginBottom:'6px'}}>{newCards.length} card(s) criado(s)</div>
+              <div style={{maxHeight:'120px',overflowY:'auto',display:'flex',flexDirection:'column',gap:'5px'}}>
+                {newCards.map((c,i)=>(
+                  <div key={i} style={{background:'var(--card2)',borderRadius:'6px',padding:'7px 10px',display:'flex',justifyContent:'space-between',alignItems:'center',border:'1px solid var(--border)'}}>
+                    <span style={{fontSize:'11px',color:'var(--text)'}}>{c.front.slice(0,38)}…</span>
+                    <button onClick={()=>setNewCards(p=>p.filter((_,j)=>j!==i))}
+                      style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:'14px'}}>×</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button className="btn-primary" style={{width:'100%',marginTop:'12px'}} onClick={()=>setPhase('teach')}>
+              Próximo: Ensinar →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* TEACH */}
+      {phase==='teach'&&(
+        <div style={{display:'flex',flexDirection:'column',gap:'18px'}}>
+          <div className="card" style={{padding:'22px',background:'rgba(124,58,237,.06)',borderColor:'rgba(124,58,237,.3)'}}>
+            <div style={{display:'flex',gap:'12px',alignItems:'flex-start',marginBottom:'14px'}}>
+              <span style={{fontSize:'28px'}}>🎓</span>
+              <div>
+                <h2 style={{fontSize:'15px',fontWeight:'800',color:'var(--text)',marginBottom:'4px'}}>Modo Professor</h2>
+                <p style={{fontSize:'12px',color:'var(--text4)',lineHeight:'1.6'}}>
+                  Explique o que aprendeu como se ensinasse alguém que nunca viu o tema.
+                  Isso ativa recuperação ativa e consolida memória de longo prazo (Glasser: 90% retenção).
+                </p>
+              </div>
+            </div>
+            {hi.length>0&&(
+              <div style={{background:'rgba(0,0,0,.15)',borderRadius:'8px',padding:'10px',marginBottom:'12px'}}>
+                <p style={{fontSize:'10px',color:'#a78bfa',marginBottom:'5px',fontWeight:'700',textTransform:'uppercase',letterSpacing:'.5px'}}>Você destacou:</p>
+                <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
+                  {hi.map((h,i)=><span key={i} className="badge" style={{background:'rgba(124,58,237,.15)',color:'#a78bfa'}}>{h}</span>)}
+                </div>
+              </div>
+            )}
+            <label style={{fontSize:'12px',color:'var(--text4)',display:'block',marginBottom:'7px'}}>
+              Sua explicação (como professor):
+            </label>
+            <textarea className="textarea" value={teach} onChange={e=>setTeach(e.target.value)}
+              placeholder="Hoje aprendi que... O conceito funciona assim... Um exemplo real é..."
+              style={{minHeight:'160px'}}/>
+            {teach.split(' ').filter(w=>w).length>30&&(
+              <div style={{marginTop:'10px',padding:'9px 12px',background:'rgba(16,185,129,.1)',borderRadius:'7px',borderLeft:'3px solid #10b981'}}>
+                <span style={{fontSize:'11px',color:'#10b981'}}>✓ {teach.split(' ').filter(w=>w).length} palavras — continue expandindo!</span>
+              </div>
+            )}
+          </div>
+          <div className="card" style={{padding:'18px',borderColor:'rgba(6,182,212,.25)',background:'rgba(6,182,212,.04)'}}>
+            <h3 style={{fontSize:'13px',fontWeight:'700',color:'#06b6d4',marginBottom:'8px'}}>⚡ Desafio de Aplicação</h3>
+            <p style={{fontSize:'13px',color:'var(--text)',lineHeight:'1.6'}}>
+              Com base em <strong>"{content.title}"</strong>, crie 1 exemplo real ou ação que você aplicará nos próximos 7 dias.
+            </p>
+          </div>
+          <div style={{display:'flex',gap:'10px'}}>
+            <button className="btn-secondary" style={{flex:1}} onClick={()=>setPhase('extract')}>← Voltar</button>
+            <button className="btn-primary" style={{flex:2}} onClick={finish}>
+              ✓ Finalizar e Salvar Sessão
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Review ─────────────────────────────────────────────────────────────────
+function Review({data,setData,onDone}){
+  const due=data.cards.filter(isDue);
+  const [idx,setIdx]=useState(0);
+  const [flipped,setFlipped]=useState(false);
+  const [log,setLog]=useState([]);
+  const [done,setDone]=useState(false);
+
+  const card=due[idx];
+  const ct=card?data.contents.find(c=>c.id===card.cid):null;
+  const ret=card?calcRetention(card):0;
+
+  function rate(q){
+    const res=sm2(q,card.ef,card.interval,card.reps);
+    const nextReview=addDays(res.interval);
+    const mastery=res.interval>=21?'strong':res.interval>=6?'review':'learning';
+    const xp=q>=4?15:q>=3?10:5;
+    setData(p=>({
+      ...p,
+      totalXp:(p.totalXp||0)+xp,
+      cards:p.cards.map(c=>c.id===card.id?{...c,...res,nextReview,lastReview:new Date().toISOString(),mastery}:c)
+    }));
+    setLog(l=>[...l,{q}]);
+    setFlipped(false);
+    if(idx+1>=due.length)setDone(true);
+    else setIdx(i=>i+1);
+  }
+
+  if(due.length===0)return(
+    <div className="slide-in" style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'70vh'}}>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontSize:'56px',marginBottom:'14px'}}>🎉</div>
+        <h2 style={{fontSize:'18px',fontWeight:'800',color:'var(--text)',marginBottom:'7px'}}>Nada para revisar hoje!</h2>
+        <p style={{fontSize:'13px',color:'var(--text3)',marginBottom:'18px'}}>Todas as revisões em dia. Volte amanhã.</p>
+        <button className="btn-primary" onClick={onDone}>Voltar ao Dashboard</button>
+      </div>
+    </div>
+  );
+
+  if(done){
+    const perf=Math.round((log.filter(r=>r.q>=4).length/log.length)*100);
+    const xpTotal=log.reduce((a,r)=>a+(r.q>=4?15:r.q>=3?10:5),0);
+    return(
+      <div className="slide-in" style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'70vh'}}>
+        <div className="card" style={{padding:'32px',maxWidth:'380px',width:'100%',textAlign:'center'}}>
+          <div style={{fontSize:'48px',marginBottom:'14px'}}>🧠</div>
+          <h2 style={{fontSize:'18px',fontWeight:'800',color:'var(--text)',marginBottom:'6px'}}>Revisão Concluída!</h2>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',margin:'18px 0'}}>
+            <div style={{background:'var(--card2)',borderRadius:'8px',padding:'14px',border:'1px solid var(--border)'}}>
+              <div style={{fontSize:'22px',fontWeight:'800',color:'#7c3aed'}}>{log.length}</div>
+              <div style={{fontSize:'11px',color:'var(--text3)'}}>Cards</div>
+            </div>
+            <div style={{background:'var(--card2)',borderRadius:'8px',padding:'14px',border:'1px solid var(--border)'}}>
+              <div style={{fontSize:'22px',fontWeight:'800',color:'#10b981'}}>{perf}%</div>
+              <div style={{fontSize:'11px',color:'var(--text3)'}}>Desempenho</div>
+            </div>
+          </div>
+          <p style={{fontSize:'13px',color:'var(--text3)',marginBottom:'18px'}}>+{xpTotal} XP ganho nesta sessão</p>
+          <button className="btn-primary" style={{width:'100%'}} onClick={onDone}>Voltar ao Dashboard</button>
+        </div>
+      </div>
+    );
+  }
+
+  return(
+    <div className="slide-in" style={{padding:'24px',maxWidth:'680px',margin:'0 auto'}}>
+      <div style={{marginBottom:'22px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:'7px'}}>
+          <span style={{fontSize:'12px',color:'var(--text3)'}}>{idx+1} / {due.length}</span>
+          <span style={{fontSize:'12px',color:'var(--text3)'}}>{Math.round(idx/due.length*100)}%</span>
+        </div>
+        <div className="progress-bar" style={{height:'7px'}}>
+          <div className="progress-fill" style={{width:(idx/due.length*100)+'%',background:'linear-gradient(90deg,#7c3aed,#06b6d4)'}}/>
+        </div>
+      </div>
+
+      {ct&&(
+        <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'14px'}}>
+          <span style={{fontSize:'11px',color:'var(--text3)'}}>📚 {ct.title}</span>
+          <span className="badge" style={{
+            background:ret>60?'rgba(16,185,129,.15)':ret>30?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)',
+            color:ret>60?'#10b981':ret>30?'#f59e0b':'#ef4444'
+          }}>Retenção: {ret}%</span>
+        </div>
+      )}
+
+      <div className="flashcard-wrap" style={{marginBottom:'18px',minHeight:'210px'}} onClick={()=>setFlipped(f=>!f)}>
+        <div className={`flashcard-inner ${flipped?'flipped':''}`}>
+          <div className="fc-front">
+            <div className="card" style={{padding:'32px',minHeight:'210px',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
+              <div style={{fontSize:'10px',color:'var(--text3)',marginBottom:'14px',letterSpacing:'1.5px',textTransform:'uppercase'}}>PERGUNTA</div>
+              <p style={{fontSize:'17px',fontWeight:'600',color:'var(--text)',lineHeight:'1.6',maxWidth:'480px'}}>{card.front}</p>
+              <p style={{fontSize:'11px',color:'var(--text3)',marginTop:'18px'}}>Clique para revelar →</p>
+            </div>
+          </div>
+          <div className="fc-back">
+            <div className="card" style={{padding:'32px',minHeight:'210px',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',borderColor:'rgba(124,58,237,.4)',background:'rgba(124,58,237,.05)'}}>
+              <div style={{fontSize:'10px',color:'#a78bfa',marginBottom:'14px',letterSpacing:'1.5px',textTransform:'uppercase'}}>RESPOSTA</div>
+              <p style={{fontSize:'15px',color:'var(--text2)',lineHeight:'1.7',maxWidth:'480px',whiteSpace:'pre-wrap'}}>{card.back}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {flipped&&(
+        <div className="slide-in">
+          <p style={{fontSize:'12px',color:'var(--text3)',textAlign:'center',marginBottom:'11px'}}>Como foi sua lembrança?</p>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'10px'}}>
+            {[
+              {q:1,l:'Esqueci',c:'#ef4444',bg:'rgba(239,68,68,.12)',d:'Não lembrei'},
+              {q:2,l:'Difícil',c:'#f59e0b',bg:'rgba(245,158,11,.12)',d:'Com muito esforço'},
+              {q:3,l:'Bom',c:'#06b6d4',bg:'rgba(6,182,212,.12)',d:'Lembrei razoável'},
+              {q:4,l:'Fácil',c:'#10b981',bg:'rgba(16,185,129,.12)',d:'Lembrei bem'},
+            ].map(o=>(
+              <button key={o.q} onClick={()=>rate(o.q)} style={{
+                padding:'14px 8px',borderRadius:'10px',border:`1px solid ${o.c}30`,
+                background:o.bg,color:o.c,cursor:'pointer',transition:'all .2s',
+                display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',fontFamily:'Inter'
+              }}
+                onMouseEnter={e=>e.currentTarget.style.transform='translateY(-2px)'}
+                onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
+                <span style={{fontSize:'14px',fontWeight:'700'}}>{o.l}</span>
+                <span style={{fontSize:'10px',opacity:.8}}>{o.d}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Active Learning ────────────────────────────────────────────────────────
+function Active({data,setData}){
+  const [mode,setMode]=useState('home');
+  const [sel,setSel]=useState(null);
+  const [text,setText]=useState('');
+  const [ok,setOk]=useState(false);
+
+  const MODES={
+    teach:{icon:'🎓',title:'Modo Professor',col:'#7c3aed',ret:'90%',desc:'Explique o conteúdo como se ensinasse alguém. Técnica de maior consolidação neural.'},
+    apply:{icon:'⚡',title:'Aplicação Prática',col:'#06b6d4',ret:'75%',desc:'Crie exemplos reais, hipóteses e cenários para transformar teoria em habilidade.'},
+    quiz:{icon:'🧩',title:'Auto-Avaliação',col:'#10b981',ret:'65%',desc:'Responda perguntas profundas para identificar lacunas e consolidar insights.'},
+  };
+  const PROMPTS={
+    teach:['Explique o conceito principal como se ensinasse alguém que nunca ouviu sobre o tema.','Se tivesse 2 minutos, o que diria sobre o que aprendeu?','Quais 3 ideias mais importantes? Explique com exemplos.'],
+    apply:['Como aplicaria isso no seu trabalho nos próximos 7 dias?','Crie uma hipótese ou experimento baseado no que aprendeu.','Crie um exemplo concreto e real usando o conhecimento.'],
+    quiz:['Qual o maior insight que você tirou deste conteúdo?','O que mudou na sua forma de pensar após estudar isso?','Quais dúvidas restam? Como você as responderia?'],
+  };
+
+  function savePractice(){
+    const xp=text.split(' ').filter(w=>w).length>50?30:text.split(' ').filter(w=>w).length>20?20:10;
+    setData(p=>({...p,totalXp:(p.totalXp||0)+xp}));
+    setOk(true);setText('');
+    setTimeout(()=>setOk(false),3000);
+  }
+
+  const contents=data.contents.filter(c=>c.progress>0);
+
+  if(mode==='home')return(
+    <div className="slide-in" style={{padding:'24px',maxWidth:'880px',margin:'0 auto'}}>
+      <h1 style={{fontSize:'20px',fontWeight:'800',color:'var(--text)',marginBottom:'6px'}}>Aprendizado Ativo</h1>
+      <p style={{fontSize:'12px',color:'var(--text3)',marginBottom:'22px'}}>
+        Pirâmide de Glasser: retemos 10% do que lemos, mas até 90% do que ensinamos ou aplicamos.
+      </p>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'14px',marginBottom:'24px'}}>
+        {Object.entries(MODES).map(([k,m])=>(
+          <div key={k} className="card" style={{padding:'20px',cursor:'pointer',transition:'all .2s',border:`1px solid ${m.col}20`}}
+            onClick={()=>setMode(k)}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=m.col;e.currentTarget.style.transform='translateY(-2px)';}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=m.col+'20';e.currentTarget.style.transform='translateY(0)';}}>
+            <div style={{fontSize:'28px',marginBottom:'10px'}}>{m.icon}</div>
+            <h3 style={{fontSize:'13px',fontWeight:'700',color:'var(--text)',marginBottom:'5px'}}>{m.title}</h3>
+            <p style={{fontSize:'11px',color:'var(--text3)',lineHeight:'1.5',marginBottom:'10px'}}>{m.desc}</p>
+            <span className="badge" style={{background:m.col+'20',color:m.col}}>~{m.ret} retenção</span>
+          </div>
+        ))}
+      </div>
+      <div className="card" style={{padding:'16px',background:'rgba(124,58,237,.05)',borderColor:'rgba(124,58,237,.2)'}}>
+        <p style={{fontSize:'12px',color:'#a78bfa',fontWeight:'700',marginBottom:'4px'}}>💡 A Pirâmide de Glasser:</p>
+        <p style={{fontSize:'12px',color:'var(--text4)',lineHeight:'1.6'}}>
+          Leitura = 10% · Ouvir = 20% · Visualizar = 30% · Demonstrar = 50% · Discussão = 70% · <strong style={{color:'#a78bfa'}}>Praticar = 75% · Ensinar = 90%</strong>
+        </p>
+      </div>
+    </div>
+  );
+
+  const m=MODES[mode];
+  const prompts=PROMPTS[mode]||[];
+
+  return(
+    <div className="slide-in" style={{padding:'24px',maxWidth:'800px',margin:'0 auto'}}>
+      <button onClick={()=>{setMode('home');setSel(null);setText('');}} style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:'12px',marginBottom:'18px',display:'flex',alignItems:'center',gap:'5px'}}>
+        ← Voltar
+      </button>
+      <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'22px'}}>
+        <span style={{fontSize:'28px'}}>{m.icon}</span>
+        <div>
+          <h1 style={{fontSize:'17px',fontWeight:'800',color:'var(--text)'}}>{m.title}</h1>
+          <p style={{fontSize:'12px',color:'var(--text3)'}}>~{m.ret} retenção de longo prazo</p>
+        </div>
+      </div>
+
+      {!sel?(
+        <div>
+          <p style={{fontSize:'12px',color:'var(--text4)',marginBottom:'10px'}}>Escolha um conteúdo:</p>
+          <div style={{display:'flex',flexDirection:'column',gap:'9px'}}>
+            {contents.map(c=>(
+              <div key={c.id} className="card" style={{padding:'13px 16px',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',transition:'border-color .2s'}}
+                onClick={()=>setSel(c)}
+                onMouseEnter={e=>e.currentTarget.style.borderColor=m.col}
+                onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+                <div>
+                  <div style={{fontSize:'13px',fontWeight:'600',color:'var(--text)'}}>{c.title}</div>
+                  <div style={{fontSize:'11px',color:'var(--text3)'}}>{c.author||'—'} · {c.progress}% completo</div>
+                </div>
+                <I.Chevron/>
+              </div>
+            ))}
+            {contents.length===0&&<p style={{color:'var(--text3)',fontSize:'12px'}}>Nenhum conteúdo em progresso. Adicione na Biblioteca.</p>}
+          </div>
+        </div>
+      ):(
+        <div>
+          <div className="card" style={{padding:'12px 16px',marginBottom:'16px',display:'flex',justifyContent:'space-between',alignItems:'center',borderColor:m.col+'40',background:m.col+'08'}}>
+            <div>
+              <div style={{fontSize:'12px',fontWeight:'600',color:'var(--text)'}}>{sel.title}</div>
+              <div style={{fontSize:'10px',color:'var(--text3)'}}>{sel.author}</div>
+            </div>
+            <button onClick={()=>setSel(null)} style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer'}}><I.X/></button>
+          </div>
+          <div className="card" style={{padding:'16px',marginBottom:'14px',borderColor:m.col+'30',background:m.col+'05'}}>
+            <p style={{fontSize:'10px',color:m.col,fontWeight:'700',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Desafio</p>
+            <p style={{fontSize:'14px',color:'var(--text)',lineHeight:'1.6',fontWeight:'500'}}>{prompts[0]}</p>
+          </div>
+          <textarea className="textarea" value={text} onChange={e=>setText(e.target.value)}
+            placeholder={mode==='teach'?'Comece sua explicação...':mode==='apply'?'Descreva como aplicaria isso...':'Suas reflexões...'}
+            style={{minHeight:'190px',marginBottom:'12px'}}/>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
+            <span style={{fontSize:'11px',color:text.split(' ').filter(w=>w).length>50?'#10b981':'var(--text3)'}}>
+              {text.split(' ').filter(w=>w).length} palavras{text.split(' ').filter(w=>w).length>50?' · Excelente!':''}
+            </span>
+            <div style={{display:'flex',gap:'8px'}}>
+              <button className="btn-secondary" onClick={()=>setText('')}>Limpar</button>
+              <button className="btn-primary" onClick={savePractice} disabled={text.length<10}>
+                {ok?'✓ Salvo! +XP':'Salvar e ganhar XP →'}
+              </button>
+            </div>
+          </div>
+          {prompts.slice(1).map((p,i)=>(
+            <div key={i} style={{padding:'9px 12px',background:'var(--card2)',border:'1px solid var(--border)',borderRadius:'7px',fontSize:'12px',color:'var(--text4)',cursor:'pointer',marginBottom:'6px',lineHeight:'1.5'}}
+              onClick={()=>setText(t=>t+(t?'\n\n':'')+p+'\n')}>
+              + {p}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Skills ─────────────────────────────────────────────────────────────────
+function Skills({data,setData}){
+  const [sel,setSel]=useState(null);
+  const [showAdd,setShowAdd]=useState(false);
+  const [form,setForm]=useState({name:'',cat:'product'});
+
+  const CATS={product:{l:'Produto',c:'#7c3aed'},tech:{l:'Tecnologia',c:'#06b6d4'},soft:{l:'Soft Skills',c:'#ec4899'},data:{l:'Dados',c:'#f59e0b'}};
+  const LEVELS=['Iniciante','Básico','Intermediário','Avançado','Expert','Mestre'];
+
+  function addSkill(){
+    if(!form.name.trim())return;
+    const skill={id:uid(),...form,level:0,xp:0,maxXp:200,color:CATS[form.cat]?.c||'#7c3aed'};
+    setData(p=>({...p,skills:[...p.skills,skill]}));
+    setForm({name:'',cat:'product'});setShowAdd(false);
+  }
+
+  function gainXp(id,amt){
+    setData(p=>({
+      ...p,
+      totalXp:(p.totalXp||0)+amt,
+      skills:p.skills.map(s=>{
+        if(s.id!==id)return s;
+        let xp=s.xp+amt,level=s.level,maxXp=s.maxXp;
+        if(xp>=maxXp&&level<5){xp-=maxXp;level++;maxXp+=100;}
+        return{...s,xp,level,maxXp};
+      })
+    }));
+  }
+
+  const bycat=Object.entries(CATS).reduce((a,[k])=>{a[k]=data.skills.filter(s=>s.cat===k);return a},{});
+
+  return(
+    <div className="slide-in" style={{padding:'24px',maxWidth:'1100px',margin:'0 auto'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'22px'}}>
+        <div>
+          <h1 style={{fontSize:'20px',fontWeight:'800',color:'var(--text)'}}>Árvore de Habilidades</h1>
+          <p style={{fontSize:'12px',color:'var(--text3)',marginTop:'2px'}}>Medimos capacidade real, não consumo</p>
+        </div>
+        <button className="btn-primary" style={{display:'flex',alignItems:'center',gap:'6px'}} onClick={()=>setShowAdd(true)}>
+          <I.Plus/>Nova Habilidade
+        </button>
+      </div>
+
+      {showAdd&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+          <div className="card slide-in" style={{padding:'24px',width:'100%',maxWidth:'380px'}}>
+            <h2 style={{fontSize:'14px',fontWeight:'700',color:'var(--text)',marginBottom:'14px'}}>Nova Habilidade</h2>
+            <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+              <input className="input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nome da habilidade"/>
+              <select className="input" value={form.cat} onChange={e=>setForm({...form,cat:e.target.value})}>
+                {Object.entries(CATS).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}
+              </select>
+              <div style={{display:'flex',gap:'9px',marginTop:'4px'}}>
+                <button className="btn-secondary" style={{flex:1}} onClick={()=>setShowAdd(false)}>Cancelar</button>
+                <button className="btn-primary" style={{flex:1}} onClick={addSkill}>Criar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'12px',marginBottom:'22px'}}>
+        {[
+          {l:'Total XP',v:(data.totalXp||0).toLocaleString(),c:'#7c3aed'},
+          {l:'Habilidades',v:data.skills.length,c:'#06b6d4'},
+          {l:'Nível médio',v:data.skills.length?(data.skills.reduce((a,s)=>a+s.level,0)/data.skills.length).toFixed(1):'0',c:'#10b981'},
+          {l:'Expert+ (Nv4)',v:data.skills.filter(s=>s.level>=4).length,c:'#f59e0b'},
+        ].map((s,i)=>(
+          <div key={i} className="card" style={{padding:'14px'}}>
+            <div style={{fontSize:'20px',fontWeight:'800',color:s.c}}>{s.v}</div>
+            <div style={{fontSize:'11px',color:'var(--text3)'}}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {Object.entries(CATS).map(([cat,ci])=>{
+        const skills=bycat[cat]||[];
+        if(!skills.length)return null;
+        return(
+          <div key={cat} style={{marginBottom:'22px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'10px'}}>
+              <div style={{width:'3px',height:'14px',background:ci.c,borderRadius:'2px'}}/>
+              <h2 style={{fontSize:'13px',fontWeight:'700',color:'var(--text)'}}>{ci.l}</h2>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(210px,1fr))',gap:'11px'}}>
+              {skills.map(sk=>{
+                const isSel=sel?.id===sk.id;
+                const pct=Math.round(sk.xp/sk.maxXp*100);
+                return(
+                  <div key={sk.id} className="card skill-card" style={{padding:'15px',border:isSel?`1px solid ${sk.color}`:'1px solid var(--border)'}}
+                    onClick={()=>setSel(isSel?null:sk)}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'9px'}}>
+                      <div>
+                        <div style={{fontSize:'12px',fontWeight:'700',color:'var(--text)',marginBottom:'1px'}}>{sk.name}</div>
+                        <div style={{fontSize:'10px',color:sk.color}}>{LEVELS[sk.level]}</div>
+                      </div>
+                      <div style={{background:sk.color+'20',border:`1px solid ${sk.color}40`,borderRadius:'6px',padding:'3px 7px',textAlign:'center'}}>
+                        <div style={{fontSize:'13px',fontWeight:'800',color:sk.color}}>Nv.{sk.level}</div>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:'3px',marginBottom:'9px'}}>
+                      {[0,1,2,3,4].map(i=>(
+                        <div key={i} style={{flex:1,height:'4px',borderRadius:'2px',background:i<sk.level?sk.color:'var(--border)'}}/>
+                      ))}
+                    </div>
+                    <div style={{display:'flex',justifyContent:'space-between',marginBottom:'3px'}}>
+                      <span style={{fontSize:'10px',color:'var(--text3)'}}>XP {sk.xp}/{sk.maxXp}</span>
+                      <span style={{fontSize:'10px',color:'var(--text3)'}}>{pct}%</span>
+                    </div>
+                    <div className="progress-bar"><div className="progress-fill" style={{width:pct+'%',background:sk.color}}/></div>
+                    {isSel&&(
+                      <div className="slide-in" style={{marginTop:'11px',paddingTop:'11px',borderTop:'1px solid var(--border)',display:'flex',gap:'6px'}}>
+                        <button onClick={e=>{e.stopPropagation();gainXp(sk.id,10);}} style={{flex:1,padding:'6px',borderRadius:'6px',border:'1px solid var(--border2)',background:'var(--card2)',color:'var(--text3)',cursor:'pointer',fontSize:'11px',fontFamily:'Inter'}}>
+                          +10 XP
+                        </button>
+                        <button onClick={e=>{e.stopPropagation();gainXp(sk.id,25);}} style={{flex:1,padding:'6px',borderRadius:'6px',border:`1px solid ${sk.color}50`,background:sk.color+'18',color:sk.color,cursor:'pointer',fontSize:'11px',fontWeight:'700',fontFamily:'Inter'}}>
+                          +25 XP
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Help ───────────────────────────────────────────────────────────────────
+function Help(){
+  const [open,setOpen]=useState(null);
+  const toggle=id=>setOpen(o=>o===id?null:id);
+
+  const MODULES=[
+    {
+      id:'dashboard',icon:'📊',title:'Dashboard',color:'#7c3aed',
+      tagline:'Sua central de comando diária',
+      steps:[
+        {n:'1',t:'Veja as revisões do dia','d':'Toda vez que abrir o app, o painel mostra quantos flashcards estão vencidos. Sempre comece por aqui.'},
+        {n:'2',t:'Cheque o alerta laranja','d':'Se aparecer o aviso "Risco de Esquecimento", você está prestes a perder conteúdo que já estudou. Revise antes que a retenção caia abaixo de 50%.'},
+        {n:'3',t:'Calendário da semana','d':'As barras mostram quantas revisões estão agendadas por dia. Planeje seus estudos para não acumular.'},
+        {n:'4',t:'Mapa de Retenção','d':'O anel mostra sua média geral. Verde = sólido. Amarelo = precisa de atenção. Vermelho = urgente.'},
+      ],
+      tip:'💡 O Dashboard é o único lugar que você precisa visitar todo dia. 5 minutos de revisão aqui valem mais do que 1 hora de leitura passiva.',
+      science:'Curva de Ebbinghaus: revisar no momento certo (antes de esquecer) multiplica a estabilidade neural. Cada revisão bem feita dobra o próximo intervalo.',
+    },
+    {
+      id:'library',icon:'📚',title:'Biblioteca',color:'#06b6d4',
+      tagline:'Organize tudo que você quer aprender',
+      steps:[
+        {n:'1',t:'Adicione um conteúdo','d':'Clique em "Adicionar" e preencha título, tipo (livro/curso/vídeo/artigo) e autor. Cada conteúdo terá seus próprios flashcards e revisões.'},
+        {n:'2',t:'Acompanhe o progresso','d':'A barra de progresso avança automaticamente a cada sessão de foco finalizada (+10%). Você também vê a retenção média dos flashcards daquele conteúdo.'},
+        {n:'3',t:'Inicie o estudo','d':'Clique em "Estudar →" em qualquer card para abrir a Sessão de Foco daquele conteúdo.'},
+      ],
+      tip:'💡 Não adicione 20 livros de uma vez. Foque em 2-3 conteúdos ativos por vez para manter a consistência.',
+      science:'Distribuição de atenção: focar em menos conteúdos simultaneamente aumenta a profundidade do aprendizado e reduz a sobrecarga cognitiva.',
+    },
+    {
+      id:'focus',icon:'⏱',title:'Sessão de Foco',color:'#ec4899',
+      tagline:'Pomodoro + Extração + Modo Professor',
+      steps:[
+        {n:'1',t:'Fase 1 — Pomodoro (25 min)','d':'Clique em "Iniciar" e estude sem distrações. Use o campo de Anotações para escrever livremente enquanto lê. Adicione Highlights com os conceitos mais importantes — eles aparecerão na Fase 3.'},
+        {n:'2',t:'Fase 2 — Extração','d':'Responda as 3 perguntas de reflexão (importante / lacuna / aplicação). Depois crie pelo menos 2 flashcards: escreva a pergunta na frente e a resposta atrás. Quanto mais específico, melhor.'},
+        {n:'3',t:'Fase 3 — Modo Professor','d':'Esta é a etapa mais poderosa. Escreva uma explicação do que aprendeu como se estivesse ensinando alguém. Mínimo recomendado: 50 palavras. Não copie — reformule com suas próprias palavras.'},
+        {n:'4',t:'Finalize e salve','d':'Clique em "Finalizar e Salvar Sessão". O app agenda automaticamente as revisões dos flashcards que você criou.'},
+      ],
+      tip:'💡 Não pule a Fase 3. Ela é responsável por ~90% da consolidação. Se só fizer as Fases 1 e 2, você está perdendo a maior parte do benefício.',
+      science:'Pirâmide de Glasser: leitura retém 10%, mas ensinar retém até 90%. A Fase 3 força recuperação ativa e reorganização mental — os dois mecanismos mais potentes de consolidação neural.',
+    },
+    {
+      id:'review',icon:'🔄',title:'Revisão Inteligente',color:'#f59e0b',
+      tagline:'O motor de retenção de longo prazo',
+      steps:[
+        {n:'1',t:'Inicie pelo Dashboard','d':'Clique em "Iniciar Sessão de Revisão" ou vá na aba Revisão. Você verá os cards vencidos do dia.'},
+        {n:'2',t:'Leia a pergunta','d':'O card mostra apenas a frente (pergunta). Tente responder mentalmente — não vire antes de pensar. A recuperação ativa é o que consolida a memória.'},
+        {n:'3',t:'Revele e avalie honestamente','d':'Clique para ver a resposta. Depois escolha com honestidade: Esqueci / Difícil / Bom / Fácil. Nunca marque Fácil se teve dúvida — isso distorce o algoritmo.'},
+        {n:'4',t:'O algoritmo cuida do resto','d':'O SM-2 recalcula o próximo intervalo automaticamente. Bom desempenho = próxima revisão mais longe. Esqueceu = volta para 1 dia.'},
+      ],
+      tip:'💡 Seja honesto ao avaliar. Marcar "Fácil" em algo que você mal lembrou parece atalho, mas vai fazer você esquecer — e perder todo o trabalho anterior.',
+      science:'Algoritmo SM-2 (SuperMemo): calcula I(n) = I(n-1) × EF, onde EF varia com seu desempenho. Revisões honestas = intervalos corretos = memória de longo prazo.',
+    },
+    {
+      id:'active',icon:'⚡',title:'Aprendizado Ativo',color:'#10b981',
+      tagline:'Transforme teoria em habilidade praticada',
+      steps:[
+        {n:'1',t:'Escolha o modo','d':'Modo Professor (90% retenção): explique o conteúdo para um iniciante. Aplicação (75%): crie exemplos reais do seu trabalho. Auto-Avaliação (65%): responda perguntas profundas de reflexão.'},
+        {n:'2',t:'Selecione o conteúdo','d':'Escolha um livro ou curso que você já começou a estudar. O desafio é específico para aquele conteúdo.'},
+        {n:'3',t:'Escreva sem copiar','d':'Não releia o material antes. Tente recuperar o conhecimento da memória. Isso é o que consolida — não consultar o livro e transcrever.'},
+        {n:'4',t:'Salve e ganhe XP','d':'Clique em "Salvar e ganhar XP". Quanto mais elaborada sua resposta (mais de 50 palavras), mais XP você ganha.'},
+      ],
+      tip:'💡 Use este módulo logo após terminar um capítulo, enquanto o conteúdo ainda está fresco. Depois deixe para as revisões espaçadas fazerem o trabalho.',
+      science:'Pirâmide de Glasser + Recuperação Ativa: a combinação de ensinar e aplicar ativa múltiplas redes neurais simultaneamente, criando conexões mais fortes e duráveis.',
+    },
+    {
+      id:'skills',icon:'🌳',title:'Árvore de Habilidades',color:'#a78bfa',
+      tagline:'Meça evolução real, não consumo',
+      steps:[
+        {n:'1',t:'Crie suas habilidades','d':'Clique em "Nova Habilidade" e adicione as competências que quer desenvolver (ex: Product Discovery, Python, Storytelling). Escolha a categoria correta.'},
+        {n:'2',t:'Ganhe XP praticando','d':'XP só cresce quando você revisa flashcards, pratica no Aprendizado Ativo ou finaliza sessões. Não por apenas ler.'},
+        {n:'3',t:'Suba de nível','d':'Ao atingir o máximo de XP do nível atual, você sobe automaticamente: Iniciante → Básico → Intermediário → Avançado → Expert → Mestre.'},
+        {n:'4',t:'Ajuste manualmente se precisar','d':'Clique em um card de habilidade e use os botões +10 XP / +25 XP para registrar prática que aconteceu fora do app.'},
+      ],
+      tip:'💡 A Árvore de Habilidades é o único lugar do app que responde à pergunta: "O que eu realmente sei fazer?" — não o que você consumiu.',
+      science:'Skill Acquisition Theory: habilidade real é medida pela capacidade de recuperar e aplicar conhecimento sob pressão, não pelo tempo de exposição ao conteúdo.',
+    },
+  ];
+
+  const FAQ=[
+    {q:'Com que frequência devo usar o app?',a:'Todo dia, mesmo que por 5 minutos. A consistência é mais importante do que a duração. Uma sessão de revisão rápida diária supera uma sessão longa semanal.'},
+    {q:'Quantos flashcards devo criar por sessão?',a:'Entre 3 e 8 cards por sessão de foco. Preferir qualidade à quantidade — um card bem formulado vale 10 cards genéricos.'},
+    {q:'O que é uma boa pergunta de flashcard?',a:'Perguntas atômicas: um conceito por card. Evite perguntas longas ou com múltiplas respostas. Bom: "O que é EF no SM-2?" Ruim: "Explique todo o algoritmo SM-2."'},
+    {q:'Posso pular o Modo Professor?',a:'Tecnicamente sim, mas não recomendamos. Sem ele, você reduz a retenção de ~90% para ~20-30%. É a diferença entre aprender e só parecer que aprendeu.'},
+    {q:'Meus dados são salvos onde?',a:'Tudo fica no localStorage do seu navegador, no seu dispositivo. Não há conta, servidor ou nuvem. Para não perder os dados, não limpe o cache do navegador.'},
+    {q:'O que acontece se eu esquecer de revisar um dia?',a:'O sistema aguarda. Os cards vencidos acumulam e aparecem no próximo acesso. Quanto mais dias de atraso, mais a retenção cai — mas é sempre possível recuperar.'},
+  ];
+
+  return(
+    <div className="slide-in" style={{padding:'24px',maxWidth:'900px',margin:'0 auto'}}>
+      {/* Header */}
+      <div style={{marginBottom:'28px'}}>
+        <h1 style={{fontSize:'20px',fontWeight:'800',color:'var(--text)',marginBottom:'4px',display:'flex',alignItems:'center',gap:'10px'}}>
+          <span style={{background:'linear-gradient(135deg,#7c3aed,#06b6d4)',borderRadius:'8px',padding:'6px',display:'inline-flex'}}><I.Help/></span>
+          Central de Ajuda
+        </h1>
+        <p style={{fontSize:'13px',color:'var(--text3)'}}>Guia completo para usar cada funcionalidade do NeuroLearn</p>
+      </div>
+
+      {/* Quick-start banner */}
+      <div style={{
+        background:'linear-gradient(135deg,rgba(124,58,237,.12),rgba(6,182,212,.08))',
+        border:'1px solid rgba(124,58,237,.3)',borderRadius:'12px',
+        padding:'18px 20px',marginBottom:'24px',
+        display:'flex',gap:'16px',alignItems:'flex-start'
+      }}>
+        <span style={{fontSize:'28px',flexShrink:0}}>🚀</span>
+        <div>
+          <div style={{fontSize:'13px',fontWeight:'700',color:'var(--text)',marginBottom:'6px'}}>Fluxo ideal para começar</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+            {['1. Adicione um livro na Biblioteca','2. Inicie uma Sessão de Foco','3. Crie flashcards','4. Use o Modo Professor','5. Revise todo dia'].map((s,i)=>(
+              <span key={i} style={{
+                background:'rgba(124,58,237,.15)',color:'#a78bfa',
+                borderRadius:'20px',padding:'3px 10px',fontSize:'11px',fontWeight:'600'
+              }}>{s}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Modules accordion */}
+      <div style={{marginBottom:'28px'}}>
+        <h2 style={{fontSize:'13px',fontWeight:'700',color:'var(--text3)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'12px'}}>
+          Guia por Módulo
+        </h2>
+        <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+          {MODULES.map(m=>(
+            <div key={m.id} className="card" style={{overflow:'hidden',transition:'border-color .2s',borderColor:open===m.id?m.color+'60':'var(--border)'}}>
+              {/* Header */}
+              <div
+                style={{padding:'14px 18px',cursor:'pointer',display:'flex',alignItems:'center',gap:'12px',userSelect:'none'}}
+                onClick={()=>toggle(m.id)}>
+                <div style={{
+                  width:'36px',height:'36px',borderRadius:'8px',flexShrink:0,
+                  background:m.color+'18',border:`1px solid ${m.color}30`,
+                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:'18px'
+                }}>{m.icon}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:'13px',fontWeight:'700',color:'var(--text)'}}>{m.title}</div>
+                  <div style={{fontSize:'11px',color:'var(--text3)',marginTop:'1px'}}>{m.tagline}</div>
+                </div>
+                <span style={{
+                  fontSize:'16px',color:'var(--text3)',transition:'transform .25s',
+                  transform:open===m.id?'rotate(90deg)':'rotate(0deg)',display:'inline-block'
+                }}>›</span>
+              </div>
+
+              {/* Body */}
+              {open===m.id&&(
+                <div className="slide-in" style={{padding:'0 18px 18px',borderTop:'1px solid var(--border)'}}>
+                  {/* Steps */}
+                  <div style={{marginTop:'14px',display:'flex',flexDirection:'column',gap:'10px',marginBottom:'14px'}}>
+                    {m.steps.map(s=>(
+                      <div key={s.n} style={{display:'flex',gap:'12px',alignItems:'flex-start'}}>
+                        <div style={{
+                          width:'22px',height:'22px',borderRadius:'50%',flexShrink:0,
+                          background:m.color,display:'flex',alignItems:'center',
+                          justifyContent:'center',fontSize:'10px',fontWeight:'800',color:'#fff',
+                          marginTop:'1px'
+                        }}>{s.n}</div>
+                        <div>
+                          <div style={{fontSize:'12px',fontWeight:'700',color:'var(--text)',marginBottom:'2px'}}>{s.t}</div>
+                          <div style={{fontSize:'12px',color:'var(--text3)',lineHeight:'1.6'}}>{s.d}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Tip */}
+                  <div style={{
+                    background:m.color+'0d',border:`1px solid ${m.color}25`,
+                    borderRadius:'8px',padding:'10px 14px',marginBottom:'10px'
+                  }}>
+                    <p style={{fontSize:'12px',color:m.color,fontWeight:'600',lineHeight:'1.6'}}>{m.tip}</p>
+                  </div>
+
+                  {/* Science */}
+                  <div style={{
+                    background:'rgba(124,58,237,.05)',border:'1px solid rgba(124,58,237,.15)',
+                    borderRadius:'8px',padding:'10px 14px',
+                    display:'flex',gap:'8px',alignItems:'flex-start'
+                  }}>
+                    <span style={{fontSize:'14px',flexShrink:0}}>🧬</span>
+                    <p style={{fontSize:'11px',color:'var(--text4)',lineHeight:'1.6'}}><strong style={{color:'#a78bfa'}}>Ciência: </strong>{m.science}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* XP table */}
+      <div className="card" style={{padding:'18px',marginBottom:'24px'}}>
+        <h2 style={{fontSize:'13px',fontWeight:'700',color:'var(--text)',marginBottom:'14px',display:'flex',alignItems:'center',gap:'8px'}}>
+          ⚡ Como ganhar XP
+        </h2>
+        <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+          {[
+            {acao:'Revisar flashcard — resposta Fácil',xp:'+15 XP',c:'#10b981'},
+            {acao:'Revisar flashcard — resposta Bom',xp:'+10 XP',c:'#06b6d4'},
+            {acao:'Revisar flashcard — resposta Difícil/Esqueci',xp:'+5 XP',c:'#f59e0b'},
+            {acao:'Praticar Aprendizado Ativo (> 50 palavras)',xp:'+30 XP',c:'#7c3aed'},
+            {acao:'Praticar Aprendizado Ativo (20–50 palavras)',xp:'+20 XP',c:'#7c3aed'},
+            {acao:'Finalizar Sessão de Foco',xp:'+20 XP',c:'#ec4899'},
+            {acao:'Criar flashcard em sessão',xp:'+5 XP / card',c:'#a78bfa'},
+          ].map((r,i)=>(
+            <div key={i} style={{
+              display:'flex',justifyContent:'space-between',alignItems:'center',
+              padding:'8px 12px',background:i%2===0?'var(--card2)':'transparent',
+              borderRadius:'6px'
+            }}>
+              <span style={{fontSize:'12px',color:'var(--text2)'}}>{r.acao}</span>
+              <span style={{fontSize:'12px',fontWeight:'700',color:r.c,flexShrink:0,marginLeft:'12px'}}>{r.xp}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div>
+        <h2 style={{fontSize:'13px',fontWeight:'700',color:'var(--text3)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'12px'}}>
+          Perguntas Frequentes
+        </h2>
+        <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+          {FAQ.map((f,i)=>(
+            <div key={i} className="card" style={{overflow:'hidden'}}>
+              <div
+                style={{padding:'12px 16px',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px',userSelect:'none'}}
+                onClick={()=>toggle('faq'+i)}>
+                <span style={{fontSize:'13px',fontWeight:'600',color:'var(--text)',lineHeight:'1.4'}}>{f.q}</span>
+                <span style={{fontSize:'16px',color:'var(--text3)',flexShrink:0,transition:'transform .25s',transform:open==='faq'+i?'rotate(45deg)':'rotate(0deg)',display:'inline-block'}}>+</span>
+              </div>
+              {open==='faq'+i&&(
+                <div className="slide-in" style={{padding:'0 16px 14px',borderTop:'1px solid var(--border)'}}>
+                  <p style={{fontSize:'12px',color:'var(--text3)',lineHeight:'1.7',marginTop:'10px'}}>{f.a}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer note */}
+      <div style={{marginTop:'24px',padding:'14px 18px',background:'rgba(16,185,129,.06)',border:'1px solid rgba(16,185,129,.2)',borderRadius:'10px',display:'flex',gap:'10px',alignItems:'flex-start'}}>
+        <span style={{fontSize:'18px',flexShrink:0}}>✅</span>
+        <p style={{fontSize:'12px',color:'var(--text3)',lineHeight:'1.7'}}>
+          <strong style={{color:'#10b981'}}>Lembre-se:</strong> O NeuroLearn funciona com consistência diária, não com maratonas semanais. 10 minutos todo dia de revisão ativa valem mais do que 3 horas de leitura passiva no fim de semana.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── App ────────────────────────────────────────────────────────────────────
+function App(){
+  const [data,setData]=useState(load);
+  const [page,setPage]=useState('dashboard');
+  const [focusCt,setFocusCt]=useState(null);
+  const [theme,setTheme]=useState(()=>localStorage.getItem('nl_theme')||'dark');
+
+  // Apply theme to <html>
+  useEffect(()=>{
+    document.documentElement.setAttribute('data-theme',theme);
+    localStorage.setItem('nl_theme',theme);
+  },[theme]);
+
+  useEffect(()=>save(data),[data]);
+
+  const NAV=[
+    {id:'dashboard',l:'Dashboard',icon:<I.Brain/>},
+    {id:'library',l:'Biblioteca',icon:<I.Book/>},
+    {id:'focus',l:'Sessão de Foco',icon:<I.Timer/>},
+    {id:'review',l:'Revisão',icon:<I.Refresh/>},
+    {id:'active',l:'Aprendizado Ativo',icon:<I.Zap/>},
+    {id:'skills',l:'Habilidades',icon:<I.Tree/>},
+    {id:'help',l:'Ajuda',icon:<I.Help/>},
+  ];
+
+  const dueN=data.cards.filter(isDue).length;
+
+  function startSession(c){setFocusCt(c);setPage('focus');}
+  function finishSession({session,cards}){
+    setData(p=>{
+      const contents=p.contents.map(c=>c.id===focusCt.id?{...c,progress:Math.min(100,c.progress+10)}:c);
+      return{...p,contents,sessions:[...p.sessions,session],cards:[...p.cards,...cards],
+        totalXp:(p.totalXp||0)+20+cards.length*5,
+        streak:p.streak+(p.lastStudyDate===new Date().toDateString()?0:1),
+        lastStudyDate:new Date().toDateString()};
+    });
+    setFocusCt(null);setPage('dashboard');
+  }
+  function nav(p){setPage(p);setFocusCt(null);}
+
+  return(
+    <div style={{display:'flex',minHeight:'100vh'}}>
+      {/* Sidebar */}
+      <nav style={{
+        width:'215px',background:'var(--bg2)',borderRight:'1px solid var(--border)',
+        padding:'18px 10px',display:'flex',flexDirection:'column',gap:'4px',
+        position:'sticky',top:0,height:'100vh',overflowY:'auto',flexShrink:0,
+        transition:'background .25s,border-color .25s'
+      }}>
+        {/* Logo */}
+        <div style={{padding:'8px 6px',marginBottom:'18px',display:'flex',alignItems:'center',gap:'10px'}}>
+          <div style={{background:'linear-gradient(135deg,#7c3aed,#06b6d4)',borderRadius:'8px',padding:'7px',display:'flex'}}><I.Brain/></div>
+          <div>
+            <div style={{fontSize:'14px',fontWeight:'800',color:'var(--text)'}}>NeuroLearn</div>
+            <div style={{fontSize:'9px',color:'var(--text3)',letterSpacing:'.3px'}}>Sistema Operacional</div>
+          </div>
+        </div>
+
+        {NAV.map(n=>(
+          <div key={n.id} className={`nav-item${page===n.id?' active':''}`} onClick={()=>nav(n.id)}>
+            {n.icon}
+            <span style={{flex:1}}>{n.l}</span>
+            {n.id==='review'&&dueN>0&&(
+              <span style={{background:'#ef4444',color:'#fff',borderRadius:'10px',padding:'1px 6px',fontSize:'10px',fontWeight:'700'}}>{dueN}</span>
+            )}
+          </div>
+        ))}
+
+        {/* Streak */}
+        <div style={{marginTop:'auto',borderTop:'1px solid var(--border)',paddingTop:'14px'}}>
+          <div style={{padding:'10px',background:'rgba(245,158,11,.08)',borderRadius:'8px',border:'1px solid rgba(245,158,11,.2)',marginBottom:'10px'}}>
+            <div style={{fontSize:'10px',color:'#fbbf24',fontWeight:'700',marginBottom:'3px'}}>🔥 Sequência atual</div>
+            <div style={{fontSize:'20px',fontWeight:'800',color:'#f59e0b'}}>{data.streak} dias</div>
+            <div className="progress-bar" style={{marginTop:'5px'}}>
+              <div className="progress-fill" style={{width:Math.min(100,data.streak/30*100)+'%',background:'#f59e0b'}}/>
+            </div>
+            <div style={{fontSize:'9px',color:'var(--text3)',marginTop:'3px'}}>meta: 30 dias</div>
+          </div>
+
+          {/* Theme toggle */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 4px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'11px',color:'var(--text3)'}}>
+              {theme==='dark'?<I.Moon/>:<I.Sun/>}
+              {theme==='dark'?'Modo escuro':'Modo claro'}
+            </div>
+            <button
+              className="theme-toggle"
+              onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}
+              title={theme==='dark'?'Ativar modo claro':'Ativar modo escuro'}
+              aria-label="Alternar tema"
+            />
+          </div>
+        </div>
+      </nav>
+
+      {/* Main */}
+      <main style={{flex:1,overflowY:'auto',background:'var(--bg)',transition:'background .25s'}}>
+        {page==='dashboard'&&<Dashboard data={data} nav={nav} startReview={()=>nav('review')}/>}
+        {page==='library'&&<Library data={data} setData={setData} startSession={startSession}/>}
+        {page==='focus'&&focusCt&&<Focus content={focusCt} onDone={finishSession} onBack={()=>{setFocusCt(null);nav('library');}}/>}
+        {page==='focus'&&!focusCt&&(
+          <div className="slide-in" style={{padding:'24px',maxWidth:'800px',margin:'0 auto'}}>
+            <h1 style={{fontSize:'20px',fontWeight:'800',color:'var(--text)',marginBottom:'6px'}}>Sessão de Foco</h1>
+            <p style={{fontSize:'12px',color:'var(--text3)',marginBottom:'20px'}}>Escolha um conteúdo para iniciar uma sessão Pomodoro focada.</p>
+            <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+              {data.contents.map(c=>(
+                <div key={c.id} className="card" style={{padding:'14px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer',transition:'border-color .2s'}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=c.color}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}
+                  onClick={()=>startSession(c)}>
+                  <div>
+                    <div style={{fontSize:'13px',fontWeight:'600',color:'var(--text)'}}>{c.title}</div>
+                    <div style={{fontSize:'11px',color:'var(--text3)'}}>{c.author} · {c.progress}% completo</div>
+                  </div>
+                  <button className="btn-primary" style={{fontSize:'12px',padding:'6px 12px'}}>Iniciar</button>
+                </div>
+              ))}
+              {data.contents.length===0&&<p style={{color:'var(--text3)',fontSize:'13px'}}>Adicione conteúdo na Biblioteca primeiro.</p>}
+            </div>
+          </div>
+        )}
+        {page==='review'&&<Review data={data} setData={setData} onDone={()=>nav('dashboard')}/>}
+        {page==='active'&&<Active data={data} setData={setData}/>}
+        {page==='skills'&&<Skills data={data} setData={setData}/>}
+        {page==='help'&&<Help/>}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,349 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── TOKENS dark ──────────────────────────────────────────────────────────── */
+:root {
+  /* Superfícies */
+  --bg:      #0a0b0f;
+  --bg2:     #0d0e14;
+  --card:    #13141a;
+  --card2:   #1a1b22;
+  --border:  #1e2028;
+  --border2: #2d2f3a;
+  --text:    #f1f5f9;
+  --text2:   #e2e8f0;
+  --text3:   #64748b;
+  --text4:   #94a3b8;
+  --shadow:  rgba(0,0,0,.5);
+
+  /* Escala tipográfica */
+  --text-xs:   10px;
+  --text-sm:   11px;
+  --text-base: 13px;
+  --text-md:   14px;
+  --text-lg:   16px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
+  --text-3xl:  32px;
+
+  /* Escala de espaçamento */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Cores semânticas (invariantes dark/light) */
+  --color-primary:      #7c3aed;
+  --color-primary-dim:  rgba(124,58,237,.12);
+  --color-primary-text: #a78bfa;
+  --color-success:      #10b981;
+  --color-success-dim:  rgba(16,185,129,.12);
+  --color-warning:      #f59e0b;
+  --color-warning-dim:  rgba(245,158,11,.12);
+  --color-danger:       #ef4444;
+  --color-danger-dim:   rgba(239,68,68,.12);
+  --color-info:         #06b6d4;
+  --color-info-dim:     rgba(6,182,212,.12);
+
+  /* Raios */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --ease-default:  cubic-bezier(.4,0,.2,1);
+
+  /* Focus rings */
+  --ring-focus:        0 0 0 3px rgba(124,58,237,.25);
+  --ring-focus-danger: 0 0 0 3px rgba(239,68,68,.2);
+
+  /* Auth pages — gradientes do painel lateral */
+  --auth-panel-bg:    linear-gradient(160deg, #0d0621 0%, #0a0b0f 40%, #06111f 100%);
+  --auth-glow-top:    radial-gradient(circle, rgba(124,58,237,.18) 0%, transparent 70%);
+  --auth-glow-bottom: radial-gradient(circle, rgba(6,182,212,.12)  0%, transparent 70%);
+  --auth-icon-bg:     rgba(124,58,237,.12);
+  --auth-icon-border: rgba(124,58,237,.2);
+}
+
+/* ── TOKENS light ─────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:      #f8fafc;
+  --bg2:     #f1f5f9;
+  --card:    #ffffff;
+  --card2:   #f4f6fa;
+  --border:  #e2e8f0;
+  --border2: #cbd5e1;
+  --text:    #0f172a;
+  --text2:   #1e293b;
+  --text3:   #64748b;
+  --text4:   #94a3b8;
+  --shadow:  rgba(0,0,0,.08);
+
+  /* Auth pages — gradientes do painel lateral */
+  --auth-panel-bg:    linear-gradient(160deg, #f5f0ff 0%, #f8fafc 40%, #eff6ff 100%);
+  --auth-glow-top:    radial-gradient(circle, rgba(124,58,237,.08) 0%, transparent 70%);
+  --auth-glow-bottom: radial-gradient(circle, rgba(6,182,212,.07)  0%, transparent 70%);
+  --auth-icon-bg:     rgba(124,58,237,.08);
+  --auth-icon-border: rgba(124,58,237,.15);
+}
+
+/* ── BASE ─────────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background .25s, color .25s;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── COMPONENTS ───────────────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: background .25s, border-color .25s;
+}
+
+.btn-primary {
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all .2s;
+  font-family: 'Inter', sans-serif;
+}
+.btn-primary:hover { background: #6d28d9; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+  background: var(--card2);
+  color: var(--text2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  transition: all .2s;
+  font-family: 'Inter', sans-serif;
+}
+.btn-secondary:hover { background: var(--border); }
+
+.progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.input {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px 14px;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.input:focus { border-color: #7c3aed; }
+.input:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: var(--ring-focus);
+  outline: none;
+}
+.input--error {
+  border-color: var(--color-danger) !important;
+}
+.input--error:focus-visible {
+  box-shadow: var(--ring-focus-danger);
+  outline: none;
+}
+
+.textarea {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 12px 14px;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  resize: vertical;
+  min-height: 100px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  line-height: 1.6;
+}
+.textarea:focus { border-color: #7c3aed; }
+.textarea:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: var(--ring-focus);
+  outline: none;
+}
+.textarea--error {
+  border-color: var(--color-danger) !important;
+}
+.textarea--error:focus-visible {
+  box-shadow: var(--ring-focus-danger);
+  outline: none;
+}
+.textarea::placeholder, .input::placeholder { color: var(--text3); }
+
+/* ── FORM STATES ──────────────────────────────────────────────────────────── */
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-required {
+  color: var(--color-danger);
+  margin-left: 2px;
+}
+
+.form-error {
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.form-hint {
+  font-size: var(--text-sm);
+  color: var(--text3);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* ── TOAST PROGRESS BAR ───────────────────────────────────────────────────── */
+@keyframes toast-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  animation: toast-progress linear forwards;
+}
+
+select.input { cursor: pointer; }
+select.input option { background: var(--card); color: var(--text); }
+
+/* ── SIDEBAR NAV ──────────────────────────────────────────────────────────── */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .2s;
+  color: var(--text3);
+  font-size: 13px;
+  font-weight: 500;
+  user-select: none;
+}
+.nav-item:hover { background: var(--card2); color: var(--text); }
+.nav-item.active { background: rgba(124,58,237,.15); color: #a78bfa; }
+
+/* ── THEME TOGGLE ─────────────────────────────────────────────────────────── */
+.theme-toggle {
+  width: 42px;
+  height: 23px;
+  background: var(--border2);
+  border-radius: 20px;
+  cursor: pointer;
+  position: relative;
+  border: none;
+  transition: background .3s;
+  flex-shrink: 0;
+}
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  transition: transform .3s;
+}
+[data-theme="light"] .theme-toggle::after { transform: translateX(19px); }
+
+/* ── ANIMATIONS ───────────────────────────────────────────────────────────── */
+@keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.slide-in { animation: slideIn .25s ease; }
+
+/* ── FLASHCARD ────────────────────────────────────────────────────────────── */
+.flashcard-wrap { perspective: 1000px; cursor: pointer; }
+.flashcard-inner { position: relative; width: 100%; transition: transform .55s; transform-style: preserve-3d; }
+.flashcard-inner.flipped { transform: rotateY(180deg); }
+.fc-front, .fc-back { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.fc-back { position: absolute; top: 0; left: 0; width: 100%; transform: rotateY(180deg); }
+
+/* ── CONTENT CARDS ────────────────────────────────────────────────────────── */
+.skill-card { transition: all .25s; cursor: pointer; }
+.skill-card:hover { transform: translateY(-2px); }
+.content-card { transition: transform .2s, border-color .2s; cursor: pointer; }
+.content-card:hover { transform: translateY(-2px); }
+
+/* ── SKELETON SHIMMER ─────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--card2) 25%, var(--border2) 50%, var(--card2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s var(--ease-default) infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ── TOAST ────────────────────────────────────────────────────────────────── */
+@keyframes toastIn  { from { opacity:0; transform: translateY(8px) scale(.97); } to { opacity:1; transform: none; } }
+@keyframes toastOut { from { opacity:1; transform: none; } to { opacity:0; transform: translateY(4px) scale(.97); } }
+.toast-enter { animation: toastIn  var(--duration-base) var(--ease-default) forwards; }
+.toast-leave { animation: toastOut var(--duration-fast) var(--ease-default) forwards; }
