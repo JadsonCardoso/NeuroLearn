@@ -73,6 +73,24 @@ export async function createFlashcards(
   return (data ?? []).map(toFlashCard)
 }
 
+export async function deleteFlashcard(id: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase.from('flashcards').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function updateFlashcard(
+  id: string,
+  update: { front: string; back: string }
+): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('flashcards')
+    .update({ front: update.front, back: update.back, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
 export async function updateFlashcardSM2(
   id: string,
   update: Pick<FlashCard, 'ef' | 'interval' | 'reps' | 'nextReview' | 'lastReview' | 'mastery'>

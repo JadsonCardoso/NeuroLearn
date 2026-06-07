@@ -29,12 +29,13 @@ export async function listContents(): Promise<Content[]> {
 
 export async function createContent(
   userId: string,
-  input: Pick<Content, 'title' | 'type' | 'author' | 'desc' | 'color'>
+  input: Pick<Content, 'title' | 'type' | 'author' | 'desc' | 'color'> & { id?: string }
 ): Promise<Content> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('contents')
     .insert({
+      ...(input.id ? { id: input.id } : {}),
       user_id: userId,
       title: input.title,
       type: input.type,
@@ -56,6 +57,25 @@ export async function updateContentProgress(id: string, progress: number): Promi
     .update({ progress, updated_at: new Date().toISOString() })
     .eq('id', id)
 
+  if (error) throw error
+}
+
+export async function updateContent(
+  id: string,
+  input: Partial<Pick<Content, 'title' | 'type' | 'author' | 'desc' | 'color'>>
+): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('contents')
+    .update({
+      ...(input.title !== undefined && { title: input.title }),
+      ...(input.type !== undefined && { type: input.type }),
+      ...(input.author !== undefined && { author: input.author || null }),
+      ...(input.desc !== undefined && { description: input.desc || null }),
+      ...(input.color !== undefined && { color: input.color }),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
   if (error) throw error
 }
 

@@ -40,17 +40,17 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: ['**/library.spec.ts', '**/review.spec.ts', '**/accessibility.spec.ts'],
+      testIgnore: ['**/library.spec.ts', '**/review.spec.ts', '**/accessibility.spec.ts', '**/crud-01.spec.ts'],
     },
 
-    // Testes autenticados (library, review, accessibility) — requerem user.json gerado pelo globalSetup
+    // Testes autenticados (library, review, accessibility, crud-01) — requerem user.json gerado pelo globalSetup
     {
       name: 'authenticated',
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH_FILE,
       },
-      testMatch: ['**/library.spec.ts', '**/review.spec.ts', '**/accessibility.spec.ts'],
+      testMatch: ['**/library.spec.ts', '**/review.spec.ts', '**/accessibility.spec.ts', '**/crud-01.spec.ts'],
     },
   ],
 

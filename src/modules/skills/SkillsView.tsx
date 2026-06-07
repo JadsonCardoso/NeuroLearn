@@ -5,6 +5,7 @@ import { useAppData } from '@/hooks/useAppData'
 import type { Skill, SkillCategory } from '@/types'
 import { uid } from '@/lib/utils'
 import { Plus } from '@/components/icons'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 const CATS: Record<SkillCategory, { l: string; c: string }> = {
   product:    { l: 'Produto',       c: '#7c3aed' },
@@ -26,6 +27,7 @@ export function SkillsView() {
   const [sel, setSel] = useState<Skill | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: '', cat: 'product' as SkillCategory })
+  const [confirmDeleteSkill, setConfirmDeleteSkill] = useState<Skill | null>(null)
 
   useEffect(() => {
     if (!showAdd) return
@@ -344,10 +346,7 @@ export function SkillsView() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            if (confirm(`Remover a habilidade "${sk.name}"?`)) {
-                              dispatch({ type: 'DELETE_SKILL', payload: sk.id })
-                              setSel(null)
-                            }
+                            setConfirmDeleteSkill(sk)
                           }}
                           style={{
                             padding: '5px',
@@ -371,6 +370,21 @@ export function SkillsView() {
           </div>
         )
       })}
+
+      <ConfirmDialog
+        open={!!confirmDeleteSkill}
+        title="Remover habilidade"
+        description={`Remover "${confirmDeleteSkill?.name}" do seu perfil? Isso não pode ser desfeito.`}
+        confirmLabel="Remover"
+        variant="danger"
+        onConfirm={() => {
+          if (!confirmDeleteSkill) return
+          dispatch({ type: 'DELETE_SKILL', payload: confirmDeleteSkill.id })
+          setSel(null)
+          setConfirmDeleteSkill(null)
+        }}
+        onCancel={() => setConfirmDeleteSkill(null)}
+      />
     </div>
   )
 }

@@ -3,8 +3,9 @@
 import React, { createContext, useContext, useReducer, useEffect, useState } from 'react'
 import type { AppState, AppAction } from '@/types'
 import { createClient } from '@/lib/supabase/client'
-import { listContents, createContent, updateContentProgress, removeContent } from '@/services/contentsService'
-import { listAllFlashcards, createFlashcards, updateFlashcardSM2 } from '@/services/flashcardsService'
+import { useToastContext } from '@/store/ToastContext'
+import { listContents, createContent, updateContent, updateContentProgress, removeContent } from '@/services/contentsService'
+import { listAllFlashcards, createFlashcards, updateFlashcardSM2, deleteFlashcard, updateFlashcard } from '@/services/flashcardsService'
 import { recordReviewCycle } from '@/services/reviewService'
 import { createStudySession } from '@/services/sessionsService'
 import { listUserSkills, addUserSkill, gainSkillXP, updateUserTotalXP, removeUserSkill } from '@/services/skillsService'
@@ -40,6 +41,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         cards: state.cards.filter((c) => c.cid !== action.payload),
       }
 
+    case 'UPDATE_CONTENT': {
+      const { id, ...updates } = action.payload
+      return {
+        ...state,
+        contents: state.contents.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+      }
+    }
+
     case 'UPDATE_CONTENT_PROGRESS': {
       const { id, progress } = action.payload
       return {
@@ -50,6 +59,17 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'ADD_CARDS':
       return { ...state, cards: [...state.cards, ...action.payload] }
+
+    case 'DELETE_CARD':
+      return { ...state, cards: state.cards.filter((c) => c.id !== action.payload) }
+
+    case 'UPDATE_CARD': {
+      const { id, front, back } = action.payload
+      return {
+        ...state,
+        cards: state.cards.map((c) => (c.id === id ? { ...c, front, back } : c)),
+      }
+    }
 
     case 'RATE_CARD': {
       const { cardId, ef, interval, repetitions, nextReview, lastReview, mastery, xpEarned } =
@@ -132,6 +152,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, EMPTY_STATE)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const { addToast } = useToastContext()
 
   // Carrega estado do Supabase ao inicializar
   useEffect(() => {
@@ -200,17 +221,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         case 'ADD_CONTENT': {
           const c = action.payload
           await createContent(userId, {
+            id: c.id,
             title: c.title,
             type: c.type,
             author: c.author,
             desc: c.desc,
             color: c.color,
           })
+          addToast('success', 'Conteúdo adicionado com sucesso.')
           break
         }
 
         case 'DELETE_CONTENT': {
           await removeContent(action.payload)
+          addToast('success', 'Conteúdo removido.')
+          break
+        }
+
+        case 'UPDATE_CONTENT': {
+          const { id, ...fields } = action.payload
+          await updateContent(id, fields)
+          addToast('success', 'Conteúdo atualizado com sucesso.')
+          break
+        }
+
+        case 'DELETE_CARD': {
+          await deleteFlashcard(action.payload)
+          addToast('success', 'Flashcard removido.')
+          break
+        }
+
+        case 'UPDATE_CARD': {
+          await updateFlashcard(action.payload.id, { front: action.payload.front, back: action.payload.back })
+          addToast('success', 'Flashcard atualizado.')
           break
         }
 
@@ -228,6 +271,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               content_id: contentId,
             })
           }
+          addToast('success', `Flashcards criados! (${action.payload.length} cards)`)
           break
         }
 
@@ -272,6 +316,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             updateContentProgress(contentId, Math.min(100, (state.contents.find(c => c.id === contentId)?.progress ?? 0) + 10)),
             logCognitiveEvent(userId, 'session_end', { content_id: contentId, cards_created: cards.length }),
           ])
+          addToast('success', 'Sessão concluída! +10 XP')
           break
         }
 
@@ -300,11 +345,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             await addUserSkill(userId, skillId)
             await logCognitiveEvent(userId, 'skill_gained', { skill_name: skill.name })
           }
+          addToast('success', 'Habilidade adicionada.')
           break
         }
 
         case 'DELETE_SKILL': {
           await removeUserSkill(action.payload)
+          addToast('success', 'Habilidade removida.')
           break
         }
 
@@ -331,6 +378,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.error('[AppContext] Erro ao sincronizar com Supabase:', err)
+      addToast('error', 'Não foi possível concluir a operação. Tente novamente.')
     }
   }
 

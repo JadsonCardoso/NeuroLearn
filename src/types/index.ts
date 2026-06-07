@@ -70,8 +70,11 @@ export type AppAction =
   | { type: 'LOAD_STATE'; payload: AppState }
   | { type: 'ADD_CONTENT'; payload: Content }
   | { type: 'DELETE_CONTENT'; payload: string }
+  | { type: 'UPDATE_CONTENT'; payload: Partial<Content> & { id: string } }
   | { type: 'UPDATE_CONTENT_PROGRESS'; payload: { id: string; progress: number } }
   | { type: 'ADD_CARDS'; payload: FlashCard[] }
+  | { type: 'DELETE_CARD'; payload: string }
+  | { type: 'UPDATE_CARD'; payload: { id: string; front: string; back: string } }
   | { type: 'RATE_CARD'; payload: RateCardPayload }
   | { type: 'ADD_SKILL'; payload: Skill }
   | { type: 'DELETE_SKILL'; payload: string }

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { ToastProvider } from '@/store/ToastContext'
 import { ToastContainer } from '@/components/ui/Toast'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MigrationBanner } from '@/components/layout/MigrationBanner'
@@ -11,7 +10,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <ToastProvider>
+    <>
       <div style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -66,6 +65,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           .mobile-topbar { display: flex; }
         }
       `}</style>
-    </ToastProvider>
+    </>
   )
 }
