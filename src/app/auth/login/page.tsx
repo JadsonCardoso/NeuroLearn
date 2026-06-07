@@ -11,6 +11,7 @@ import { FormField } from '@/components/ui/FormField'
 import { Input } from '@/components/ui/Input'
 import { LoadingButton } from '@/components/ui/LoadingButton'
 import { loginSchema, type LoginFormValues } from '@/lib/validation/schemas'
+import { mapAuthError, AUTH_SUCCESS_MESSAGES } from '@/lib/auth/errors'
 import { useState } from 'react'
 
 const FEATURES = [
@@ -28,7 +29,11 @@ function LoginForm() {
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [serverError, setServerError] = useState<string | null>(
-    errorParam ? 'Erro de autenticação. Tente fazer login novamente.' : null
+    errorParam === 'callback_failed'
+      ? 'Link expirado ou inválido. Solicite um novo link abaixo.'
+      : errorParam
+        ? 'Erro de autenticação. Solicite um novo link abaixo.'
+        : null
   )
 
   const supabase = createClient()
@@ -55,9 +60,9 @@ function LoginForm() {
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
     if (error) {
-      setServerError('Não foi possível enviar o link. Tente novamente em alguns instantes.')
+      setServerError(mapAuthError(error))
     } else {
-      setSuccessMessage('✉️ Link enviado! Verifique seu email para acessar.')
+      setSuccessMessage(AUTH_SUCCESS_MESSAGES.magicLinkSent)
     }
   }
 

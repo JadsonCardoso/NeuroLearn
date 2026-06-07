@@ -64,7 +64,7 @@ export function ConsentBanner() {
           com terceiros sem seu consentimento explícito, conforme a{' '}
           <strong>LGPD (Lei 13.709/2018)</strong>.{' '}
           <a
-            href="/privacy"
+            href="/politica-de-privacidade"
             style={{ color: 'var(--purple)', textDecoration: 'underline', fontSize: '12px' }}
           >
             Política de Privacidade

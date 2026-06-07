@@ -10,6 +10,7 @@ import { FormField } from '@/components/ui/FormField'
 import { Input } from '@/components/ui/Input'
 import { LoadingButton } from '@/components/ui/LoadingButton'
 import { signupSchema, type SignupFormValues } from '@/lib/validation/schemas'
+import { mapAuthError, AUTH_SUCCESS_MESSAGES } from '@/lib/auth/errors'
 
 export default function SignupPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -46,9 +47,9 @@ export default function SignupPage() {
       },
     })
     if (error) {
-      setServerError('Não foi possível criar sua conta. Tente novamente em alguns instantes.')
+      setServerError(mapAuthError(error))
     } else {
-      setSuccessMessage('✉️ Link enviado! Verifique seu email para acessar.')
+      setSuccessMessage(AUTH_SUCCESS_MESSAGES.signupSuccess)
     }
   }
 

@@ -1,37 +1,33 @@
 import { test, expect } from '@playwright/test'
 
-// ── TC-LAND-MANIFESTO: Landing — seção manifesto ──────────────────────────────
-// Testa comportamento em página pública (sem auth necessária)
+// ── TC-LAND-MANIFESTO: Entrada pública — comportamento da raiz ────────────────
+// landing.html foi removido; raiz redireciona para /auth/login
 test.describe('Landing — Manifesto', () => {
-  test('TC-LAND-008: seção manifesto presente na landing', async ({ page }) => {
-    await page.goto('/landing.html')
-    await page.waitForLoadState('domcontentloaded')
-    await expect(page.getByText(/Não termine/i)).toBeVisible({ timeout: 8000 })
-    await expect(page.getByText(/Desenvolva/i)).toBeVisible()
+  test('TC-LAND-008: raiz redireciona para /auth/login (sem sessão)', async ({ page }) => {
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/auth\/login/, { timeout: 8000 })
+    await expect(page.locator('input[type="email"]')).toBeVisible()
   })
 
-  test('TC-LAND-009: CTA do manifesto aponta para /auth/signup', async ({ page }) => {
-    await page.goto('/landing.html')
+  test('TC-LAND-009: /auth/signup tem CTA de cadastro', async ({ page }) => {
+    await page.goto('/auth/signup')
     await page.waitForLoadState('domcontentloaded')
-    const signupLinks = page.locator('a[href="/auth/signup"]')
-    await expect(signupLinks.first()).toBeVisible({ timeout: 8000 })
+    const submitBtn = page.locator('button[type="submit"]')
+    await expect(submitBtn.first()).toBeVisible({ timeout: 8000 })
   })
 
-  test('TC-LAND-010: manifesto contém texto sobre conhecimento e aplicação', async ({ page }) => {
-    await page.goto('/landing.html')
-    await page.waitForLoadState('domcontentloaded')
-    const content = await page.content()
-    expect(content).toContain('valor')
-    expect(content).toContain('aplicado')
-  })
-
-  test('TC-LAND-011: landing não exibe "Invalid Date" nem erros de JS', async ({ page }) => {
-    const errors: string[] = []
-    page.on('pageerror', (err) => errors.push(err.message))
-    await page.goto('/landing.html')
+  test('TC-LAND-010: /auth/login não exibe "Invalid Date"', async ({ page }) => {
+    await page.goto('/auth/login')
     await page.waitForLoadState('domcontentloaded')
     const content = await page.content()
     expect(content).not.toContain('Invalid Date')
+  })
+
+  test('TC-LAND-011: login não exibe erros de JS', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (err) => errors.push(err.message))
+    await page.goto('/auth/login')
+    await page.waitForLoadState('domcontentloaded')
     expect(errors.filter((e) => !e.includes('favicon'))).toHaveLength(0)
   })
 })

@@ -2,7 +2,10 @@ import { test, expect } from '@playwright/test'
 
 // TC-A11Y: Testes de acessibilidade nas páginas principais
 
+// Testes de auth rodam sem sessão mesmo no projeto authenticated
 test.describe('Acessibilidade — Auth (sem autenticação necessária)', () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
+
   test('TC-A11Y-001: login tem h1 ou h2 visível', async ({ page }) => {
     await page.goto('/auth/login')
     await page.waitForLoadState('networkidle')

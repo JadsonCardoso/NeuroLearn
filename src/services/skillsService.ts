@@ -103,17 +103,22 @@ export async function removeUserSkill(userSkillId: string): Promise<void> {
 }
 
 export async function updateUserTotalXP(userId: string, amount: number): Promise<void> {
+  if (!userId) return
+
   const supabase = createClient()
 
   const { data: user } = await supabase
     .from('users')
     .select('total_xp')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
+
+  // Se a linha não existe ainda, o XP será atualizado quando o perfil for criado
+  if (!user) return
 
   const { error } = await supabase
     .from('users')
-    .update({ total_xp: (user?.total_xp ?? 0) + amount })
+    .update({ total_xp: (user.total_xp ?? 0) + amount })
     .eq('id', userId)
 
   if (error) throw error

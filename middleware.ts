@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith('/auth') &&
     !pathname.startsWith('/api') &&
     pathname !== '/' &&
-    pathname !== '/landing.html' &&
+    pathname !== '/politica-de-privacidade' &&
     pathname !== '/privacy' &&
     !pathname.startsWith('/_next') &&
     !pathname.startsWith('/favicon')
