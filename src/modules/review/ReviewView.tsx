@@ -4,10 +4,23 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppData } from '@/hooks/useAppData'
 import { calcRetention } from '@/engine/retention'
+import { calcCognitiveScore } from '@/engine/cognitive-score/cognitiveScore'
 import { isDue } from '@/engine/scheduling'
 import { sm2 } from '@/engine/sm2'
 import { addDays } from '@/engine/scheduling'
 import type { CardMastery, FlashCard } from '@/types'
+
+function computeCogScore(cards: FlashCard[]) {
+  if (cards.length === 0) return { score: 0 }
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const avgRet = Math.round(cards.reduce((a, c) => a + calcRetention(c), 0) / cards.length)
+  const avgMastery = Math.round(
+    cards.reduce((a, c) => a + (c.mastery === 'strong' ? 100 : c.mastery === 'review' ? 50 : 25), 0) / cards.length
+  )
+  const reviewsLast30Days = cards.filter((c) => c.lastReview && new Date(c.lastReview) >= thirtyDaysAgo).length
+  const expectedReviews = Math.max(cards.length, reviewsLast30Days, 1)
+  return calcCognitiveScore({ retention: avgRet, mastery: avgMastery, reviewsLast30Days, expectedReviews, activeLearning: 0 })
+}
 
 export function ReviewView() {
   const { state, dispatch } = useAppData()
@@ -15,6 +28,8 @@ export function ReviewView() {
 
   // Fila estável: calculada uma vez ao montar — evita que cards "somam" da fila após RATE_CARD
   const [queue] = useState<FlashCard[]>(() => state.cards.filter(isDue))
+  // Cognitive score capturado antes da sessão para exibir o delta na tela de resultado
+  const [scoreBefore] = useState(() => computeCogScore(state.cards))
 
   const [idx, setIdx] = useState(0)
   const [flipped, setFlipped] = useState(false)
@@ -129,6 +144,10 @@ export function ReviewView() {
   if (done) {
     const perf = Math.round((log.filter((r) => r.q >= 4).length / log.length) * 100)
     const xpTotal = log.reduce((a, r) => a + (r.q >= 4 ? 15 : r.q >= 3 ? 10 : 5), 0)
+    const scoreAfter = computeCogScore(state.cards)
+    const delta = scoreAfter.score - scoreBefore.score
+    const deltaColor = delta > 0 ? '#10b981' : delta < 0 ? '#ef4444' : '#6b7280'
+    const deltaSign = delta > 0 ? '+' : ''
     return (
       <div
         className="slide-in"
@@ -141,7 +160,7 @@ export function ReviewView() {
       >
         <div
           className="card"
-          style={{ padding: '32px', maxWidth: '380px', width: '100%', textAlign: 'center' }}
+          style={{ padding: '32px', maxWidth: '400px', width: '100%', textAlign: 'center' }}
         >
           <div style={{ fontSize: '48px', marginBottom: '14px' }}>🧠</div>
           <h2
@@ -154,19 +173,53 @@ export function ReviewView() {
           >
             Revisão Concluída!
           </h2>
+
+          {/* Cognitive Score — destaque principal */}
+          <div
+            data-testid="result-cognitive-score"
+            style={{
+              background: 'linear-gradient(135deg, rgba(124,58,237,.12), rgba(6,182,212,.08))',
+              border: '1px solid rgba(124,58,237,.25)',
+              borderRadius: '12px',
+              padding: '16px',
+              margin: '16px 0 12px',
+            }}
+          >
+            <div style={{ fontSize: '11px', color: '#a78bfa', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>
+              Cognitive Score
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '8px' }}>
+              <span data-testid="result-score-value" style={{ fontSize: '36px', fontWeight: '900', color: '#7c3aed' }}>
+                {scoreAfter.score}
+              </span>
+              <span style={{ fontSize: '14px', color: 'var(--text3)' }}>/100</span>
+              {delta !== 0 && (
+                <span data-testid="result-score-delta" style={{ fontSize: '14px', fontWeight: '700', color: deltaColor }}>
+                  ({deltaSign}{delta})
+                </span>
+              )}
+            </div>
+            {delta !== 0 && (
+              <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>
+                era {scoreBefore.score}/100 antes da sessão
+              </div>
+            )}
+          </div>
+
+          {/* Stats: cards + desempenho */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              gap: '12px',
-              margin: '18px 0',
+              gap: '10px',
+              marginBottom: '14px',
             }}
           >
             <div
               style={{
                 background: 'var(--card2)',
                 borderRadius: '8px',
-                padding: '14px',
+                padding: '12px',
                 border: '1px solid var(--border)',
               }}
             >
@@ -179,7 +232,7 @@ export function ReviewView() {
               style={{
                 background: 'var(--card2)',
                 borderRadius: '8px',
-                padding: '14px',
+                padding: '12px',
                 border: '1px solid var(--border)',
               }}
             >
@@ -187,6 +240,7 @@ export function ReviewView() {
               <div style={{ fontSize: '11px', color: 'var(--text3)' }}>Desempenho</div>
             </div>
           </div>
+
           <p style={{ fontSize: '13px', color: 'var(--text3)', marginBottom: '18px' }}>
             +{xpTotal} XP ganho nesta sessão
           </p>
