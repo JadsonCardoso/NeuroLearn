@@ -9,6 +9,7 @@ node_modules/
 # Build
 .next/
 out/
+*.tsbuildinfo
 
 # Supabase local
 supabase/.temp/
