@@ -115,8 +115,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const { session, cards, contentId } = action.payload
       const currentProgress = state.contents.find((c) => c.id === contentId)?.progress ?? 0
       const newProgress = Math.min(100, currentProgress + 10)
-      const today = new Date().toDateString()
-      const yesterday = new Date(Date.now() - 86400000).toDateString()
+      const today = new Date().toISOString().split('T')[0]
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
       const isNewDay = state.lastStudyDate !== today
       const newStreak = isNewDay
         ? state.lastStudyDate === yesterday ? state.streak + 1 : 1
@@ -138,9 +138,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, totalXp: (state.totalXp ?? 0) + action.payload.amount }
 
     case 'UPDATE_STREAK': {
-      const today = new Date().toDateString()
+      const today = new Date().toISOString().split('T')[0]
       if (state.lastStudyDate === today) return state
-      const yesterday = new Date(Date.now() - 86400000).toDateString()
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
       const newStreak = state.lastStudyDate === yesterday ? state.streak + 1 : 1
       return { ...state, streak: newStreak, lastStudyDate: today }
     }
@@ -317,8 +317,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         case 'FINISH_SESSION': {
           const { session, cards, contentId } = action.payload
-          const today = new Date().toDateString()
-          const yesterday = new Date(Date.now() - 86400000).toDateString()
+          const today = new Date().toISOString().split('T')[0]
+          const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
           const isNewDay = state.lastStudyDate !== today
           const newStreak = isNewDay
             ? state.lastStudyDate === yesterday ? state.streak + 1 : 1
@@ -402,11 +402,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         case 'UPDATE_STREAK': {
-          const today = new Date().toDateString()
+          const today = new Date().toISOString().split('T')[0]
           if (state.lastStudyDate === today) break
-          const yesterday = new Date(Date.now() - 86400000).toDateString()
+          const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
           const newStreak = state.lastStudyDate === yesterday ? state.streak + 1 : 1
-          await updateUserStreak(userId, newStreak, new Date().toISOString().split('T')[0])
+          await updateUserStreak(userId, newStreak, today)
           break
         }
       }
