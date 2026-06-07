@@ -18,13 +18,49 @@ export function TeacherModeSection() {
           </p>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {[
-              { icon: '🎯', text: 'IA analisa sua explicação e identifica lacunas de conhecimento' },
-              { icon: '💡', text: 'Feedback instantâneo sobre clareza e precisão conceitual' },
-              { icon: '📈', text: 'Pontuação de mastery que reflete compreensão real, não memorização' },
+              {
+                color: '#7c3aed',
+                text: 'IA analisa sua explicação e identifica lacunas de conhecimento',
+                svg: (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+                    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+                  </svg>
+                ),
+              },
+              {
+                color: '#06b6d4',
+                text: 'Feedback instantâneo sobre clareza e precisão conceitual',
+                svg: (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    <line x1="9" y1="10" x2="15" y2="10"/>
+                    <line x1="9" y1="14" x2="13" y2="14"/>
+                  </svg>
+                ),
+              },
+              {
+                color: '#10b981',
+                text: 'Pontuação de mastery que reflete compreensão real, não memorização',
+                svg: (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="8" r="6"/>
+                    <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+                  </svg>
+                ),
+              },
             ].map((item) => (
               <li key={item.text} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '18px', flexShrink: 0, marginTop: '2px' }}>{item.icon}</span>
-                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.55 }}>{item.text}</span>
+                <div style={{
+                  width: '32px', height: '32px', borderRadius: '10px', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: `linear-gradient(135deg, ${item.color}22, ${item.color}10)`,
+                  border: `1px solid ${item.color}30`,
+                  color: item.color, marginTop: '1px',
+                }}>
+                  {item.svg}
+                </div>
+                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.55, paddingTop: '7px' }}>{item.text}</span>
               </li>
             ))}
           </ul>
