@@ -16,10 +16,16 @@ export class ReviewPage {
 
   async hasEmptyState(): Promise<boolean> {
     const text = await this.page.textContent('body')
-    return (text ?? '').toLowerCase().includes('sem revisão') ||
-           (text ?? '').toLowerCase().includes('nenhuma revisão') ||
-           (text ?? '').toLowerCase().includes('tudo em dia') ||
-           (text ?? '').toLowerCase().includes('não há')
+    const t = (text ?? '').toLowerCase()
+    return (
+      t.includes('nada para revisar') ||
+      t.includes('revisões em dia') ||
+      t.includes('volte amanhã') ||
+      t.includes('sem revisão') ||
+      t.includes('nenhuma revisão') ||
+      t.includes('tudo em dia') ||
+      t.includes('não há')
+    )
   }
 
   async hasCardVisible(): Promise<boolean> {

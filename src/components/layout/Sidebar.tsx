@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Brain, Book, Timer, Refresh, Zap, Tree, Help } from '@/components/icons'
 import { ThemeToggle } from './ThemeToggle'
@@ -31,11 +32,6 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
     await supabase.auth.signOut()
     router.push('/auth/login')
     router.refresh()
-  }
-
-  function handleNav(href: string) {
-    router.push(href)
-    onClose?.()
   }
 
   return (
@@ -106,13 +102,13 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
           {NAV_ITEMS.map(({ id, label, icon: Icon, href }) => {
             const active = pathname === href || pathname.startsWith(href + '/')
             return (
-              <div
+              <Link
                 key={id}
+                href={href}
                 className={`nav-item${active ? ' active' : ''}`}
-                onClick={() => handleNav(href)}
-                style={{ position: 'relative' }}
+                onClick={onClose}
+                style={{ position: 'relative', textDecoration: 'none' }}
               >
-                {/* Indicador de item ativo */}
                 {active && (
                   <div
                     style={{
@@ -128,7 +124,7 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
                 )}
                 <Icon />
                 <span>{label}</span>
-              </div>
+              </Link>
             )
           })}
         </nav>
