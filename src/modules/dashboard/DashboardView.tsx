@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useAppData } from '@/hooks/useAppData'
 import { calcRetention } from '@/engine/retention'
 import { isDue, relDate } from '@/engine/scheduling'
+import { calcCognitiveScore } from '@/engine/cognitive-score/cognitiveScore'
 import { Ring } from '@/components/ui/Ring'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Badge } from '@/components/ui/Badge'
@@ -29,6 +30,28 @@ export function DashboardView() {
     : 0
   const risk = state.cards.filter((c) => { const r = calcRetention(c); return r < 50 && r > 0 })
   const strong = state.cards.filter((c) => calcRetention(c) >= 75).length
+
+  // Cognitive Score — derivado do engine a partir dos dados do estado atual
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const avgMastery = state.cards.length
+    ? Math.round(
+        state.cards.reduce(
+          (a, c) => a + (c.mastery === 'strong' ? 100 : c.mastery === 'review' ? 50 : 25),
+          0
+        ) / state.cards.length
+      )
+    : 0
+  const reviewsLast30Days = state.cards.filter(
+    (c) => c.lastReview && new Date(c.lastReview) >= thirtyDaysAgo
+  ).length
+  const expectedReviews = Math.max(state.cards.length, reviewsLast30Days, 1)
+  const cogScore = calcCognitiveScore({
+    retention: avgRet,
+    mastery: avgMastery,
+    reviewsLast30Days,
+    expectedReviews,
+    activeLearning: 0,
+  })
 
   const weekBars = [0, 1, 2, 3, 4, 5, 6].map((i) => ({
     day: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][i],
@@ -104,10 +127,10 @@ export function DashboardView() {
         }}
       >
         {[
-          { l: 'Sequência',     v: state.streak + 'd',              icon: '🔥', c: 'var(--color-warning)', bg: 'var(--color-warning-dim)' },
-          { l: 'Total XP',      v: (state.totalXp ?? 0).toLocaleString(), icon: '⚡', c: 'var(--color-primary)', bg: 'var(--color-primary-dim)' },
-          { l: 'Para revisar',  v: due.length,                      icon: '🔄', c: 'var(--color-info)',    bg: 'var(--color-info-dim)'    },
-          { l: 'Retenção média',v: avgRet + '%',                    icon: '🧠', c: 'var(--color-success)', bg: 'var(--color-success-dim)' },
+          { l: 'Sequência',       v: state.streak + 'd',                     icon: '🔥', c: 'var(--color-warning)', bg: 'var(--color-warning-dim)' },
+          { l: 'Total XP',        v: (state.totalXp ?? 0).toLocaleString(), icon: '⚡', c: 'var(--color-primary)', bg: 'var(--color-primary-dim)' },
+          { l: 'Para revisar',    v: due.length,                             icon: '🔄', c: 'var(--color-info)',    bg: 'var(--color-info-dim)'    },
+          { l: 'Cognitive Score', v: cogScore.score + '/100',                icon: '🧠', c: 'var(--color-success)', bg: 'var(--color-success-dim)' },
         ].map((s, i) => (
           <div key={i} className="card" style={{ padding: 'var(--space-4)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

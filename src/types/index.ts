@@ -81,6 +81,7 @@ export type AppAction =
   | { type: 'GAIN_XP'; payload: { skillId: string; amount: number } }
   | { type: 'FINISH_SESSION'; payload: FinishSessionPayload }
   | { type: 'EARN_XP'; payload: { amount: number } }
+  | { type: 'UPDATE_STREAK' }
 
 export interface RateCardPayload {
   cardId: string

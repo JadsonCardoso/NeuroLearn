@@ -31,9 +31,22 @@ const cardSchema = z.object({
 })
 type CardFormValues = z.infer<typeof cardSchema>
 
+// Remove acentos e normaliza para busca sem acento
+function normalize(s: string) {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+}
+
 export function LibraryView() {
   const { state, dispatch } = useAppData()
   const router = useRouter()
+
+  // Estado de busca por título
+  const [search, setSearch] = useState('')
+
+  // Conteúdos filtrados por título (case-insensitive, sem acento)
+  const filtered = search.trim()
+    ? state.contents.filter((c) => normalize(c.title).includes(normalize(search)))
+    : state.contents
 
   // Estado de modais e confirmações
   const [showAdd, setShowAdd] = useState(false)
@@ -93,17 +106,38 @@ export function LibraryView() {
             Biblioteca de Conhecimento
           </h1>
           <p style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>
-            {state.contents.length} itens
+            {filtered.length}{search.trim() ? ` de ${state.contents.length}` : ''} {state.contents.length === 1 ? 'item' : 'itens'}
           </p>
         </div>
-        <button
-          className="btn-primary"
-          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          onClick={() => setShowAdd(true)}
-        >
-          <Plus />
-          Adicionar
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <input
+            type="search"
+            aria-label="Buscar conteúdo"
+            placeholder="Buscar por título..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            data-testid="library-search"
+            style={{
+              background: 'var(--card2)',
+              border: '1px solid var(--border2)',
+              borderRadius: '8px',
+              padding: '7px 12px',
+              fontSize: '13px',
+              color: 'var(--text)',
+              outline: 'none',
+              width: '200px',
+              fontFamily: 'Inter, sans-serif',
+            }}
+          />
+          <button
+            className="btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+            onClick={() => setShowAdd(true)}
+          >
+            <Plus />
+            Adicionar
+          </button>
+        </div>
       </div>
 
       {showAdd && <AddContentModal onAdd={handleAdd} onClose={() => setShowAdd(false)} />}
@@ -156,7 +190,7 @@ export function LibraryView() {
           gap: '16px',
         }}
       >
-        {state.contents.map((c) => {
+        {filtered.map((c) => {
           const cards = state.cards.filter((k) => k.cid === c.id)
           const avgR = cards.length
             ? Math.round(cards.reduce((a, k) => a + calcRetention(k), 0) / cards.length)
@@ -349,7 +383,7 @@ export function LibraryView() {
           )
         })}
 
-        {state.contents.length === 0 && (
+        {filtered.length === 0 && (
           <div
             style={{
               gridColumn: '1/-1',
@@ -359,10 +393,21 @@ export function LibraryView() {
             }}
           >
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>📚</div>
-            <p style={{ fontSize: '15px', fontWeight: '600', marginBottom: '6px' }}>
-              Biblioteca vazia
-            </p>
-            <p style={{ fontSize: '12px' }}>Adicione seu primeiro livro ou curso</p>
+            {search.trim() ? (
+              <>
+                <p style={{ fontSize: '15px', fontWeight: '600', marginBottom: '6px' }}>
+                  Nenhum conteúdo encontrado para &ldquo;{search}&rdquo;
+                </p>
+                <p style={{ fontSize: '12px' }}>Tente outro termo ou limpe a busca</p>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: '15px', fontWeight: '600', marginBottom: '6px' }}>
+                  Biblioteca vazia
+                </p>
+                <p style={{ fontSize: '12px' }}>Adicione seu primeiro livro ou curso</p>
+              </>
+            )}
           </div>
         )}
       </div>

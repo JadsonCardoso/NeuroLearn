@@ -8,7 +8,7 @@ import { listContents, createContent, updateContent, updateContentProgress, remo
 import { listAllFlashcards, createFlashcards, updateFlashcardSM2, deleteFlashcard, updateFlashcard } from '@/services/flashcardsService'
 import { recordReviewCycle } from '@/services/reviewService'
 import { createStudySession } from '@/services/sessionsService'
-import { listUserSkills, addUserSkill, gainSkillXP, updateUserTotalXP, removeUserSkill } from '@/services/skillsService'
+import { listUserSkills, addUserSkill, gainSkillXP, updateUserTotalXP, updateUserStreak, removeUserSkill } from '@/services/skillsService'
 import { saveRetentionSnapshot } from '@/services/retentionService'
 import { logCognitiveEvent } from '@/services/cognitiveEventsService'
 import { loadState, saveState } from '@/services/localStorageService'
@@ -115,20 +115,35 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const { session, cards, contentId } = action.payload
       const currentProgress = state.contents.find((c) => c.id === contentId)?.progress ?? 0
       const newProgress = Math.min(100, currentProgress + 10)
+      const today = new Date().toDateString()
+      const yesterday = new Date(Date.now() - 86400000).toDateString()
+      const isNewDay = state.lastStudyDate !== today
+      const newStreak = isNewDay
+        ? state.lastStudyDate === yesterday ? state.streak + 1 : 1
+        : state.streak
       return {
         ...state,
+        totalXp: (state.totalXp ?? 0) + 10,
         sessions: [...state.sessions, session],
         cards: [...state.cards, ...cards],
         contents: state.contents.map((c) =>
           c.id === contentId ? { ...c, progress: newProgress } : c
         ),
-        streak: state.streak,
-        lastStudyDate: new Date().toDateString(),
+        streak: newStreak,
+        lastStudyDate: today,
       }
     }
 
     case 'EARN_XP':
       return { ...state, totalXp: (state.totalXp ?? 0) + action.payload.amount }
+
+    case 'UPDATE_STREAK': {
+      const today = new Date().toDateString()
+      if (state.lastStudyDate === today) return state
+      const yesterday = new Date(Date.now() - 86400000).toDateString()
+      const newStreak = state.lastStudyDate === yesterday ? state.streak + 1 : 1
+      return { ...state, streak: newStreak, lastStudyDate: today }
+    }
 
     default:
       return state
@@ -302,6 +317,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         case 'FINISH_SESSION': {
           const { session, cards, contentId } = action.payload
+          const today = new Date().toDateString()
+          const yesterday = new Date(Date.now() - 86400000).toDateString()
+          const isNewDay = state.lastStudyDate !== today
+          const newStreak = isNewDay
+            ? state.lastStudyDate === yesterday ? state.streak + 1 : 1
+            : state.streak
           await Promise.all([
             createStudySession({
               userId,
@@ -314,6 +335,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               ? createFlashcards(userId, contentId, cards)
               : Promise.resolve(),
             updateContentProgress(contentId, Math.min(100, (state.contents.find(c => c.id === contentId)?.progress ?? 0) + 10)),
+            updateUserTotalXP(userId, 10),
+            isNewDay
+              ? updateUserStreak(userId, newStreak, new Date().toISOString().split('T')[0])
+              : Promise.resolve(),
             logCognitiveEvent(userId, 'session_end', { content_id: contentId, cards_created: cards.length }),
           ])
           addToast('success', 'Sessão concluída! +10 XP')
@@ -373,6 +398,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             updateUserTotalXP(userId, action.payload.amount),
             logCognitiveEvent(userId, 'xp_earned', { amount: action.payload.amount }),
           ])
+          break
+        }
+
+        case 'UPDATE_STREAK': {
+          const today = new Date().toDateString()
+          if (state.lastStudyDate === today) break
+          const yesterday = new Date(Date.now() - 86400000).toDateString()
+          const newStreak = state.lastStudyDate === yesterday ? state.streak + 1 : 1
+          await updateUserStreak(userId, newStreak, new Date().toISOString().split('T')[0])
           break
         }
       }

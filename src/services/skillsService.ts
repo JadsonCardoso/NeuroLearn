@@ -102,6 +102,20 @@ export async function removeUserSkill(userSkillId: string): Promise<void> {
   if (error) throw error
 }
 
+export async function updateUserStreak(
+  userId: string,
+  streak: number,
+  lastStudyDate: string
+): Promise<void> {
+  if (!userId) return
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('users')
+    .update({ streak, last_study_date: lastStudyDate })
+    .eq('id', userId)
+  if (error) throw error
+}
+
 export async function updateUserTotalXP(userId: string, amount: number): Promise<void> {
   if (!userId) return
 

@@ -1,57 +1,104 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppData } from '@/hooks/useAppData'
 import { calcRetention } from '@/engine/retention'
 import { isDue } from '@/engine/scheduling'
 import { sm2 } from '@/engine/sm2'
 import { addDays } from '@/engine/scheduling'
-import type { CardMastery } from '@/types'
+import type { CardMastery, FlashCard } from '@/types'
 
 export function ReviewView() {
   const { state, dispatch } = useAppData()
   const router = useRouter()
 
-  const due = state.cards.filter(isDue)
+  // Fila estável: calculada uma vez ao montar — evita que cards "somam" da fila após RATE_CARD
+  const [queue] = useState<FlashCard[]>(() => state.cards.filter(isDue))
+
   const [idx, setIdx] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [log, setLog] = useState<{ q: number }[]>([])
   const [done, setDone] = useState(false)
+  // Histórico de índices para permitir voltar ao card anterior
+  const [history, setHistory] = useState<number[]>([])
 
-  const card = due[idx]
+  const card = queue[idx]
   const ct = card ? state.contents.find((c) => c.id === card.cid) : null
   const ret = card ? calcRetention(card) : 0
 
-  function rate(q: 1 | 2 | 3 | 4) {
-    if (!card) return
-    const res = sm2(q, card.ef, card.interval, card.reps)
-    const nextReview = addDays(res.interval)
-    const mastery: CardMastery =
-      res.interval >= 21 ? 'strong' : res.interval >= 6 ? 'review' : 'learning'
-    const xpEarned = q >= 4 ? 15 : q >= 3 ? 10 : 5
+  const rate = useCallback(
+    (q: 1 | 2 | 3 | 4) => {
+      const current = queue[idx]
+      if (!current) return
+      const res = sm2(q, current.ef, current.interval, current.reps)
+      const nextReview = addDays(res.interval)
+      const mastery: CardMastery =
+        res.interval >= 21 ? 'strong' : res.interval >= 6 ? 'review' : 'learning'
+      const xpEarned = q >= 4 ? 15 : q >= 3 ? 10 : 5
 
-    dispatch({
-      type: 'RATE_CARD',
-      payload: {
-        cardId: card.id,
-        quality: q,
-        ef: res.ef,
-        interval: res.interval,
-        repetitions: res.repetitions,
-        nextReview,
-        lastReview: new Date().toISOString(),
-        mastery,
-        xpEarned,
-      },
-    })
-    setLog((l) => [...l, { q }])
+      dispatch({
+        type: 'RATE_CARD',
+        payload: {
+          cardId: current.id,
+          quality: q,
+          ef: res.ef,
+          interval: res.interval,
+          repetitions: res.repetitions,
+          nextReview,
+          lastReview: new Date().toISOString(),
+          mastery,
+          xpEarned,
+        },
+      })
+      setHistory((h) => [...h, idx])
+      setLog((l) => [...l, { q }])
+      setFlipped(false)
+      if (idx + 1 >= queue.length) {
+        setDone(true)
+        dispatch({ type: 'UPDATE_STREAK' })
+      } else {
+        setIdx((i) => i + 1)
+      }
+    },
+    [queue, idx, dispatch]
+  )
+
+  const goBack = useCallback(() => {
+    if (history.length === 0) return
+    const prevIdx = history[history.length - 1]
+    setHistory((h) => h.slice(0, -1))
+    setIdx(prevIdx)
     setFlipped(false)
-    if (idx + 1 >= due.length) setDone(true)
-    else setIdx((i) => i + 1)
-  }
+    setDone(false)
+    setLog((l) => l.slice(0, -1))
+  }, [history])
 
-  if (due.length === 0)
+  // Atalhos de teclado: Space = virar, 1-4 = avaliar (só quando virado), Backspace = voltar
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (done) return
+
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault()
+        setFlipped((f) => !f)
+      } else if (e.key === 'Backspace') {
+        e.preventDefault()
+        goBack()
+      } else if (flipped) {
+        if (e.key === '1') { e.preventDefault(); rate(1) }
+        else if (e.key === '2') { e.preventDefault(); rate(2) }
+        else if (e.key === '3') { e.preventDefault(); rate(3) }
+        else if (e.key === '4') { e.preventDefault(); rate(4) }
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [done, flipped, rate, goBack])
+
+  if (queue.length === 0)
     return (
       <div
         className="slide-in"
@@ -160,22 +207,46 @@ export function ReviewView() {
       <div style={{ marginBottom: '22px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
           <span style={{ fontSize: '12px', color: 'var(--text3)' }}>
-            {idx + 1} / {due.length}
+            {idx + 1} / {queue.length}
           </span>
           <span style={{ fontSize: '12px', color: 'var(--text3)' }}>
-            {Math.round((idx / due.length) * 100)}%
+            {Math.round((idx / queue.length) * 100)}%
           </span>
         </div>
         <div className="progress-bar" style={{ height: '7px' }}>
           <div
             className="progress-fill"
             style={{
-              width: (idx / due.length) * 100 + '%',
+              width: (idx / queue.length) * 100 + '%',
               background: 'linear-gradient(90deg,#7c3aed,#06b6d4)',
             }}
           />
         </div>
       </div>
+
+      {/* Barra de navegação: voltar ao card anterior */}
+      {history.length > 0 && (
+        <div style={{ marginBottom: '10px' }}>
+          <button
+            onClick={goBack}
+            data-testid="btn-go-back"
+            style={{
+              background: 'none',
+              border: '1px solid var(--border2)',
+              borderRadius: '8px',
+              padding: '5px 12px',
+              fontSize: '12px',
+              color: 'var(--text3)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+            }}
+          >
+            ← Voltar
+          </button>
+        </div>
+      )}
 
       {ct && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
@@ -239,7 +310,7 @@ export function ReviewView() {
                 {card?.front}
               </p>
               <p style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '18px' }}>
-                Clique para revelar →
+                Clique ou pressione <kbd style={{ background: 'var(--border)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px' }}>Space</kbd> para revelar
               </p>
             </div>
           </div>
@@ -295,15 +366,19 @@ export function ReviewView() {
               marginBottom: '11px',
             }}
           >
-            Como foi sua lembrança?
+            Como foi sua lembrança?{' '}
+            <span style={{ opacity: 0.5 }}>
+              (teclas <kbd style={{ background: 'var(--border)', borderRadius: '3px', padding: '1px 4px', fontSize: '10px' }}>1</kbd>–
+              <kbd style={{ background: 'var(--border)', borderRadius: '3px', padding: '1px 4px', fontSize: '10px' }}>4</kbd>)
+            </span>
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px' }}>
             {(
               [
-                { q: 1 as const, l: 'Esqueci', c: '#ef4444', bg: 'rgba(239,68,68,.12)', d: 'Não lembrei' },
-                { q: 2 as const, l: 'Difícil', c: '#f59e0b', bg: 'rgba(245,158,11,.12)', d: 'Com muito esforço' },
-                { q: 3 as const, l: 'Bom', c: '#06b6d4', bg: 'rgba(6,182,212,.12)', d: 'Lembrei razoável' },
-                { q: 4 as const, l: 'Fácil', c: '#10b981', bg: 'rgba(16,185,129,.12)', d: 'Lembrei bem' },
+                { q: 1 as const, l: 'Esqueci',  c: '#ef4444', bg: 'rgba(239,68,68,.12)',   d: 'Não lembrei',     k: '1' },
+                { q: 2 as const, l: 'Difícil',  c: '#f59e0b', bg: 'rgba(245,158,11,.12)',  d: 'Com muito esforço', k: '2' },
+                { q: 3 as const, l: 'Bom',      c: '#06b6d4', bg: 'rgba(6,182,212,.12)',   d: 'Lembrei razoável', k: '3' },
+                { q: 4 as const, l: 'Fácil',    c: '#10b981', bg: 'rgba(16,185,129,.12)',  d: 'Lembrei bem',      k: '4' },
               ] as const
             ).map((o) => (
               <button
@@ -326,6 +401,7 @@ export function ReviewView() {
                 onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
               >
+                <span style={{ fontSize: '10px', color: o.c, opacity: 0.6, fontWeight: '600' }}>{o.k}</span>
                 <span style={{ fontSize: '14px', fontWeight: '700' }}>{o.l}</span>
                 <span style={{ fontSize: '10px', opacity: 0.8 }}>{o.d}</span>
               </button>
