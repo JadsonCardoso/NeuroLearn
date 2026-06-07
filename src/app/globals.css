@@ -99,20 +99,15 @@
   --auth-icon-border: rgba(124,58,237,.15);
 }
 
-/* ── LANDING DARK OVERRIDE — garante tema escuro na landing page independente do data-theme ── */
+/* ── LANDING — sempre dark, independente do data-theme do usuário ── */
 .landing-dark {
-  --bg:      #0a0b0f;
-  --bg2:     #0d0e14;
-  --card:    #13141a;
-  --card2:   #1a1b22;
-  --border:  #1e2028;
-  --border2: #2d2f3a;
-  --text:    #f1f5f9;
-  --text2:   #e2e8f0;
-  --text3:   #64748b;
-  --text4:   #94a3b8;
   background: #0a0a0f;
   color: #fff;
+}
+
+body:has(.landing-dark) {
+  background: #0a0a0f !important;
+  color: #fff !important;
 }
 
 /* ── BASE ─────────────────────────────────────────────────────────────────── */
