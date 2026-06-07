@@ -26,6 +26,13 @@ export const signupSchema = z.object({
   email: emailSchema,
 })
 
+export const waitlistSchema = z.object({
+  name: nameSchema,
+  email: emailSchema,
+})
+
+export type WaitlistFormValues = z.infer<typeof waitlistSchema>
+
 export const contentSchema = z.object({
   title: z
     .string()
