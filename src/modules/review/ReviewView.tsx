@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppData } from '@/hooks/useAppData'
 import { calcRetention } from '@/engine/retention'
@@ -30,6 +30,8 @@ export function ReviewView() {
   const [queue] = useState<FlashCard[]>(() => state.cards.filter(isDue))
   // Cognitive score capturado antes da sessão para exibir o delta na tela de resultado
   const [scoreBefore] = useState(() => computeCogScore(state.cards))
+  // Rastreia XP já ganho por card nesta sessão — evita double-XP ao re-avaliar após undo
+  const ratedCards = useRef<Map<string, number>>(new Map())
 
   const [idx, setIdx] = useState(0)
   const [flipped, setFlipped] = useState(false)
@@ -52,6 +54,14 @@ export function ReviewView() {
         res.interval >= 21 ? 'strong' : res.interval >= 6 ? 'review' : 'learning'
       const xpEarned = q >= 4 ? 15 : q >= 3 ? 10 : 5
 
+      // Se card já foi avaliado nesta sessão (undo + re-avaliação), passa o delta líquido
+      // como xpEarned para que reducer e Supabase sejam atualizados na mesma operação,
+      // evitando XP corrompido caso a rede falhe entre dois dispatches separados.
+      // O Map é limpo ao desmontar o componente (unmount entre sessões), então não há leak.
+      const prevXp = ratedCards.current.get(current.id)
+      const xpDelta = prevXp !== undefined ? xpEarned - prevXp : xpEarned
+      ratedCards.current.set(current.id, xpEarned)
+
       dispatch({
         type: 'RATE_CARD',
         payload: {
@@ -63,7 +73,7 @@ export function ReviewView() {
           nextReview,
           lastReview: new Date().toISOString(),
           mastery,
-          xpEarned,
+          xpEarned: xpDelta,
         },
       })
       setHistory((h) => [...h, idx])

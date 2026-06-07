@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppData } from '@/hooks/useAppData'
 import { calcRetention } from '@/engine/retention'
@@ -23,6 +24,26 @@ function getGreeting(): string {
 export function DashboardView() {
   const { state } = useAppData()
   const router = useRouter()
+
+  // Checklist de onboarding — dispensável, persiste no localStorage
+  const [onboardingDismissed, setOnboardingDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('neurolearn:onboarding:dismissed') === '1'
+  })
+
+  const onboardingItems = [
+    { label: 'Adicionar primeiro conteúdo', done: state.contents.length > 0, link: '/library' },
+    { label: 'Criar primeiro flashcard',    done: state.cards.length > 0,    link: '/library' },
+    { label: 'Completar primeira revisão',  done: state.sessions.length > 0, link: '/review'  },
+    { label: 'Manter sequência de 3 dias',  done: state.streak >= 3,         link: null        },
+  ]
+  const onboardingDone = onboardingItems.filter((i) => i.done).length
+  const showOnboarding = !onboardingDismissed && onboardingDone < onboardingItems.length
+
+  function dismissOnboarding() {
+    localStorage.setItem('neurolearn:onboarding:dismissed', '1')
+    setOnboardingDismissed(true)
+  }
 
   const due = state.cards.filter(isDue)
   const avgRet = state.cards.length
@@ -145,6 +166,67 @@ export function DashboardView() {
           </div>
         ))}
       </div>
+
+      {/* Checklist de onboarding — visível até completar todas as etapas ou dispensar */}
+      {showOnboarding && (
+        <div
+          data-testid="onboarding-checklist"
+          className="card"
+          style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-4)', border: '1px solid rgba(124,58,237,.25)', background: 'rgba(124,58,237,.04)' }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+            <div>
+              <h2 style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--text)', margin: 0 }}>
+                Primeiros passos 🚀
+              </h2>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', margin: 'var(--space-1) 0 0' }}>
+                {onboardingDone}/{onboardingItems.length} etapas concluídas
+              </p>
+            </div>
+            <button
+              data-testid="btn-dismiss-onboarding"
+              onClick={dismissOnboarding}
+              title="Dispensar"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: '18px', lineHeight: 1 }}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Barra de progresso */}
+          <div className="progress-bar" style={{ marginBottom: 'var(--space-4)', height: '6px' }}>
+            <div
+              className="progress-fill"
+              data-testid="onboarding-progress"
+              style={{ width: `${(onboardingDone / onboardingItems.length) * 100}%`, background: 'linear-gradient(90deg,#7c3aed,#06b6d4)' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            {onboardingItems.map((item, i) => (
+              <div
+                key={i}
+                data-testid={`onboarding-item-${i}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', opacity: item.done ? 0.55 : 1 }}
+              >
+                <span style={{ fontSize: '16px', flexShrink: 0 }}>{item.done ? '✅' : '⬜'}</span>
+                {item.link && !item.done ? (
+                  <button
+                    onClick={() => router.push(item.link!)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'var(--text-sm)', color: '#7c3aed', fontWeight: '600', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
+                  >
+                    {item.label}
+                  </button>
+                ) : (
+                  <span style={{ fontSize: 'var(--text-sm)', color: item.done ? 'var(--text3)' : 'var(--text)', textDecoration: item.done ? 'line-through' : 'none' }}>
+                    {item.label}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="dash-main-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-4)' }}>
         {/* Coluna esquerda */}

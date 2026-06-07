@@ -11,6 +11,7 @@ import type { Content, ContentType, FlashCard } from '@/types'
 import { Plus } from '@/components/icons'
 import { AddContentModal } from './AddContentModal'
 import { EditContentModal } from './EditContentModal'
+import { GenerateFlashcardsModal } from './GenerateFlashcardsModal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { FormField } from '@/components/ui/FormField'
 import { Textarea } from '@/components/ui/Textarea'
@@ -61,6 +62,9 @@ export function LibraryView() {
   const [editCard, setEditCard] = useState<FlashCard | null>(null)
   const [confirmDeleteCard, setConfirmDeleteCard] = useState<FlashCard | null>(null)
   const [deletingCard, setDeletingCard] = useState(false)
+
+  // Modal de geração de flashcards por IA
+  const [genContent, setGenContent] = useState<Content | null>(null)
 
   function handleAdd(content: Content) {
     dispatch({ type: 'ADD_CONTENT', payload: content })
@@ -141,6 +145,14 @@ export function LibraryView() {
       </div>
 
       {showAdd && <AddContentModal onAdd={handleAdd} onClose={() => setShowAdd(false)} />}
+
+      {genContent && (
+        <GenerateFlashcardsModal
+          content={genContent}
+          onAdd={(cards) => dispatch({ type: 'ADD_CARDS', payload: cards })}
+          onClose={() => setGenContent(null)}
+        />
+      )}
 
       {editContent && (
         <EditContentModal
@@ -283,6 +295,16 @@ export function LibraryView() {
                     title="Remover conteúdo"
                   >
                     ✕
+                  </button>
+                  {/* Gerar flashcards com IA */}
+                  <button
+                    data-testid="btn-generate-ai"
+                    className="btn-secondary"
+                    style={{ fontSize: '11px', padding: '5px 8px', color: '#7c3aed', borderColor: 'rgba(124,58,237,.3)' }}
+                    onClick={() => setGenContent(c)}
+                    title="Gerar flashcards com IA"
+                  >
+                    ✦ IA
                   </button>
                   {/* Toggle expandir flashcards (T-07) */}
                   {cards.length > 0 && (
