@@ -67,7 +67,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       maxTokens: 1024,
       jsonMode: true,
     })
-  } catch {
+  } catch (err) {
+    console.error('[generate-flashcards] callAI error:', err instanceof Error ? err.message : err)
     return NextResponse.json<AIErrorResponse>(
       { error: 'Erro ao processar com IA. Tente novamente.', code: 'AI_ERROR' },
       { status: 500 },

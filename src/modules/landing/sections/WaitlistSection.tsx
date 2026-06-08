@@ -64,7 +64,7 @@ export function WaitlistSection() {
             <div style={{ fontSize: '40px', marginBottom: '16px' }}>🎉</div>
             <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#fff', marginBottom: '8px' }}>Você está dentro!</h3>
             <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.55)', margin: 0 }}>
-              Entraremos em contato assim que seu acesso estiver liberado.
+              Enviamos um link de acesso para o seu e-mail. Verifique sua caixa de entrada (e o spam).
             </p>
           </div>
         ) : (
