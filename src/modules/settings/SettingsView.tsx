@@ -256,9 +256,12 @@ export function SettingsView() {
           <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--color-primary-text)', margin: '0 0 var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             <Download /> Exportar dados
           </h3>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', margin: '0 0 var(--space-3)' }}>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', margin: '0 0 var(--space-1)' }}>
             Baixa um arquivo JSON com todos os seus conteúdos, flashcards, habilidades e sessões.
             Útil como backup ou para migração.
+          </p>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warning)', margin: '0 0 var(--space-3)', display: 'flex', alignItems: 'flex-start', gap: 'var(--space-1)' }}>
+            ⚠ O arquivo exportado contém dados pessoais. Guarde-o em local seguro e não compartilhe com terceiros.
           </p>
           <button
             className="btn-primary"
