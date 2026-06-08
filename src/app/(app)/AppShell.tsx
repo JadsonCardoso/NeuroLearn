@@ -5,6 +5,7 @@ import { ToastContainer } from '@/components/ui/Toast'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MigrationBanner } from '@/components/layout/MigrationBanner'
 import { BottomNav } from '@/components/layout/BottomNav'
+import { AnalyticsIdentifier } from '@/components/analytics/AnalyticsIdentifier'
 
 // Client Component separado — gerencia estado da sidebar mobile
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -54,6 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <BottomNav />
+      <AnalyticsIdentifier />
 
       <style>{`
         .mobile-topbar {

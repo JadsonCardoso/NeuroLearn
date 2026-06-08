@@ -1,3 +1,4 @@
+import { withSentryConfig } from '@sentry/nextjs'
 import type { NextConfig } from 'next'
 
 const isProd = process.env.NODE_ENV === 'production'
@@ -10,7 +11,19 @@ const csp = [
   "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com",
+  [
+    "connect-src 'self'",
+    'https://*.supabase.co',
+    'wss://*.supabase.co',
+    'https://accounts.google.com',
+    // Sentry — ingestão de erros e traces
+    'https://*.ingest.sentry.io',
+    'https://*.ingest.us.sentry.io',
+    // PostHog — analytics de eventos
+    'https://app.posthog.com',
+    'https://us.i.posthog.com',
+    'https://eu.i.posthog.com',
+  ].join(' '),
   "frame-src 'none'",
   "frame-ancestors 'none'",
   "object-src 'none'",
@@ -43,4 +56,23 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withSentryConfig(nextConfig, {
+  // Obtido em: sentry.io → Settings → Auth Tokens
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  // Silencia output do CLI Sentry fora do CI
+  silent: !process.env.CI,
+
+  // Upload de source maps mais amplo para erros em bundles divididos
+  widenClientFileUpload: true,
+
+  webpack: {
+    // Remove logs do SDK Sentry do bundle de produção
+    treeshake: { removeDebugLogging: true },
+    // Desativa instrumentação automática — controlamos manualmente via instrumentation.ts
+    autoInstrumentServerFunctions: false,
+  },
+})

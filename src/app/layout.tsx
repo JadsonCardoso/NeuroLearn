@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { ConsentBanner } from '@/components/lgpd/ConsentBanner'
+import { PostHogProvider } from '@/components/analytics/PostHogProvider'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -22,8 +23,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={inter.className}>
-        {children}
-        <ConsentBanner />
+        <PostHogProvider>
+          {children}
+          <ConsentBanner />
+        </PostHogProvider>
       </body>
     </html>
   )

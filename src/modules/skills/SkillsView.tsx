@@ -8,6 +8,7 @@ import type { Skill, SkillCategory } from '@/types'
 import { uid } from '@/lib/utils'
 import { Plus } from '@/components/icons'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useAnalytics } from '@/hooks/useAnalytics'
 
 const CATS: Record<SkillCategory, { l: string; c: string }> = {
   product:    { l: 'Produto',       c: '#7c3aed' },
@@ -27,6 +28,7 @@ const LEVELS = ['Iniciante', 'Básico', 'Intermediário', 'Avançado', 'Expert',
 export function SkillsView() {
   const { state, dispatch } = useAppData()
   const { toast } = useToast()
+  const { track } = useAnalytics()
   const [sel, setSel] = useState<Skill | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: '', cat: 'product' as SkillCategory })
@@ -45,6 +47,7 @@ export function SkillsView() {
 
     for (const ach of newlyUnlocked) {
       toast.success(`${ach.icon} ${ach.name}`, 'Conquista Desbloqueada!')
+      track('achievement_unlocked', { achievement_id: ach.id, xp_gained: 0 })
       notified.add(ach.id)
     }
 

@@ -7,6 +7,7 @@ import { useAppData } from '@/hooks/useAppData'
 import { uid } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useFocusSession } from '@/store/FocusSessionContext'
+import { useAnalytics } from '@/hooks/useAnalytics'
 
 interface FocusViewProps {
   content: Content
@@ -16,6 +17,10 @@ export function FocusView({ content }: FocusViewProps) {
   const { dispatch } = useAppData()
   const router = useRouter()
   const { setIsRunning } = useFocusSession()
+  const { track } = useAnalytics()
+
+  // Impede rastrear session_started mais de uma vez por sessão
+  const sessionStartedRef = useRef(false)
 
   const [phase, setPhase] = useState<'study' | 'extract' | 'teach'>('study')
   const [secs, setSecs] = useState(25 * 60)
@@ -41,6 +46,16 @@ export function FocusView({ content }: FocusViewProps) {
   useEffect(() => {
     setIsRunning(running)
   }, [running, setIsRunning])
+
+  // Rastreia início da sessão de foco (apenas uma vez por montagem)
+  useEffect(() => {
+    if (running && !sessionStartedRef.current) {
+      sessionStartedRef.current = true
+      track('session_started', { content_id: content.id, phase, duration_secs: TOTAL })
+    }
+  // TOTAL e phase são derivados de estado — incluídos para precisão do evento, mas running é o gatilho
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running])
 
   // Cria o Web Worker na montagem e destrói na desmontagem para evitar drift em background
   useEffect(() => {
@@ -154,6 +169,7 @@ export function FocusView({ content }: FocusViewProps) {
       type: 'FINISH_SESSION',
       payload: { session, cards: newCards, contentId: content.id },
     })
+    track('session_completed', { content_id: content.id, phase, duration_secs: 25 * 60 })
     router.push('/dashboard')
   }
 
