@@ -14,9 +14,10 @@ webpush.setVapidDetails(
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
-  // Protege o endpoint com CRON_SECRET
-  const secret = req.headers.get('x-cron-secret')
-  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+  // Protege o endpoint com CRON_SECRET — Vercel Cron envia Authorization: Bearer <secret>
+  const authHeader = req.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret || cronSecret.trim() === '' || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
