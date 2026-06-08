@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useAppData } from '@/hooks/useAppData'
+import { useToast } from '@/hooks/useToast'
+import { computeAchievements } from '@/engine/achievements'
 import type { Skill, SkillCategory } from '@/types'
 import { uid } from '@/lib/utils'
 import { Plus } from '@/components/icons'
@@ -24,10 +26,33 @@ const LEVELS = ['Iniciante', 'Básico', 'Intermediário', 'Avançado', 'Expert',
 
 export function SkillsView() {
   const { state, dispatch } = useAppData()
+  const { toast } = useToast()
   const [sel, setSel] = useState<Skill | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: '', cat: 'product' as SkillCategory })
   const [confirmDeleteSkill, setConfirmDeleteSkill] = useState<Skill | null>(null)
+
+  // Detecta conquistas recém-desbloqueadas e dispara toast.
+  // localStorage persiste IDs já notificados entre navegações SPA — evita spam por remontagem.
+  useEffect(() => {
+    const stored = typeof window !== 'undefined'
+      ? localStorage.getItem('neurolearn:achievements:notified')
+      : null
+    const notified = new Set<string>(stored ? (JSON.parse(stored) as string[]) : [])
+
+    const achievements = computeAchievements(state)
+    const newlyUnlocked = achievements.filter((a) => a.unlocked && !notified.has(a.id))
+
+    for (const ach of newlyUnlocked) {
+      toast.success(`${ach.icon} ${ach.name}`, 'Conquista Desbloqueada!')
+      notified.add(ach.id)
+    }
+
+    if (newlyUnlocked.length > 0) {
+      localStorage.setItem('neurolearn:achievements:notified', JSON.stringify([...notified]))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state])
 
   useEffect(() => {
     if (!showAdd) return
@@ -370,6 +395,71 @@ export function SkillsView() {
           </div>
         )
       })}
+
+      {/* Grade de Conquistas — US-GM-01 */}
+      {(() => {
+        const achievements = computeAchievements(state)
+        const unlocked = achievements.filter((a) => a.unlocked).length
+        return (
+          <div style={{ marginTop: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ width: '3px', height: '14px', background: '#f59e0b', borderRadius: '2px' }} />
+              <h2 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)' }}>
+                Conquistas
+              </h2>
+              <span style={{
+                fontSize: '11px', padding: '2px 9px', borderRadius: '20px', fontWeight: '700',
+                background: 'rgba(245,158,11,.15)', color: '#f59e0b',
+                border: '1px solid rgba(245,158,11,.3)',
+              }}>
+                {unlocked}/{achievements.length}
+              </span>
+            </div>
+            <div
+              data-testid="achievements-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill,minmax(175px,1fr))',
+                gap: '10px',
+              }}
+            >
+              {achievements.map((ach) => (
+                <div
+                  key={ach.id}
+                  data-testid={`achievement-${ach.id}`}
+                  title={ach.description}
+                  style={{
+                    padding: '13px',
+                    borderRadius: '10px',
+                    border: ach.unlocked
+                      ? `1px solid ${ach.color}40`
+                      : '1px solid var(--border)',
+                    background: ach.unlocked
+                      ? ach.color + '0d'
+                      : 'var(--card)',
+                    opacity: ach.unlocked ? 1 : 0.45,
+                    transition: 'all .2s',
+                    cursor: 'default',
+                  }}
+                >
+                  <div style={{ fontSize: '22px', marginBottom: '6px' }}>{ach.icon}</div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: ach.unlocked ? ach.color : 'var(--text3)', marginBottom: '3px' }}>
+                    {ach.name}
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text4)', lineHeight: '1.4' }}>
+                    {ach.description}
+                  </div>
+                  {ach.unlocked && (
+                    <div style={{ marginTop: '7px', fontSize: '9px', fontWeight: '700', color: ach.color, textTransform: 'uppercase', letterSpacing: '.5px' }}>
+                      ✓ Desbloqueado
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       <ConfirmDialog
         open={!!confirmDeleteSkill}

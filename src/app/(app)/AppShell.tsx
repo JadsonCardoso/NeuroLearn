@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ToastContainer } from '@/components/ui/Toast'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MigrationBanner } from '@/components/layout/MigrationBanner'
+import { BottomNav } from '@/components/layout/BottomNav'
 
 // Client Component separado — gerencia estado da sidebar mobile
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -40,7 +41,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </div>
 
-          <main style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
+          <main
+            style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}
+            className="app-main"
+          >
             <MigrationBanner />
             {children}
           </main>
@@ -48,6 +52,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <ToastContainer />
       </div>
+
+      <BottomNav />
 
       <style>{`
         .mobile-topbar {
@@ -63,6 +69,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
         @media (max-width: 767px) {
           .mobile-topbar { display: flex; }
+          /* Espaço para a BottomNav fixa não cobrir o conteúdo */
+          .app-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
         }
       `}</style>
     </>

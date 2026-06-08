@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import type { Content, FlashCard, StudySession } from '@/types'
 import { useAppData } from '@/hooks/useAppData'
 import { uid } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useFocusSession } from '@/store/FocusSessionContext'
 
 interface FocusViewProps {
   content: Content
@@ -13,6 +15,7 @@ interface FocusViewProps {
 export function FocusView({ content }: FocusViewProps) {
   const { dispatch } = useAppData()
   const router = useRouter()
+  const { setIsRunning } = useFocusSession()
 
   const [phase, setPhase] = useState<'study' | 'extract' | 'teach'>('study')
   const [secs, setSecs] = useState(25 * 60)
@@ -24,31 +27,73 @@ export function FocusView({ content }: FocusViewProps) {
   const [qs, setQs] = useState({ imp: '', gap: '', apply: '' })
   const [newCards, setNewCards] = useState<FlashCard[]>([])
   const [cf, setCf] = useState({ front: '', back: '' })
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+
+  const workerRef = useRef<Worker | null>(null)
+  // Mantém a fase atual acessível dentro do callback do Worker (evita stale closure)
+  const phaseRef = useRef(phase)
 
   useEffect(() => {
-    if (running) {
-      timerRef.current = setInterval(() => {
-        setSecs((t) => {
-          if (t <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current)
-            setRunning(false)
-            if (phase === 'study') {
-              setPhase('extract')
-              setSecs(5 * 60)
-            }
-            return 0
-          }
-          return t - 1
-        })
-      }, 1000)
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current)
+    phaseRef.current = phase
+  }, [phase])
+
+  // Sincroniza o estado de running com o contexto global para que a BottomNav possa interceptar navegação
+  useEffect(() => {
+    setIsRunning(running)
+  }, [running, setIsRunning])
+
+  // Cria o Web Worker na montagem e destrói na desmontagem para evitar drift em background
+  useEffect(() => {
+    if (typeof Worker === 'undefined') return
+    const worker = new Worker('/timer.worker.js')
+    workerRef.current = worker
+
+    worker.onmessage = (e: MessageEvent<{ type: string; secs?: number }>) => {
+      const { type, secs: workerSecs } = e.data
+      if (type === 'TICK' && workerSecs !== undefined) {
+        setSecs(workerSecs)
+      } else if (type === 'DONE') {
+        setRunning(false)
+        if (phaseRef.current === 'study') {
+          setPhase('extract')
+          setSecs(5 * 60)
+        } else {
+          setSecs(0)
+        }
+      }
     }
+
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
+      worker.terminate()
+      setIsRunning(false)
     }
-  }, [running, phase])
+  // setIsRunning é estável (vem de useState no provider) — não precisa de deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Envia START ou PAUSE ao Worker sempre que running muda
+  useEffect(() => {
+    const worker = workerRef.current
+    if (!worker) return
+    if (running) {
+      worker.postMessage({ type: 'START', payload: { secs } })
+    } else {
+      worker.postMessage({ type: 'PAUSE' })
+    }
+    // secs é capturado corretamente pelo render que disparou o efeito
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running])
+
+  // Intercepta refresh/fechamento do browser com sessão ativa
+  useEffect(() => {
+    if (!running) return
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      return ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [running])
 
   const TOTAL = phase === 'study' ? 25 * 60 : 5 * 60
   const pct = ((TOTAL - secs) / TOTAL) * 100
@@ -57,6 +102,20 @@ export function FocusView({ content }: FocusViewProps) {
   const offset = circumference - (pct / 100) * circumference
   const mm = String(Math.floor(secs / 60)).padStart(2, '0')
   const ss = String(secs % 60).padStart(2, '0')
+
+  function handleBack() {
+    if (running) {
+      setShowLeaveConfirm(true)
+    } else {
+      router.push('/focus')
+    }
+  }
+
+  function confirmLeave() {
+    setShowLeaveConfirm(false)
+    setRunning(false)
+    router.push('/focus')
+  }
 
   function addHighlight() {
     if (!hiInput.trim()) return
@@ -114,8 +173,21 @@ export function FocusView({ content }: FocusViewProps) {
 
   return (
     <div className="slide-in" style={{ padding: '24px', maxWidth: '920px', margin: '0 auto' }}>
+      {/* Diálogo de confirmação ao sair com sessão ativa */}
+      <ConfirmDialog
+        open={showLeaveConfirm}
+        variant="warning"
+        title="Sessão em andamento"
+        description="O timer está rodando. Se sair agora, o progresso desta sessão não será salvo. Deseja mesmo sair?"
+        confirmLabel="Sair sem salvar"
+        cancelLabel="Continuar estudando"
+        onConfirm={confirmLeave}
+        onCancel={() => setShowLeaveConfirm(false)}
+      />
+
       <button
-        onClick={() => router.push('/focus')}
+        data-testid="btn-back-focus"
+        onClick={handleBack}
         style={{
           background: 'none',
           border: 'none',
@@ -243,6 +315,7 @@ export function FocusView({ content }: FocusViewProps) {
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text3)' }}>Pomodoro · 25 min</div>
             <button
+              data-testid="btn-timer-toggle"
               className="btn-primary"
               style={{ width: '100%' }}
               onClick={() => setRunning(!running)}
@@ -255,6 +328,7 @@ export function FocusView({ content }: FocusViewProps) {
               onClick={() => {
                 setSecs(25 * 60)
                 setRunning(false)
+                workerRef.current?.postMessage({ type: 'RESET', payload: { secs: 25 * 60 } })
               }}
             >
               ↺ Resetar

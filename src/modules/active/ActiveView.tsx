@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useAppData } from '@/hooks/useAppData'
 import type { Content } from '@/types'
+import type { TeachAnalysis } from '@/types/ai'
 import { Chevron, X } from '@/components/icons'
 
 type ActiveMode = 'teach' | 'apply' | 'quiz'
@@ -56,7 +57,39 @@ export function ActiveView() {
   const [text, setText] = useState('')
   const [ok, setOk] = useState(false)
 
+  // US-AI-01 — Análise do Modo Professor
+  const [analysis, setAnalysis] = useState<TeachAnalysis | null>(null)
+  const [analyzeError, setAnalyzeError] = useState('')
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const analyzingRef = useRef(false)
+
   const contents = state.contents
+
+  async function analyzeTeaching() {
+    if (analyzingRef.current || !sel || text.trim().length < 100) return
+    analyzingRef.current = true
+    setIsAnalyzing(true)
+    setAnalyzeError('')
+    setAnalysis(null)
+    try {
+      const res = await fetch('/api/ai/analyze-teaching', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teachText: text.trim(), topic: sel.title }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setAnalyzeError(data.error ?? 'Erro ao analisar. Tente novamente.')
+        return
+      }
+      setAnalysis(data as TeachAnalysis)
+    } catch {
+      setAnalyzeError('Falha na conexão. Verifique sua internet e tente novamente.')
+    } finally {
+      analyzingRef.current = false
+      setIsAnalyzing(false)
+    }
+  }
 
   function savePractice() {
     const wordCount = text.split(' ').filter((w) => w).length
@@ -172,6 +205,8 @@ export function ActiveView() {
           setMode('home')
           setSel(null)
           setText('')
+          setAnalysis(null)
+          setAnalyzeError('')
         }}
         style={{
           background: 'none',
@@ -256,7 +291,7 @@ export function ActiveView() {
               <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{sel.author}</div>
             </div>
             <button
-              onClick={() => setSel(null)}
+              onClick={() => { setSel(null); setAnalysis(null); setAnalyzeError('') }}
               style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer' }}
             >
               <X />
@@ -329,6 +364,25 @@ export function ActiveView() {
               <button className="btn-secondary" onClick={() => setText('')}>
                 Limpar
               </button>
+              {/* Botão de análise IA — só visível no Modo Professor com texto suficiente */}
+              {mode === 'teach' && text.trim().length >= 100 && (
+                <button
+                  data-testid="btn-analyze-teaching"
+                  onClick={analyzeTeaching}
+                  disabled={isAnalyzing}
+                  style={{
+                    padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700',
+                    cursor: isAnalyzing ? 'default' : 'pointer',
+                    border: '1.5px solid rgba(124,58,237,.4)',
+                    background: 'rgba(124,58,237,.1)',
+                    color: '#7c3aed',
+                    opacity: isAnalyzing ? 0.7 : 1,
+                    fontFamily: 'Inter',
+                  }}
+                >
+                  {isAnalyzing ? '⏳ Analisando…' : '✦ Analisar com IA'}
+                </button>
+              )}
               <button
                 className="btn-primary"
                 onClick={savePractice}
@@ -338,6 +392,102 @@ export function ActiveView() {
               </button>
             </div>
           </div>
+
+          {/* Erro da análise */}
+          {analyzeError && (
+            <p style={{ fontSize: '12px', color: '#ef4444', marginBottom: '12px' }}>
+              {analyzeError}
+            </p>
+          )}
+
+          {/* Painel de análise do Modo Professor */}
+          {analysis && (
+            <div
+              data-testid="teaching-analysis"
+              className="slide-in"
+              style={{
+                border: '1px solid rgba(124,58,237,.25)',
+                borderRadius: '12px',
+                padding: '18px',
+                background: 'rgba(124,58,237,.04)',
+                marginBottom: '14px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <p style={{ fontSize: '12px', fontWeight: '800', color: '#7c3aed', margin: 0 }}>
+                  ✦ Análise Cognitiva
+                </p>
+                <span
+                  data-testid="teaching-retention-badge"
+                  style={{
+                    fontSize: '11px', fontWeight: '700', color: '#10b981',
+                    background: 'rgba(16,185,129,.12)', border: '1px solid rgba(16,185,129,.3)',
+                    borderRadius: '20px', padding: '2px 10px',
+                  }}
+                >
+                  Retenção estimada: {analysis.estimated_retention}%
+                </span>
+              </div>
+
+              {/* Barras de score */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                {[
+                  { label: 'Clareza', value: analysis.clarity_score, testid: 'teaching-clarity-score', color: '#7c3aed' },
+                  { label: 'Cobertura', value: analysis.coverage_score, testid: 'teaching-coverage-score', color: '#06b6d4' },
+                ].map((s) => (
+                  <div key={s.testid}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text3)' }}>{s.label}</span>
+                      <span data-testid={s.testid} style={{ fontSize: '11px', fontWeight: '700', color: s.color }}>{s.value}/100</span>
+                    </div>
+                    <div style={{ height: '5px', background: 'var(--border2)', borderRadius: '3px' }}>
+                      <div style={{ height: '100%', width: `${s.value}%`, background: s.color, borderRadius: '3px', transition: 'width .5s ease' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pontos Fortes */}
+              {analysis.strengths.length > 0 && (
+                <div style={{ marginBottom: '10px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', marginBottom: '6px' }}>✅ Pontos Fortes</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {analysis.strengths.map((s, i) => (
+                      <span key={i} style={{ fontSize: '11px', padding: '3px 9px', borderRadius: '20px', background: 'rgba(16,185,129,.12)', color: '#10b981', border: '1px solid rgba(16,185,129,.25)' }}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Lacunas */}
+              {analysis.gaps.length > 0 && (
+                <div style={{ marginBottom: '10px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', marginBottom: '6px' }}>⚠️ Lacunas Identificadas</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {analysis.gaps.map((g, i) => (
+                      <span key={i} style={{ fontSize: '11px', padding: '3px 9px', borderRadius: '20px', background: 'rgba(245,158,11,.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,.25)' }}>
+                        {g}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sugestões */}
+              {analysis.suggestions.length > 0 && (
+                <div>
+                  <p style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text2)', marginBottom: '6px' }}>💡 Sugestões</p>
+                  <ol style={{ margin: 0, paddingLeft: '16px' }}>
+                    {analysis.suggestions.map((s, i) => (
+                      <li key={i} style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: '1.6', marginBottom: '2px' }}>{s}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </div>
+          )}
           {prompts.slice(1).map((p, i) => (
             <div
               key={i}

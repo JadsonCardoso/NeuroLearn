@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppProvider } from '@/store/AppContext'
 import { ToastProvider } from '@/store/ToastContext'
+import { FocusSessionProvider } from '@/store/FocusSessionContext'
 import { AppShell } from './AppShell'
 
 // Server Component — valida sessão e monta o shell do app
@@ -16,7 +17,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <ToastProvider>
       <AppProvider>
-        <AppShell>{children}</AppShell>
+        <FocusSessionProvider>
+          <AppShell>{children}</AppShell>
+        </FocusSessionProvider>
       </AppProvider>
     </ToastProvider>
   )

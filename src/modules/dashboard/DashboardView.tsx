@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppData } from '@/hooks/useAppData'
 import { calcRetention } from '@/engine/retention'
@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/Badge'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Brain, Refresh, Book, Award, Warn } from '@/components/icons'
+import { getAtRiskCards } from '@/services/analyticsService'
+import type { AtRiskCard } from '@/services/analyticsService'
 
 // Saudação contextual baseada no horário
 function getGreeting(): string {
@@ -22,8 +24,18 @@ function getGreeting(): string {
 }
 
 export function DashboardView() {
-  const { state } = useAppData()
+  const { state, userId } = useAppData()
   const router = useRouter()
+
+  // Cards em risco reais do Supabase (null = carregando, [] = sem dados / usar fallback)
+  const [realRiskCards, setRealRiskCards] = useState<AtRiskCard[] | null>(null)
+
+  useEffect(() => {
+    if (!userId) { setRealRiskCards([]); return }
+    getAtRiskCards(userId)
+      .then(setRealRiskCards)
+      .catch(() => setRealRiskCards([]))
+  }, [userId])
 
   // Checklist de onboarding — dispensável, persiste no localStorage
   const [onboardingDismissed, setOnboardingDismissed] = useState(() => {
@@ -287,40 +299,73 @@ export function DashboardView() {
             )}
           </div>
 
-          {/* Risco de esquecimento */}
-          {risk.length > 0 ? (
-            <div
-              className="card"
-              style={{ padding: 'var(--space-4)', borderColor: 'rgba(245,158,11,.3)', background: 'var(--color-warning-dim)' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
-                <span style={{ color: 'var(--color-warning)' }}><Warn /></span>
-                <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--color-warning)', margin: 0 }}>
-                  Risco de Esquecimento
-                </h3>
-              </div>
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text4)', marginBottom: 'var(--space-3)' }}>
-                {risk.length} card(s) com retenção abaixo de 50%
-              </p>
-              {risk.slice(0, 3).map((c) => (
-                <div
-                  key={c.id}
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) var(--space-3)', background: 'rgba(245,158,11,.1)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-1)' }}
-                >
-                  <span style={{ fontSize: 'var(--text-base)', color: 'var(--text)' }}>
-                    {c.front.slice(0, 45)}…
-                  </span>
-                  <span style={{ fontSize: 'var(--text-base)', color: 'var(--color-warning)', fontWeight: '700' }}>
-                    {calcRetention(c)}%
-                  </span>
+          {/* Risco de esquecimento — dados reais do Supabase, fallback client-side */}
+          {(() => {
+            // Skeleton enquanto carrega
+            if (realRiskCards === null) {
+              return (
+                <div className="card" style={{ padding: 'var(--space-4)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                    <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: 'var(--border2)' }} />
+                    <div style={{ height: '12px', width: '140px', borderRadius: '4px', background: 'var(--border2)' }} />
+                  </div>
+                  {[1, 2].map((i) => (
+                    <div key={i} style={{ height: '32px', borderRadius: 'var(--radius-sm)', background: 'var(--border2)', marginBottom: 'var(--space-1)', opacity: 1 - i * 0.2 }} />
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="card" style={{ padding: 'var(--space-4)' }}>
-              <EmptyState icon="🛡️" title="Nenhum card em risco" description="Sua retenção está saudável." />
-            </div>
-          )}
+              )
+            }
+
+            // Usa dados reais do Supabase se disponíveis, senão fallback client-side
+            const displayCards: { id: string; front: string; retention: number }[] =
+              realRiskCards.length > 0
+                ? realRiskCards.map((c) => ({ id: c.flashcardId, front: c.front, retention: c.retention }))
+                : risk.map((c) => ({ id: c.id, front: c.front, retention: calcRetention(c) }))
+
+            const isRealData = realRiskCards.length > 0
+            const label = isRealData ? 'dados históricos do Supabase' : 'calculado em tempo real'
+
+            if (displayCards.length === 0) {
+              return (
+                <div className="card" style={{ padding: 'var(--space-4)' }}>
+                  <EmptyState icon="🛡️" title="Nenhum card em risco" description="Sua retenção está saudável." />
+                </div>
+              )
+            }
+
+            return (
+              <div
+                data-testid="risk-cards-real"
+                className="card"
+                style={{ padding: 'var(--space-4)', borderColor: 'rgba(245,158,11,.3)', background: 'var(--color-warning-dim)' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                  <span style={{ color: 'var(--color-warning)' }}><Warn /></span>
+                  <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--color-warning)', margin: 0 }}>
+                    Risco de Esquecimento
+                  </h3>
+                </div>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text4)', marginBottom: 'var(--space-3)' }}>
+                  {displayCards.length} card(s) com retenção abaixo de 50%
+                  <span style={{ fontSize: '10px', color: 'var(--text3)', marginLeft: '6px' }}>({label})</span>
+                </p>
+                {displayCards.slice(0, 3).map((c, i) => (
+                  <div
+                    key={c.id}
+                    data-testid={`risk-card-${i}`}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) var(--space-3)', background: 'rgba(245,158,11,.1)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-1)' }}
+                  >
+                    <span style={{ fontSize: 'var(--text-base)', color: 'var(--text)' }}>
+                      {c.front.slice(0, 45)}{c.front.length > 45 ? '…' : ''}
+                    </span>
+                    <span style={{ fontSize: 'var(--text-base)', color: 'var(--color-warning)', fontWeight: '700' }}>
+                      {c.retention}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
 
           {/* Calendário semanal */}
           <div className="card" style={{ padding: 'var(--space-5)' }}>
