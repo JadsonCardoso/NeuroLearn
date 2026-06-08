@@ -11,9 +11,12 @@ import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Badge } from '@/components/ui/Badge'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ActivityHeatmap } from '@/components/ui/ActivityHeatmap'
+import { CognitiveScoreTrend } from '@/components/ui/CognitiveScoreTrend'
+import { ContentProgressChart } from '@/components/ui/ContentProgressChart'
 import { Brain, Refresh, Book, Award, Warn } from '@/components/icons'
-import { getAtRiskCards } from '@/services/analyticsService'
-import type { AtRiskCard } from '@/services/analyticsService'
+import { getAtRiskCards, getRetentionHistory } from '@/services/analyticsService'
+import type { AtRiskCard, RetentionHistoryPoint } from '@/services/analyticsService'
 
 // Saudação contextual baseada no horário
 function getGreeting(): string {
@@ -29,12 +32,22 @@ export function DashboardView() {
 
   // Cards em risco reais do Supabase (null = carregando, [] = sem dados / usar fallback)
   const [realRiskCards, setRealRiskCards] = useState<AtRiskCard[] | null>(null)
+  // Histórico de retenção para o gráfico de tendência (null = carregando)
+  const [retentionHistory, setRetentionHistory] = useState<RetentionHistoryPoint[] | null>(null)
 
   useEffect(() => {
-    if (!userId) { setRealRiskCards([]); return }
+    if (!userId) {
+      setRealRiskCards([])
+      setRetentionHistory([])
+      return
+    }
     getAtRiskCards(userId)
       .then(setRealRiskCards)
       .catch(() => setRealRiskCards([]))
+
+    getRetentionHistory(userId)
+      .then(setRetentionHistory)
+      .catch(() => setRetentionHistory([]))
   }, [userId])
 
   // Checklist de onboarding — dispensável, persiste no localStorage
@@ -177,6 +190,18 @@ export function DashboardView() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Heat map de atividade — últimas 16 semanas */}
+      <div className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
+        <h2 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--text)', margin: '0 0 var(--space-4)' }}>
+          📅 Atividade de Estudo
+        </h2>
+        {state.sessions.length > 0 ? (
+          <ActivityHeatmap sessions={state.sessions} weeks={16} />
+        ) : (
+          <EmptyState icon="📅" title="Nenhuma sessão registrada" description="Complete uma sessão de foco para ver seu histórico de atividade." />
+        )}
       </div>
 
       {/* Checklist de onboarding — visível até completar todas as etapas ou dispensar */}
@@ -367,10 +392,18 @@ export function DashboardView() {
             )
           })()}
 
+          {/* Progresso por conteúdo */}
+          <div className="card" style={{ padding: 'var(--space-5)' }}>
+            <h2 style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--text)', margin: '0 0 var(--space-4)' }}>
+              📊 Domínio por Conteúdo
+            </h2>
+            <ContentProgressChart cards={state.cards} contents={state.contents} limit={5} />
+          </div>
+
           {/* Calendário semanal */}
           <div className="card" style={{ padding: 'var(--space-5)' }}>
             <h2 style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--text)', marginBottom: 'var(--space-4)', margin: '0 0 var(--space-4)' }}>
-              📅 Calendário de Revisões
+              🗓️ Calendário de Revisões
             </h2>
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', height: '80px' }}>
               {weekBars.map((b, i) => (
@@ -421,6 +454,18 @@ export function DashboardView() {
             ) : (
               <EmptyState icon="🧠" title="Sem dados ainda" description="Adicione conteúdos e crie flashcards para ver sua retenção." />
             )}
+          </div>
+
+          {/* Tendência de retenção histórica */}
+          <div className="card" style={{ padding: 'var(--space-5)' }}>
+            <h2 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--text)', margin: '0 0 var(--space-4)' }}>
+              📈 Tendência de Retenção
+            </h2>
+            <CognitiveScoreTrend
+              snapshots={retentionHistory ?? []}
+              loading={retentionHistory === null}
+              height={90}
+            />
           </div>
 
           {/* Em progresso */}
