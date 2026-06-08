@@ -44,7 +44,8 @@ describe('buildFlashcardPrompt', () => {
 
   it('exige resposta em JSON sem markdown', () => {
     const p = buildFlashcardPrompt(base)
-    expect(p).toContain('APENAS com array JSON')
+    expect(p).toContain('APENAS com objeto JSON')
+    expect(p).toContain('"cards"')
     expect(p).toContain('"front"')
     expect(p).toContain('"back"')
   })

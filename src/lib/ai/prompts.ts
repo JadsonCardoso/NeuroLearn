@@ -26,8 +26,8 @@ ${notes}
 HIGHLIGHTS:
 - ${highlightsText}
 
-Responda APENAS com array JSON válido, sem markdown, sem texto extra:
-[{"front":"...","back":"..."}]`
+Responda APENAS com objeto JSON válido, sem markdown, sem texto extra:
+{"cards":[{"front":"...","back":"..."}]}`
 }
 
 // ── Análise do Modo Professor ──────────────────────────────────────────────

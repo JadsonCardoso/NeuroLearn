@@ -76,15 +76,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // Parse e validação da resposta
+  // O modelo retorna {"cards":[...]} — formato objeto exigido pelo JSON mode da OpenAI
   let cards: FlashcardGenerated[]
   try {
     const text = result.text.trim()
-    // Remove possível markdown que o modelo retorne
     const jsonText = text.startsWith('```') ? text.replace(/```json?\n?/g, '').replace(/```$/g, '').trim() : text
-    cards = JSON.parse(jsonText)
-    if (!Array.isArray(cards) || cards.some((c) => typeof c.front !== 'string' || typeof c.back !== 'string')) {
+    const parsed: unknown = JSON.parse(jsonText)
+    // Aceita tanto {"cards":[...]} quanto array direto (fallback)
+    const raw = Array.isArray(parsed)
+      ? parsed
+      : (parsed as Record<string, unknown>).cards
+    if (!Array.isArray(raw) || raw.some((c) => typeof (c as Record<string, unknown>).front !== 'string' || typeof (c as Record<string, unknown>).back !== 'string')) {
       throw new Error('Estrutura inválida')
     }
+    cards = raw as FlashcardGenerated[]
   } catch {
     return NextResponse.json<AIErrorResponse>(
       { error: 'Resposta da IA em formato inesperado. Tente novamente.', code: 'AI_ERROR' },
