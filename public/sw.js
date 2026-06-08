@@ -1,7 +1,8 @@
 // Service Worker — NeuroLearn PWA
 // Estratégia: Network First para API, Cache First para shell estático
 
-const CACHE_NAME = 'neurolearn-v1'
+// Versionar o CACHE_NAME a cada deploy para forçar invalidação do cache nos clientes
+const CACHE_NAME = 'neurolearn-v1-20260608'
 
 const SHELL_URLS = [
   '/',
@@ -13,7 +14,6 @@ const SHELL_URLS = [
   '/skills',
   '/help',
   '/settings',
-  '/offline',
 ]
 
 // ── Install ──────────────────────────────────────────────────────────────────
@@ -116,7 +116,9 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   if (event.action === 'later') return
 
-  const targetUrl = event.notification.data?.url ?? '/review'
+  // Garante que a URL seja relativa (evita Open Redirect via payload forjado)
+  const rawUrl = event.notification.data?.url ?? '/review'
+  const targetUrl = typeof rawUrl === 'string' && rawUrl.startsWith('/') ? rawUrl : '/review'
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {

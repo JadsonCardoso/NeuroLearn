@@ -181,6 +181,14 @@ export function SettingsView() {
   async function handleDeleteAccount() {
     setDeleting(true)
     try {
+      // Remove subscription de push do browser antes de deletar a conta
+      // Evita subscription órfã que impediria notificações em nova conta
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        const reg = await navigator.serviceWorker.ready.catch(() => null)
+        const sub = await reg?.pushManager.getSubscription().catch(() => null)
+        await sub?.unsubscribe().catch(() => null)
+      }
+
       const res = await fetch('/api/user/delete', { method: 'DELETE' })
       if (!res.ok) throw new Error('Falha ao excluir conta')
       toast.success('Conta excluída. Até logo!')

@@ -2,13 +2,16 @@
 // Chamado pelo cron diário ou manualmente (CRON_SECRET obrigatório)
 import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database.types'
 
 webpush.setVapidDetails(
   process.env.VAPID_EMAIL ?? 'mailto:noreply@neurolearn.tech',
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '',
   process.env.VAPID_PRIVATE_KEY ?? ''
 )
+
+export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   // Protege o endpoint com CRON_SECRET
@@ -17,7 +20,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
-  const supabase = await createClient()
+  // Cliente admin com service role — necessário para ler push_subscriptions de todos os usuários (ignora RLS)
+  const supabase = createSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  )
   const today = new Date().toISOString().split('T')[0]
 
   // Busca todos os usuários com flashcards vencidos hoje ou antes

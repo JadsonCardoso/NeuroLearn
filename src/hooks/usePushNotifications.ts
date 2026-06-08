@@ -9,7 +9,7 @@ export function usePushNotifications() {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // Detecta suporte e estado atual
+  // Detecta suporte e estado atual; reage a mudanças externas de permissão
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -24,6 +24,15 @@ export function usePushNotifications() {
         setIsSubscribed(!!sub)
       })
     }).catch(() => {})
+
+    // Reage quando o usuário altera a permissão fora do app (configurações do browser)
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'notifications' }).then((status) => {
+        const handler = () => setPermission(status.state === 'prompt' ? 'default' : status.state as PushPermission)
+        status.addEventListener('change', handler)
+        return () => status.removeEventListener('change', handler)
+      }).catch(() => {})
+    }
   }, [])
 
   const subscribe = useCallback(async (): Promise<boolean> => {
