@@ -86,6 +86,20 @@ const MODULES: HelpModule[] = [
     science: 'Recuperação ativa: o ato de resgatar uma informação da memória é mais eficaz para retenção do que re-ler o material original.',
   },
   {
+    id: 'pwa',
+    icon: '📲',
+    title: 'App Instalável + Notificações',
+    color: '#0ea5e9',
+    tagline: 'Instale no celular e receba lembretes de revisão',
+    steps: [
+      { n: '1', t: 'Instale no celular (Android)', d: 'No Chrome, toque nos três pontos (⋮) e selecione "Adicionar à tela inicial" ou "Instalar app". O NeuroLearn abrirá como app nativo, sem barra do navegador.' },
+      { n: '2', t: 'Instale no iPhone (Safari)', d: 'Toque no ícone de compartilhar (□↑) e selecione "Adicionar à Tela de Início". Confirme tocando em "Adicionar". Funciona no iOS 16.4 ou superior.' },
+      { n: '3', t: 'Ative os lembretes de revisão', d: 'Um banner aparecerá na parte inferior do app. Clique em "✅ Ativar notificações" para receber alertas quando tiver flashcards vencidos — mesmo com o navegador fechado.' },
+    ],
+    tip: '💡 O app instalado abre mais rápido, ocupa toda a tela e mantém você em contexto de aprendizado. Se você dispensou o banner de notificações, pode ativar nas configurações do seu navegador (site neurolearn.tech → Notificações → Permitir).',
+    science: 'Notificações contextuais: lembretes no momento certo (quando o intervalo de revisão vence) são mais eficazes do que alarmes fixos, pois respeitam o ritmo do algoritmo SM-2.',
+  },
+  {
     id: 'skills',
     icon: '🌳',
     title: 'Árvore de Habilidades',

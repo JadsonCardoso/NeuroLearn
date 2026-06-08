@@ -211,6 +211,59 @@ Conforme você estuda conteúdos relacionados a uma habilidade, o sistema calcul
 
 ---
 
+## Instalando o app no seu dispositivo
+
+O NeuroLearn pode ser instalado como um app nativo no seu celular ou computador — sem precisar da App Store ou Google Play.
+
+### Android (Chrome)
+
+1. Abra o NeuroLearn no Chrome
+2. Toque nos três pontos (⋮) no canto superior direito
+3. Selecione **"Adicionar à tela inicial"** ou **"Instalar app"**
+4. Confirme. O ícone do NeuroLearn aparecerá na sua tela inicial.
+
+### iPhone / iPad (Safari)
+
+1. Abra o NeuroLearn no Safari
+2. Toque no ícone de compartilhar (□↑) na barra inferior
+3. Role e selecione **"Adicionar à Tela de Início"**
+4. Toque em **"Adicionar"** no canto superior direito.
+
+### Desktop (Chrome ou Edge)
+
+1. Abra o NeuroLearn no navegador
+2. Clique no ícone de instalação (⊕) na barra de endereços
+3. Clique em **"Instalar"**. O app abrirá em janela própria, sem barra do navegador.
+
+> **Por que instalar?** O app instalado abre mais rápido, funciona em tela cheia e permite receber lembretes de revisão mesmo com o navegador fechado.
+
+---
+
+## Lembretes de revisão (Notificações Push)
+
+O NeuroLearn pode te lembrar quando você tem flashcards para revisar — mesmo sem abrir o app.
+
+### Como ativar
+
+Quando você abrir o app, um banner aparecerá na parte inferior da tela perguntando se deseja ativar notificações. Clique em **"✅ Ativar notificações"** e confirme a permissão no seu navegador ou dispositivo.
+
+Se você dispensou o banner, pode ativar nas configurações do seu navegador:
+
+- **Chrome/Edge:** Configurações → Privacidade e segurança → Configurações do site → Notificações → neurolearn.tech → Permitir
+- **Safari (iOS):** Ajustes → Apps → Safari → Notificações → neurolearn.tech → Permitir
+
+### Como funcionam os lembretes
+
+- O sistema verifica diariamente quais usuários têm flashcards com data de revisão vencida
+- Se você tiver cards para revisar, receberá uma notificação com a contagem
+- Tocar na notificação abre diretamente a tela de Revisão
+
+### Como desativar
+
+Para parar de receber lembretes, acesse as configurações de notificações do seu navegador e bloqueie o site `neurolearn.tech`.
+
+---
+
 ## Como funciona o sistema de revisão
 
 *Uma explicação sem termos técnicos.*

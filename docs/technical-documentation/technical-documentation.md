@@ -588,6 +588,130 @@ requireRole(role, required)  // Lança erro se insuficiente
 
 ---
 
+## Progressive Web App (PWA)
+
+### Visão Geral
+
+O NeuroLearn é instalável como PWA em Android, iOS (Safari) e desktop (Chrome/Edge). A implementação usa Service Worker nativo sem `next-pwa` para evitar conflito com o webpack do `@sentry/nextjs`.
+
+### Manifesto (`public/manifest.webmanifest`)
+
+```json
+{
+  "name": "NeuroLearn",
+  "short_name": "NeuroLearn",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0a0b0f",
+  "theme_color": "#7c3aed",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "purpose": "any" },
+    { "src": "/icons/icon-maskable.png", "sizes": "512x512", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Revisão diária", "url": "/review" },
+    { "name": "Biblioteca", "url": "/library" }
+  ]
+}
+```
+
+Ícones gerados via `scripts/generate-icons.js` (Node.js puro, sem dependências externas — usa `zlib` + CRC32 para criar PNGs válidos).
+
+### Service Worker (`public/sw.js`)
+
+Estratégias de cache por tipo de recurso:
+
+| Recurso | Estratégia |
+|---|---|
+| `/_next/static/` | Cache First — ativos imutáveis com hash |
+| Páginas HTML | Network First → fallback do cache |
+| `/api/*` | Network Only — nunca cachear respostas de API |
+| Push events | `showNotification` com actions Revisar/Depois |
+
+O SW usa `skipWaiting()` no install e `clients.claim()` no activate para ativação imediata.
+
+### Push Notifications
+
+#### Infraestrutura
+
+- **Biblioteca:** `web-push` (server-side, Node.js)
+- **Protocolo:** Web Push Protocol com VAPID
+- **Tabela:** `push_subscriptions` no Supabase (RLS: `auth.uid() = user_id`)
+
+#### Tabela `push_subscriptions`
+
+```sql
+CREATE TABLE push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, endpoint)
+);
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "users can manage own push subscriptions"
+  ON push_subscriptions FOR ALL
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+```
+
+#### API Routes
+
+| Rota | Método | Descrição |
+|---|---|---|
+| `/api/push/subscribe` | POST | Salva subscription via upsert `onConflict: user_id,endpoint` |
+| `/api/push/subscribe` | DELETE | Remove subscription por endpoint do usuário autenticado |
+| `/api/push/notify` | POST | Envia push para todos os usuários com cards vencidos (protegido por `CRON_SECRET`) |
+
+#### Fluxo de envio (cron diário)
+
+1. Buscar flashcards com `next_review <= hoje`
+2. Agrupar por `user_id` (contagem)
+3. Buscar `push_subscriptions` dos usuários afetados
+4. Enviar via `webpush.sendNotification()` para cada endpoint
+5. Remover subscriptions com HTTP 410 (expiradas)
+
+#### Variáveis de Ambiente
+
+| Variável | Exposição | Descrição |
+|---|---|---|
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Pública (browser) | Chave VAPID pública — usada no `pushManager.subscribe()` |
+| `VAPID_PRIVATE_KEY` | Servidor only | Chave VAPID privada — usada no `web-push.setVapidDetails()` |
+| `VAPID_EMAIL` | Servidor only | Email de contato para o protocolo VAPID |
+| `CRON_SECRET` | Servidor only | Token para proteger `POST /api/push/notify` |
+
+### Hook `usePushNotifications`
+
+```typescript
+// src/hooks/usePushNotifications.ts
+export function usePushNotifications(): {
+  permission: 'default' | 'granted' | 'denied' | 'unsupported'
+  isSubscribed: boolean
+  loading: boolean
+  subscribe(): Promise<boolean>
+  unsubscribe(): Promise<void>
+}
+```
+
+### Componentes
+
+- **`ServiceWorkerRegistrar`** — Client Component que registra `/sw.js` uma única vez após mount. Renderiza `null`.
+- **`PushNotificationPrompt`** — Banner fixo (bottom-center) que aparece 3s após mount se: permissão não negada, não subscrito, não dispensado (`localStorage nl_push_dismissed`).
+
+Ambos adicionados ao `AppShell.tsx` após `<AnalyticsIdentifier />`.
+
+### Geração de Ícones
+
+```bash
+node scripts/generate-icons.js
+```
+
+Gera os 4 ícones PNG em `public/icons/` usando apenas módulos nativos do Node.js (`zlib`, `fs`, `path`). Não é necessário rodar em CI — os ícones estão commitados.
+
+---
+
 ## Estratégia de Testes
 
 ### Unitários (Vitest)
