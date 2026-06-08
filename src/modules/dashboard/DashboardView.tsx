@@ -36,18 +36,21 @@ export function DashboardView() {
   const [retentionHistory, setRetentionHistory] = useState<RetentionHistoryPoint[] | null>(null)
 
   useEffect(() => {
+    let mounted = true
     if (!userId) {
       setRealRiskCards([])
       setRetentionHistory([])
       return
     }
     getAtRiskCards(userId)
-      .then(setRealRiskCards)
-      .catch(() => setRealRiskCards([]))
+      .then((d) => { if (mounted) setRealRiskCards(d) })
+      .catch(() => { if (mounted) setRealRiskCards([]) })
 
     getRetentionHistory(userId)
-      .then(setRetentionHistory)
-      .catch(() => setRetentionHistory([]))
+      .then((d) => { if (mounted) setRetentionHistory(d) })
+      .catch(() => { if (mounted) setRetentionHistory([]) })
+
+    return () => { mounted = false }
   }, [userId])
 
   // Checklist de onboarding — dispensável, persiste no localStorage

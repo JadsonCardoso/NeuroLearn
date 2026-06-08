@@ -17,10 +17,14 @@ function cellColor(count: number): string {
 }
 
 export function ActivityHeatmap({ sessions, weeks = 16 }: Props) {
+  const todayStr = new Date().toISOString().slice(0, 10)
   const counts = new Map<string, number>()
   sessions.forEach((s) => {
     const d = (s.date ?? '').slice(0, 10)
-    if (d) counts.set(d, (counts.get(d) ?? 0) + 1)
+    // CC-01: ignora datas inválidas; CC-03: ignora datas futuras
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d <= todayStr) {
+      counts.set(d, (counts.get(d) ?? 0) + 1)
+    }
   })
 
   // Constrói grade: weeks colunas × 7 linhas (Seg-Dom)
@@ -42,7 +46,8 @@ export function ActivityHeatmap({ sessions, weeks = 16 }: Props) {
     grid.push(column)
   }
 
-  const totalSessions = sessions.length
+  // Totais baseados apenas nas sessões válidas (filtradas no Map)
+  const totalSessions = Array.from(counts.values()).reduce((a, b) => a + b, 0)
   const activeDays = [...counts.values()].filter((v) => v > 0).length
 
   return (
