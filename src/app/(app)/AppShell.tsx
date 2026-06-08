@@ -6,6 +6,8 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { MigrationBanner } from '@/components/layout/MigrationBanner'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { AnalyticsIdentifier } from '@/components/analytics/AnalyticsIdentifier'
+import { ServiceWorkerRegistrar } from '@/components/ui/ServiceWorkerRegistrar'
+import { PushNotificationPrompt } from '@/components/ui/PushNotificationPrompt'
 
 // Client Component separado — gerencia estado da sidebar mobile
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -56,6 +58,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <BottomNav />
       <AnalyticsIdentifier />
+      <ServiceWorkerRegistrar />
+      <PushNotificationPrompt />
 
       <style>{`
         .mobile-topbar {

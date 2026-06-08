@@ -24,6 +24,7 @@ const csp = [
     'https://us.i.posthog.com',
     'https://eu.i.posthog.com',
   ].join(' '),
+  "worker-src 'self'",
   "frame-src 'none'",
   "frame-ancestors 'none'",
   "object-src 'none'",
