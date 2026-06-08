@@ -120,8 +120,7 @@ O NeuroLearn é uma aplicação web full-stack com arquitetura **server-first** 
 │   │   │   └── ProgressBar.tsx
 │   │   └── layout/
 │   │       ├── Sidebar.tsx       # Navegação lateral
-│   │       ├── ThemeToggle.tsx   # Toggle dark/light
-│   │       └── MigrationBanner.tsx
+│   │       └── ThemeToggle.tsx   # Toggle dark/light
 │   ├── modules/                  # Views por feature (lógica de página)
 │   │   ├── dashboard/DashboardView.tsx
 │   │   ├── library/
@@ -163,8 +162,8 @@ O NeuroLearn é uma aplicação web full-stack com arquitetura **server-first** 
 │   │   ├── useAppData.ts
 │   │   ├── useToast.ts
 │   │   ├── useTheme.ts
-│   │   ├── useMigration.ts
-│   │   └── useAnalytics.ts       # Hook type-safe: track(), identifyUser(), resetUser()
+│   │   ├── usePushNotifications.ts  # Permissão reativa, subscribe/unsubscribe (PWA-01)
+│   │   └── useAnalytics.ts          # Hook type-safe: track(), identifyUser(), resetUser()
 │   ├── lib/
 │   │   ├── supabase/
 │   │   │   ├── client.ts         # createBrowserClient
@@ -790,20 +789,45 @@ export const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }
 
 ### Prompts Estruturados (`src/lib/ai/prompts.ts`)
 Prompts centralizados para:
-- Geração de flashcards a partir de conteúdo
-- Geração de perguntas contextuais
-- Resumo de highlights
-- Detecção de lacunas de conhecimento
+- `buildFlashcardPrompt` — geração de flashcards a partir de conteúdo e highlights
+- `buildTeachingPrompt` — análise da explicação do usuário no Modo Professor
+- `buildCoachPrompt` — geração de recomendações personalizadas pelo Cognitive Coach
+- `buildQuizPrompt` — geração de distratores plausíveis para o Quiz Adaptativo
 
-### Fluxo Planejado (Fase 5)
+### Endpoints de IA
+
+| Rota | Entrada | Saída |
+|------|---------|-------|
+| `POST /api/ai/generate-flashcards` | `notes`, `highlights`, `title`, `count` | Array de `{ front, back }` |
+| `POST /api/ai/analyze-teaching` | `teachText`, `topic` | `TeachAnalysis` (clarity_score, coverage_score, gaps, strengths, suggestions, estimated_retention) |
+| `POST /api/ai/cognitive-coach` | métricas cognitivas | Mensagem de coaching personalizada |
+| `POST /api/ai/generate-quiz` | `front`, `back`, `count` | `{ distractors: string[] }` |
+
+Todos os schemas de validação estão centralizados em `src/lib/ai/validation.ts` (Zod).
+
+### Quiz Adaptativo (`/active` — modo Auto-Avaliação)
+
 ```
-1. Usuário conclui sessão de foco
-2. Frontend envia highlights + notas para POST /api/ai/generate-flashcards
-3. API Route usa prompt estruturado com o conteúdo
-4. OpenAI/Anthropic retorna array de flashcards
-5. flashcardsService.createFlashcards() persiste no banco
-6. AppContext atualiza estado local
+1. Usuário seleciona modo "🧩 Auto-Avaliação" e escolhe um conteúdo
+2. loadQuiz() filtra flashcards do conteúdo, ordena por mastery (new → learning → review → strong), limita a 7
+3. Promise.allSettled() chama /api/ai/generate-quiz em paralelo para cada card
+4. Fisher-Yates embaralha [correct_answer + 3 distractors] para cada pergunta
+5. Usuário responde → feedback imediato (verde/vermelho) → Próxima
+6. Ao fim: placar + XP (10 por acerto) + lista de cards para revisar
 ```
+
+Cards com `mastery = 'new'` aparecem primeiro para priorizar consolidação de pontos fracos.
+
+### Análise do Modo Professor (`/active` — modo Modo Professor)
+
+```
+1. Usuário digita explicação ≥ 100 chars
+2. Botão "Analisar com IA" fica visível
+3. analyzeTeaching() POST /api/ai/analyze-teaching
+4. Painel TeachAnalysis exibe: clarity_score, coverage_score, gaps, strengths, suggestions, estimated_retention
+```
+
+`analyzingRef` (useRef síncrono) impede double-submit mesmo com React 19 concurrent mode.
 
 ---
 

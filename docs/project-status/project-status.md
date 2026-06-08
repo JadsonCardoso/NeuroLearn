@@ -29,9 +29,11 @@ O NeuroLearn é uma plataforma cognitiva de aprendizagem baseada em neurociênci
 | Sistema de Validação UX | ✅ Concluído | 100% |
 | Infraestrutura de Testes | ✅ Concluído | 100% |
 | Observabilidade (Sentry + PostHog) | ✅ Concluído | 100% |
-| IA (Geração de Flashcards + Coach) | ✅ Concluído | 80% |
+| IA (Geração de Flashcards + Coach + Quiz + Análise) | ✅ Concluído | 100% |
 | Gamificação (Conquistas) | ✅ Concluído | 40% |
-| Dashboard com métricas reais | 🔄 Parcial | 60% |
+| Dashboard com métricas reais | ✅ Concluído | 100% |
+| Configurações + Export/Import JSON | ✅ Concluído | 100% |
+| PWA (Instalável + Push Notifications) | ✅ Concluído | 100% |
 
 ---
 
@@ -319,5 +321,4 @@ Entregas previstas:
 - **Senha do admin:** `NeuroLearn@2025!` é temporária — alterar antes de expor o app.
 - **`.env.local`:** nunca commitar. Contém todas as chaves de API.
 - **`SERVICE_ROLE_KEY`:** apenas no backend (Node.js). Nunca expor ao browser.
-- **`MigrationBanner`:** componente ainda presente no layout — remover quando todos os usuários tiverem migrado do localStorage.
-- **Google OAuth:** configurado no código mas precisa de Client ID/Secret no dashboard Supabase.
+- **Google OAuth:** configurado no código mas precisa de Client ID/Secret no dashboard Supabase para ativar.

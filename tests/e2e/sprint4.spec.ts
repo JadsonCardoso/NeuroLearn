@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test'
 // SPRINT-4 E2E
 // US-DA-01: Cards em Risco Reais (Dashboard)
 // US-AI-01: Análise do Modo Professor (ActiveView)
+// US-AI-02: Quiz Adaptativo com IA (ActiveView)
 // US-GM-01: Grade de Conquistas (SkillsView)
 
 // ---------------------------------------------------------------------------
@@ -241,5 +242,190 @@ test.describe('Sprint4 — Grade de Conquistas (US-GM-01)', () => {
     await page.waitForLoadState('networkidle')
     // O contador mostra unlocked/12
     await expect(page.locator('text=/\\d+\\/12/')).toBeVisible({ timeout: 5_000 })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// US-AI-02 — Quiz Adaptativo com IA
+// ---------------------------------------------------------------------------
+test.describe('Sprint4 — Quiz Adaptativo com IA (US-AI-02)', () => {
+  test('TC-QZ-001: ActiveView carrega sem erros de JS', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    await page.goto('/active')
+    await page.waitForLoadState('networkidle')
+    expect(errors).toHaveLength(0)
+  })
+
+  test('TC-QZ-002: card "Auto-Avaliação" com ícone 🧩 aparece na home', async ({ page }) => {
+    await page.goto('/active')
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('text=Auto-Avaliação')).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('text=🧩')).toBeVisible({ timeout: 5_000 })
+  })
+
+  test('TC-QZ-003: clicar em Auto-Avaliação mostra lista de conteúdos', async ({ page }) => {
+    await page.goto('/active')
+    await page.waitForLoadState('networkidle')
+
+    const hasCard = await page.locator('text=Auto-Avaliação').isVisible({ timeout: 5_000 }).catch(() => false)
+    if (!hasCard) { test.skip(true, 'ActiveView não carregou'); return }
+
+    await page.locator('text=Auto-Avaliação').first().click()
+    // Após clicar no modo quiz deve exibir a tela de seleção de conteúdo ou estado relevante
+    await expect(page.locator('text=Escolha um conteúdo').or(page.locator('text=Nenhum conteúdo'))).toBeVisible({ timeout: 5_000 })
+  })
+
+  test('TC-QZ-004: estado de loading aparece ao selecionar conteúdo no modo quiz', async ({ page }) => {
+    await page.goto('/active')
+    await page.waitForLoadState('networkidle')
+
+    const hasCard = await page.locator('text=Auto-Avaliação').isVisible({ timeout: 5_000 }).catch(() => false)
+    if (!hasCard) { test.skip(true, 'ActiveView não carregou'); return }
+
+    await page.locator('text=Auto-Avaliação').first().click()
+
+    const hasSel = await page.locator('text=Escolha um conteúdo').isVisible({ timeout: 3_000 }).catch(() => false)
+    if (!hasSel) { test.skip(true, 'Sem conteúdo na biblioteca'); return }
+
+    // Intercepta a chamada de IA para capturar o loading state antes da resposta
+    await page.route('**/api/ai/generate-quiz', async (route) => {
+      await new Promise((r) => setTimeout(r, 800))
+      await route.fulfill({ json: { distractors: ['Opção A', 'Opção B', 'Opção C'] } })
+    })
+
+    const firstContent = page.locator('.card').nth(1)
+    await firstContent.click()
+
+    // Deve exibir o loading state durante a chamada à IA
+    await expect(page.locator('[data-testid="quiz-loading"]')).toBeVisible({ timeout: 3_000 })
+  })
+
+  test('TC-QZ-005: quiz entra no estado playing após carregar as perguntas', async ({ page }) => {
+    await page.goto('/active')
+    await page.waitForLoadState('networkidle')
+
+    const hasCard = await page.locator('text=Auto-Avaliação').isVisible({ timeout: 5_000 }).catch(() => false)
+    if (!hasCard) { test.skip(true, 'ActiveView não carregou'); return }
+
+    await page.locator('text=Auto-Avaliação').first().click()
+
+    const hasSel = await page.locator('text=Escolha um conteúdo').isVisible({ timeout: 3_000 }).catch(() => false)
+    if (!hasSel) { test.skip(true, 'Sem conteúdo na biblioteca'); return }
+
+    await page.route('**/api/ai/generate-quiz', async (route) => {
+      await route.fulfill({ json: { distractors: ['Opção A', 'Opção B', 'Opção C'] } })
+    })
+
+    await page.locator('.card').nth(1).click()
+
+    await expect(page.locator('[data-testid="quiz-playing"]')).toBeVisible({ timeout: 8_000 })
+    await expect(page.locator('[data-testid="quiz-question"]')).toBeVisible()
+    await expect(page.locator('[data-testid="quiz-progress"]')).toBeVisible()
+  })
+
+  test('TC-QZ-006: clicar em opção revela resultado e exibe botão Próxima', async ({ page }) => {
+    await page.goto('/active')
+    await page.waitForLoadState('networkidle')
+
+    const hasCard = await page.locator('text=Auto-Avaliação').isVisible({ timeout: 5_000 }).catch(() => false)
+    if (!hasCard) { test.skip(true, 'ActiveView não carregou'); return }
+
+    await page.locator('text=Auto-Avaliação').first().click()
+
+    const hasSel = await page.locator('text=Escolha um conteúdo').isVisible({ timeout: 3_000 }).catch(() => false)
+    if (!hasSel) { test.skip(true, 'Sem conteúdo na biblioteca'); return }
+
+    await page.route('**/api/ai/generate-quiz', async (route) => {
+      await route.fulfill({ json: { distractors: ['Opção A', 'Opção B', 'Opção C'] } })
+    })
+
+    await page.locator('.card').nth(1).click()
+    await expect(page.locator('[data-testid="quiz-playing"]')).toBeVisible({ timeout: 8_000 })
+
+    // Clica na primeira opção disponível
+    const firstOption = page.locator('[data-testid="quiz-option"]').first()
+    await firstOption.click()
+
+    // Após revelar, botão Próxima deve aparecer
+    await expect(page.locator('[data-testid="quiz-next"]')).toBeVisible({ timeout: 3_000 })
+  })
+
+  test('TC-QZ-007: quiz exibe estado done com placar ao fim', async ({ page }) => {
+    await page.goto('/active')
+    await page.waitForLoadState('networkidle')
+
+    const hasCard = await page.locator('text=Auto-Avaliação').isVisible({ timeout: 5_000 }).catch(() => false)
+    if (!hasCard) { test.skip(true, 'ActiveView não carregou'); return }
+
+    await page.locator('text=Auto-Avaliação').first().click()
+
+    const hasSel = await page.locator('text=Escolha um conteúdo').isVisible({ timeout: 3_000 }).catch(() => false)
+    if (!hasSel) { test.skip(true, 'Sem conteúdo na biblioteca'); return }
+
+    // Retorna apenas 1 card para encerrar o quiz rapidamente
+    let callCount = 0
+    await page.route('**/api/ai/generate-quiz', async (route) => {
+      callCount++
+      if (callCount === 1) {
+        await route.fulfill({ json: { distractors: ['Opção A', 'Opção B', 'Opção C'] } })
+      } else {
+        await route.abort()
+      }
+    })
+
+    await page.locator('.card').nth(1).click()
+    await expect(page.locator('[data-testid="quiz-playing"]')).toBeVisible({ timeout: 8_000 })
+
+    // Responde a única pergunta e avança para o resultado
+    await page.locator('[data-testid="quiz-option"]').first().click()
+    await page.locator('[data-testid="quiz-next"]').click()
+
+    await expect(page.locator('[data-testid="quiz-done"]')).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('[data-testid="quiz-score"]')).toBeVisible()
+    await expect(page.locator('[data-testid="quiz-xp"]')).toBeVisible()
+  })
+
+  test('TC-QZ-008: botão "Refazer" reinicia o quiz com o mesmo conteúdo', async ({ page }) => {
+    await page.goto('/active')
+    await page.waitForLoadState('networkidle')
+
+    const hasCard = await page.locator('text=Auto-Avaliação').isVisible({ timeout: 5_000 }).catch(() => false)
+    if (!hasCard) { test.skip(true, 'ActiveView não carregou'); return }
+
+    await page.locator('text=Auto-Avaliação').first().click()
+
+    const hasSel = await page.locator('text=Escolha um conteúdo').isVisible({ timeout: 3_000 }).catch(() => false)
+    if (!hasSel) { test.skip(true, 'Sem conteúdo na biblioteca'); return }
+
+    await page.route('**/api/ai/generate-quiz', async (route) => {
+      await route.fulfill({ json: { distractors: ['Opção A', 'Opção B', 'Opção C'] } })
+    })
+
+    await page.locator('.card').nth(1).click()
+    await expect(page.locator('[data-testid="quiz-playing"]')).toBeVisible({ timeout: 8_000 })
+
+    await page.locator('[data-testid="quiz-option"]').first().click()
+    await page.locator('[data-testid="quiz-next"]').click()
+    await expect(page.locator('[data-testid="quiz-done"]')).toBeVisible({ timeout: 5_000 })
+
+    // Clica em Refazer e deve voltar ao estado loading
+    await page.locator('text=Refazer').click()
+    await expect(page.locator('[data-testid="quiz-loading"]').or(page.locator('[data-testid="quiz-playing"]'))).toBeVisible({ timeout: 5_000 })
+  })
+
+  test('TC-QZ-009: botão Voltar no modo quiz retorna à home do Aprendizado Ativo', async ({ page }) => {
+    await page.goto('/active')
+    await page.waitForLoadState('networkidle')
+
+    const hasCard = await page.locator('text=Auto-Avaliação').isVisible({ timeout: 5_000 }).catch(() => false)
+    if (!hasCard) { test.skip(true, 'ActiveView não carregou'); return }
+
+    await page.locator('text=Auto-Avaliação').first().click()
+    await expect(page.locator('text=← Voltar')).toBeVisible({ timeout: 3_000 })
+
+    await page.locator('text=← Voltar').click()
+    await expect(page.locator('text=Auto-Avaliação')).toBeVisible({ timeout: 3_000 })
+    await expect(page.locator('text=Modo Professor')).toBeVisible()
   })
 })

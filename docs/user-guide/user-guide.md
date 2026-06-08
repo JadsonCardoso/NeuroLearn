@@ -1,7 +1,7 @@
 # Guia do NeuroLearn
 
-**Versão:** 2.0  
-**Última atualização:** 2026-06-06
+**Versão:** 2.1  
+**Última atualização:** 2026-06-08
 
 ---
 
@@ -170,6 +170,53 @@ Quanto melhor sua resposta, mais tempo até a próxima revisão. O sistema apren
 Existe uma coisa chamada **curva do esquecimento** (descoberta pelo psicólogo Hermann Ebbinghaus no século XIX). Ela mostra que esquecemos as coisas de forma previsível — rapidamente no início, depois mais devagar.
 
 Se você revisar logo antes de esquecer, seu cérebro considera o assunto importante e estende o prazo naturalmente. Com o tempo, os intervalos ficam cada vez maiores. Um assunto que hoje você revisa a cada 2 dias, daqui a alguns meses pode precisar de revisão só a cada 3 meses.
+
+---
+
+## Aprendizado Ativo
+
+A revisão garante que você não esqueça. Mas o Aprendizado Ativo é o que transforma conhecimento passivo em domínio real.
+
+Acesse pelo menu lateral em **"Aprendizado Ativo"**. Você verá três modos:
+
+### 🎓 Modo Professor — até 90% de retenção
+
+Explique o conteúdo como se estivesse ensinando alguém do zero. Pesquisas mostram que ensinar é a técnica de maior consolidação neural.
+
+**Como usar:**
+1. Selecione o modo **Modo Professor**
+2. Escolha um conteúdo da sua biblioteca
+3. Escreva sua explicação (mínimo 100 caracteres)
+4. Clique em **"Analisar com IA"** para receber feedback imediato
+
+A IA vai avaliar sua explicação e te dar uma nota de clareza, cobertura do conteúdo, pontos fortes, lacunas identificadas e uma estimativa de quanto você vai reter a longo prazo.
+
+---
+
+### ⚡ Aplicação Prática — até 75% de retenção
+
+Crie exemplos reais, hipóteses e cenários. Transforme teoria em habilidade aplicável.
+
+**Como usar:**
+1. Selecione **Aplicação Prática**
+2. Escolha um conteúdo
+3. Responda ao prompt proposto (ex: "Como aplicaria isso nos próximos 7 dias?")
+4. Clique em **"Salvar prática"** — você ganha XP proporcional ao que escreveu
+
+---
+
+### 🧩 Auto-Avaliação (Quiz Adaptativo) — até 65% de retenção
+
+Responda perguntas de múltipla escolha geradas pela IA com base nos seus próprios flashcards. O quiz prioriza automaticamente os cards que você ainda não domina.
+
+**Como usar:**
+1. Selecione **Auto-Avaliação**
+2. Escolha um conteúdo (é preciso ter flashcards criados)
+3. A IA monta as perguntas — aguarde alguns segundos
+4. Responda cada pergunta. Após cada resposta, você vê imediatamente se acertou ou errou e qual era a resposta correta
+5. Ao fim: placar, XP ganho e lista dos cards que você precisa revisar
+
+**Dica:** o quiz foca nos seus pontos mais fracos primeiro. Flashcards marcados como "novo" ou "aprendendo" aparecem antes dos já dominados.
 
 ---
 

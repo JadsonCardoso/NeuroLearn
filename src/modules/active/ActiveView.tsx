@@ -383,7 +383,7 @@ export function ActiveView() {
           </div>
 
           {quizPhase === 'loading' && (
-            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+            <div data-testid="quiz-loading" style={{ textAlign: 'center', padding: '48px 0' }}>
               <p style={{ fontSize: '36px', marginBottom: '12px' }}>🧠</p>
               <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text)', marginBottom: '6px' }}>Preparando quiz adaptativo…</p>
               <p style={{ fontSize: '12px', color: 'var(--text3)' }}>A IA está gerando perguntas personalizadas com base nos seus flashcards.</p>
@@ -391,24 +391,24 @@ export function ActiveView() {
           )}
 
           {quizPhase === 'idle' && quizError && (
-            <p style={{ fontSize: '13px', color: '#ef4444', textAlign: 'center', padding: '32px 0' }}>{quizError}</p>
+            <p data-testid="quiz-error" style={{ fontSize: '13px', color: '#ef4444', textAlign: 'center', padding: '32px 0' }}>{quizError}</p>
           )}
 
           {quizPhase === 'playing' && quizItems[quizIndex] && (() => {
             const item = quizItems[quizIndex]
             const correct = item.card.back
             return (
-              <div>
+              <div data-testid="quiz-playing">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Pergunta {quizIndex + 1} de {quizItems.length}</span>
-                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}>{quizScore} corretas</span>
+                  <span data-testid="quiz-progress" style={{ fontSize: '11px', color: 'var(--text3)' }}>Pergunta {quizIndex + 1} de {quizItems.length}</span>
+                  <span data-testid="quiz-score-live" style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}>{quizScore} corretas</span>
                 </div>
                 <div style={{ height: '4px', background: 'var(--border2)', borderRadius: '2px', marginBottom: '18px' }}>
                   <div style={{ height: '100%', width: `${(quizIndex / quizItems.length) * 100}%`, background: m.col, borderRadius: '2px', transition: 'width .3s' }} />
                 </div>
                 <div className="card" style={{ padding: '20px', marginBottom: '14px', borderColor: m.col + '30', background: m.col + '06', textAlign: 'center' }}>
                   <p style={{ fontSize: '11px', fontWeight: '700', color: m.col, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '10px' }}>Pergunta</p>
-                  <p style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text)', lineHeight: '1.5' }}>{item.card.front}</p>
+                  <p data-testid="quiz-question" style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text)', lineHeight: '1.5' }}>{item.card.front}</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
                   {item.options.map((opt, i) => {
@@ -420,7 +420,7 @@ export function ActiveView() {
                       else if (isPicked) { bg = 'rgba(239,68,68,.1)'; border = '#ef4444'; color = '#ef4444' }
                     }
                     return (
-                      <button key={i} onClick={() => handleQuizPick(opt)} disabled={quizRevealed}
+                      <button key={i} data-testid="quiz-option" onClick={() => handleQuizPick(opt)} disabled={quizRevealed}
                         style={{ padding: '12px 16px', borderRadius: '10px', border: `1.5px solid ${border}`, background: bg, color, fontSize: '13px', fontWeight: '500', cursor: quizRevealed ? 'default' : 'pointer', textAlign: 'left', transition: 'all .2s', lineHeight: '1.4' }}>
                         {quizRevealed && isCorrect ? '✅ ' : ''}{quizRevealed && isPicked && !isCorrect ? '❌ ' : ''}{opt}
                       </button>
@@ -428,7 +428,7 @@ export function ActiveView() {
                   })}
                 </div>
                 {quizRevealed && (
-                  <button className="btn-primary" onClick={handleQuizNext} style={{ width: '100%' }}>
+                  <button data-testid="quiz-next" className="btn-primary" onClick={handleQuizNext} style={{ width: '100%' }}>
                     {quizIndex + 1 >= quizItems.length ? 'Ver resultado →' : 'Próxima →'}
                   </button>
                 )}
@@ -437,16 +437,16 @@ export function ActiveView() {
           })()}
 
           {quizPhase === 'done' && (
-            <div className="slide-in">
+            <div data-testid="quiz-done" className="slide-in">
               <div style={{ textAlign: 'center', padding: '24px 0 20px' }}>
                 <p style={{ fontSize: '48px', marginBottom: '8px' }}>
                   {quizScore === quizItems.length ? '🏆' : quizScore >= quizItems.length / 2 ? '⭐' : '📚'}
                 </p>
-                <p style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text)', marginBottom: '4px' }}>{quizScore}/{quizItems.length} corretas</p>
-                <p style={{ fontSize: '12px', color: '#10b981', fontWeight: '700' }}>+{quizScore * 10} XP ganhos</p>
+                <p data-testid="quiz-score" style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text)', marginBottom: '4px' }}>{quizScore}/{quizItems.length} corretas</p>
+                <p data-testid="quiz-xp" style={{ fontSize: '12px', color: '#10b981', fontWeight: '700' }}>+{quizScore * 10} XP ganhos</p>
               </div>
               {quizWrong.length > 0 && (
-                <div className="card" style={{ padding: '14px 16px', marginBottom: '14px', borderColor: 'rgba(245,158,11,.3)', background: 'rgba(245,158,11,.06)' }}>
+                <div data-testid="quiz-wrong-cards" className="card" style={{ padding: '14px 16px', marginBottom: '14px', borderColor: 'rgba(245,158,11,.3)', background: 'rgba(245,158,11,.06)' }}>
                   <p style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', marginBottom: '10px' }}>⚠️ Flashcards para revisar ({quizWrong.length})</p>
                   {quizWrong.map((c) => (
                     <div key={c.id} style={{ fontSize: '12px', color: 'var(--text3)', padding: '6px 0', borderBottom: '1px solid var(--border)', lineHeight: '1.5' }}>

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { ToastContainer } from '@/components/ui/Toast'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { MigrationBanner } from '@/components/layout/MigrationBanner'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { AnalyticsIdentifier } from '@/components/analytics/AnalyticsIdentifier'
 import { ServiceWorkerRegistrar } from '@/components/ui/ServiceWorkerRegistrar'
@@ -48,7 +47,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}
             className="app-main"
           >
-            <MigrationBanner />
             {children}
           </main>
         </div>
