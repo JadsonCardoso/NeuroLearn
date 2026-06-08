@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Brain, Book, Timer, Refresh, Zap, Tree, Help } from '@/components/icons'
+import { Brain, Book, Timer, Refresh, Zap, Tree, Help, Settings } from '@/components/icons'
 import { ThemeToggle } from './ThemeToggle'
 import { useAppData } from '@/hooks/useAppData'
 import { createClient } from '@/lib/supabase/client'
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { id: 'active',    label: 'Aprendizado Ativo',   icon: Zap,     href: '/active'    },
   { id: 'skills',    label: 'Habilidades',         icon: Tree,    href: '/skills'    },
   { id: 'help',      label: 'Ajuda',               icon: Help,    href: '/help'      },
+  { id: 'settings',  label: 'Configurações',       icon: Settings, href: '/settings' },
 ]
 
 interface SidebarProps {
