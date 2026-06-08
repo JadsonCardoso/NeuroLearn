@@ -1,7 +1,7 @@
 # NeuroLearn — Documentação Técnica
 
-**Versão:** 2.0  
-**Última atualização:** 2026-06-06  
+**Versão:** 2.1  
+**Última atualização:** 2026-06-08  
 **Público:** Engenheiros, contribuidores, IA coding agents
 
 ---
@@ -64,6 +64,12 @@ O NeuroLearn é uma aplicação web full-stack com arquitetura **server-first** 
 | @testing-library/react | latest | Render de componentes em Vitest |
 | @testing-library/jest-dom | latest | Matchers DOM customizados |
 | jsdom | latest | Ambiente DOM simulado no Vitest |
+
+### Observabilidade
+| Tecnologia | Versão | Papel |
+|---|---|---|
+| @sentry/nextjs | 10.x | Error tracking, session replay, performance tracing |
+| posthog-js | latest | Product analytics, page views, feature flags |
 
 ### Utilitários
 | Tecnologia | Papel |
@@ -145,12 +151,20 @@ O NeuroLearn é uma aplicação web full-stack com arquitetura **server-first** 
 │   │   └── localStorageService.ts
 │   ├── store/
 │   │   ├── AppContext.tsx         # Estado global + reducer + sync Supabase
-│   │   └── ToastContext.tsx       # Toasts (máx 3 simultâneos)
+│   │   ├── ToastContext.tsx       # Toasts (máx 3 simultâneos)
+│   │   └── FocusSessionContext.tsx # Estado global do timer (isRunning)
+│   ├── components/
+│   │   ├── analytics/
+│   │   │   ├── PostHogProvider.tsx   # Init PostHog + page views + LGPD opt-in/out
+│   │   │   └── AnalyticsIdentifier.tsx # Identifica usuário no PostHog e Sentry
+│   │   └── lgpd/
+│   │       └── ConsentBanner.tsx  # Banner LGPD (nl_lgpd_consent)
 │   ├── hooks/
 │   │   ├── useAppData.ts
 │   │   ├── useToast.ts
 │   │   ├── useTheme.ts
-│   │   └── useMigration.ts
+│   │   ├── useMigration.ts
+│   │   └── useAnalytics.ts       # Hook type-safe: track(), identifyUser(), resetUser()
 │   ├── lib/
 │   │   ├── supabase/
 │   │   │   ├── client.ts         # createBrowserClient
@@ -188,11 +202,65 @@ O NeuroLearn é uma aplicação web full-stack com arquitetura **server-first** 
 ├── public/
 │   └── landing.html
 ├── middleware.ts                  # Rate limit + RBAC + session guard
-├── next.config.ts                 # Security headers
+├── next.config.ts                 # Security headers + withSentryConfig + CSP expandida
+├── sentry.server.config.ts        # Sentry init — server runtime
+├── sentry.edge.config.ts          # Sentry init — edge runtime
+├── src/instrumentation.ts         # Next.js hook: register() + onRequestError
+├── src/instrumentation-client.ts  # Sentry init — browser (Session Replay)
 ├── vitest.config.ts
 ├── playwright.config.ts
 └── .env.local                     # Nunca commitar
 ```
+
+---
+
+## Observabilidade
+
+### Sentry v10 — Error Tracking
+
+O Sentry captura automaticamente erros em todos os runtimes:
+
+| Runtime | Arquivo de inicialização |
+|---------|--------------------------|
+| Browser | `src/instrumentation-client.ts` |
+| Node.js (server) | `sentry.server.config.ts` (via `src/instrumentation.ts`) |
+| Edge | `sentry.edge.config.ts` (via `src/instrumentation.ts`) |
+
+- **Session Replay:** gravações de sessão com `maskAllText` e `blockAllMedia` — 100% em erros, 10% em sessões normais
+- **`onRequestError` hook:** captura erros em Server Components e Route Handlers
+- **`global-error.tsx`:** tela de fallback PT-BR para erros de renderização React; reporta ao Sentry via `captureException`
+- **Source maps:** upload automático no build via `SENTRY_AUTH_TOKEN`
+
+### PostHog — Product Analytics
+
+O PostHog rastreia comportamento de usuário respeitando o consentimento LGPD:
+
+- **LGPD:** `accepted` → `opt_in_capturing()` | `minimal`/ausente → `opt_out_capturing()`
+- **Page views:** rastreados manualmente via `usePathname` + `useSearchParams` (Next.js App Router)
+- **Identificação:** `AnalyticsIdentifier` chama `posthog.identify(userId)` ao entrar na área autenticada
+
+### Hook `useAnalytics`
+
+```typescript
+const { track, identifyUser, resetUser } = useAnalytics()
+
+// Eventos tipados — TypeScript garante propriedades corretas por evento
+track('session_started', { content_id, phase, duration_secs })
+track('achievement_unlocked', { achievement_id, xp_gained })
+```
+
+### Variáveis de Ambiente de Observabilidade
+
+| Variável | Escopo | Obrigatória |
+|----------|--------|-------------|
+| `NEXT_PUBLIC_SENTRY_DSN` | Público | Para error tracking |
+| `SENTRY_AUTH_TOKEN` | Privado | Para source maps no build |
+| `SENTRY_ORG` | Privado | Para source maps no build |
+| `SENTRY_PROJECT` | Privado | Para source maps no build |
+| `NEXT_PUBLIC_POSTHOG_KEY` | Público | Para analytics |
+| `NEXT_PUBLIC_POSTHOG_HOST` | Público | Default: `https://us.i.posthog.com` |
+
+> Todas as vars devem ser adicionadas também no Vercel (Settings → Environment Variables).
 
 ---
 

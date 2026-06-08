@@ -1,8 +1,8 @@
 # NeuroLearn — Status do Projeto
 
-**Versão:** 2.0  
-**Última atualização:** 2026-06-06  
-**Status geral:** MVP em desenvolvimento ativo — Fases 1–4 + UX-01 + QA-01 concluídas
+**Versão:** 2.1  
+**Última atualização:** 2026-06-08  
+**Status geral:** MVP em desenvolvimento ativo — Fases 1–4 + UX-01 + QA-01 + Sprints 1–4 + OBS-01 concluídas
 
 ---
 
@@ -25,12 +25,13 @@ O NeuroLearn é uma plataforma cognitiva de aprendizagem baseada em neurociênci
 | Flashcards | ✅ Concluído | 100% |
 | Skill Tree | ✅ Concluído | 80% |
 | Dashboard Cognitivo | 🔄 Parcial | 50% |
-| Segurança (OWASP + LGPD) | ✅ Concluído | 95% |
+| Segurança (OWASP + LGPD) | ✅ Concluído | 100% |
 | Sistema de Validação UX | ✅ Concluído | 100% |
 | Infraestrutura de Testes | ✅ Concluído | 100% |
-| IA (Geração de Flashcards) | 🔜 Pendente | 20% |
-| Gamificação Avançada | 🔜 Pendente | 10% |
-| Dashboard com métricas reais | 🔜 Pendente | 30% |
+| Observabilidade (Sentry + PostHog) | ✅ Concluído | 100% |
+| IA (Geração de Flashcards + Coach) | ✅ Concluído | 80% |
+| Gamificação (Conquistas) | ✅ Concluído | 40% |
+| Dashboard com métricas reais | 🔄 Parcial | 60% |
 
 ---
 
@@ -48,6 +49,8 @@ O NeuroLearn é uma plataforma cognitiva de aprendizagem baseada em neurociênci
 | Formulários | React Hook Form | latest |
 | Testes Unitários | Vitest | 4.1.8 |
 | Testes E2E | Playwright | 1.60.0 |
+| Error Tracking | Sentry | 10.x |
+| Product Analytics | PostHog | latest |
 | Test Utilities | @testing-library/react | latest |
 | Linter | ESLint + Next.js config | 9 |
 | Porta Dev | localhost | 3003 |
