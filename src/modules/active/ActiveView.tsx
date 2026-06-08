@@ -2,9 +2,12 @@
 
 import { useState, useRef } from 'react'
 import { useAppData } from '@/hooks/useAppData'
-import type { Content } from '@/types'
-import type { TeachAnalysis } from '@/types/ai'
+import type { Content, FlashCard } from '@/types'
+import type { TeachAnalysis, QuizDistractors } from '@/types/ai'
 import { Chevron, X } from '@/components/icons'
+
+interface QuizItem { card: FlashCard; options: string[] }
+type QuizPhase = 'idle' | 'loading' | 'playing' | 'done'
 
 type ActiveMode = 'teach' | 'apply' | 'quiz'
 
@@ -63,6 +66,16 @@ export function ActiveView() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const analyzingRef = useRef(false)
 
+  // US-AI-02 — Quiz Adaptativo com IA
+  const [quizPhase, setQuizPhase] = useState<QuizPhase>('idle')
+  const [quizItems, setQuizItems] = useState<QuizItem[]>([])
+  const [quizIndex, setQuizIndex] = useState(0)
+  const [quizPick, setQuizPick] = useState<string | null>(null)
+  const [quizRevealed, setQuizRevealed] = useState(false)
+  const [quizScore, setQuizScore] = useState(0)
+  const [quizWrong, setQuizWrong] = useState<FlashCard[]>([])
+  const [quizError, setQuizError] = useState('')
+
   const contents = state.contents
 
   async function analyzeTeaching() {
@@ -98,6 +111,93 @@ export function ActiveView() {
     setOk(true)
     setText('')
     setTimeout(() => setOk(false), 3000)
+  }
+
+  function resetQuiz() {
+    setQuizPhase('idle')
+    setQuizItems([])
+    setQuizIndex(0)
+    setQuizPick(null)
+    setQuizRevealed(false)
+    setQuizScore(0)
+    setQuizWrong([])
+    setQuizError('')
+  }
+
+  async function loadQuiz(content: Content) {
+    setSel(content)
+    setQuizPhase('loading')
+    setQuizError('')
+    setQuizItems([])
+    setQuizIndex(0)
+    setQuizPick(null)
+    setQuizRevealed(false)
+    setQuizScore(0)
+    setQuizWrong([])
+
+    const masteryRank: Record<string, number> = { new: 0, learning: 1, review: 2, strong: 3 }
+    const contentCards = state.cards
+      .filter((c) => c.cid === content.id)
+      .sort((a, b) => (masteryRank[a.mastery] ?? 2) - (masteryRank[b.mastery] ?? 2))
+      .slice(0, 7)
+
+    if (contentCards.length === 0) {
+      setQuizError('Este conteúdo não tem flashcards. Crie alguns na Sessão de Foco.')
+      setQuizPhase('idle')
+      return
+    }
+
+    const results = await Promise.allSettled(
+      contentCards.map(async (card) => {
+        const res = await fetch('/api/ai/generate-quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ front: card.front, back: card.back, count: 3 }),
+        })
+        if (!res.ok) throw new Error('api error')
+        const data = await res.json() as QuizDistractors
+        const opts = [...data.distractors, card.back]
+        for (let i = opts.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1))
+          ;[opts[i], opts[j]] = [opts[j], opts[i]]
+        }
+        return { card, options: opts } as QuizItem
+      })
+    )
+
+    const valid: QuizItem[] = results
+      .filter((r): r is PromiseFulfilledResult<QuizItem> => r.status === 'fulfilled')
+      .map((r) => r.value)
+
+    if (valid.length === 0) {
+      setQuizError('Não foi possível gerar o quiz. Verifique sua conexão e tente novamente.')
+      setQuizPhase('idle')
+      return
+    }
+
+    setQuizItems(valid)
+    setQuizPhase('playing')
+  }
+
+  function handleQuizPick(option: string) {
+    if (quizRevealed) return
+    setQuizPick(option)
+    setQuizRevealed(true)
+    const correct = quizItems[quizIndex]?.card.back
+    if (option === correct) setQuizScore((s) => s + 1)
+    else setQuizWrong((w) => [...w, quizItems[quizIndex].card])
+  }
+
+  function handleQuizNext() {
+    if (quizIndex + 1 >= quizItems.length) {
+      const xp = quizScore * 10
+      if (xp > 0) dispatch({ type: 'EARN_XP', payload: { amount: xp } })
+      setQuizPhase('done')
+    } else {
+      setQuizIndex((i) => i + 1)
+      setQuizPick(null)
+      setQuizRevealed(false)
+    }
   }
 
   if (mode === 'home') {
@@ -207,6 +307,7 @@ export function ActiveView() {
           setText('')
           setAnalysis(null)
           setAnalyzeError('')
+          resetQuiz()
         }}
         style={{
           background: 'none',
@@ -248,7 +349,7 @@ export function ActiveView() {
                   alignItems: 'center',
                   transition: 'border-color .2s',
                 }}
-                onClick={() => setSel(c)}
+                onClick={() => mode === 'quiz' ? loadQuiz(c) : setSel(c)}
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = m.col)}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
               >
@@ -269,6 +370,98 @@ export function ActiveView() {
               </p>
             )}
           </div>
+        </div>
+      ) : mode === 'quiz' ? (
+        /* ── Quiz Adaptativo com IA ─────────────────────────────────────── */
+        <div className="slide-in">
+          <div className="card" style={{ padding: '12px 16px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderColor: m.col + '40', background: m.col + '08' }}>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text)' }}>{sel.title}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{sel.author}</div>
+            </div>
+            <button onClick={() => { setSel(null); resetQuiz() }} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer' }}><X /></button>
+          </div>
+
+          {quizPhase === 'loading' && (
+            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+              <p style={{ fontSize: '36px', marginBottom: '12px' }}>🧠</p>
+              <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text)', marginBottom: '6px' }}>Preparando quiz adaptativo…</p>
+              <p style={{ fontSize: '12px', color: 'var(--text3)' }}>A IA está gerando perguntas personalizadas com base nos seus flashcards.</p>
+            </div>
+          )}
+
+          {quizPhase === 'idle' && quizError && (
+            <p style={{ fontSize: '13px', color: '#ef4444', textAlign: 'center', padding: '32px 0' }}>{quizError}</p>
+          )}
+
+          {quizPhase === 'playing' && quizItems[quizIndex] && (() => {
+            const item = quizItems[quizIndex]
+            const correct = item.card.back
+            return (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Pergunta {quizIndex + 1} de {quizItems.length}</span>
+                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}>{quizScore} corretas</span>
+                </div>
+                <div style={{ height: '4px', background: 'var(--border2)', borderRadius: '2px', marginBottom: '18px' }}>
+                  <div style={{ height: '100%', width: `${(quizIndex / quizItems.length) * 100}%`, background: m.col, borderRadius: '2px', transition: 'width .3s' }} />
+                </div>
+                <div className="card" style={{ padding: '20px', marginBottom: '14px', borderColor: m.col + '30', background: m.col + '06', textAlign: 'center' }}>
+                  <p style={{ fontSize: '11px', fontWeight: '700', color: m.col, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '10px' }}>Pergunta</p>
+                  <p style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text)', lineHeight: '1.5' }}>{item.card.front}</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                  {item.options.map((opt, i) => {
+                    const isCorrect = opt === correct
+                    const isPicked = opt === quizPick
+                    let bg = 'var(--card)', border = 'var(--border)', color = 'var(--text)'
+                    if (quizRevealed) {
+                      if (isCorrect) { bg = 'rgba(16,185,129,.12)'; border = '#10b981'; color = '#10b981' }
+                      else if (isPicked) { bg = 'rgba(239,68,68,.1)'; border = '#ef4444'; color = '#ef4444' }
+                    }
+                    return (
+                      <button key={i} onClick={() => handleQuizPick(opt)} disabled={quizRevealed}
+                        style={{ padding: '12px 16px', borderRadius: '10px', border: `1.5px solid ${border}`, background: bg, color, fontSize: '13px', fontWeight: '500', cursor: quizRevealed ? 'default' : 'pointer', textAlign: 'left', transition: 'all .2s', lineHeight: '1.4' }}>
+                        {quizRevealed && isCorrect ? '✅ ' : ''}{quizRevealed && isPicked && !isCorrect ? '❌ ' : ''}{opt}
+                      </button>
+                    )
+                  })}
+                </div>
+                {quizRevealed && (
+                  <button className="btn-primary" onClick={handleQuizNext} style={{ width: '100%' }}>
+                    {quizIndex + 1 >= quizItems.length ? 'Ver resultado →' : 'Próxima →'}
+                  </button>
+                )}
+              </div>
+            )
+          })()}
+
+          {quizPhase === 'done' && (
+            <div className="slide-in">
+              <div style={{ textAlign: 'center', padding: '24px 0 20px' }}>
+                <p style={{ fontSize: '48px', marginBottom: '8px' }}>
+                  {quizScore === quizItems.length ? '🏆' : quizScore >= quizItems.length / 2 ? '⭐' : '📚'}
+                </p>
+                <p style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text)', marginBottom: '4px' }}>{quizScore}/{quizItems.length} corretas</p>
+                <p style={{ fontSize: '12px', color: '#10b981', fontWeight: '700' }}>+{quizScore * 10} XP ganhos</p>
+              </div>
+              {quizWrong.length > 0 && (
+                <div className="card" style={{ padding: '14px 16px', marginBottom: '14px', borderColor: 'rgba(245,158,11,.3)', background: 'rgba(245,158,11,.06)' }}>
+                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', marginBottom: '10px' }}>⚠️ Flashcards para revisar ({quizWrong.length})</p>
+                  {quizWrong.map((c) => (
+                    <div key={c.id} style={{ fontSize: '12px', color: 'var(--text3)', padding: '6px 0', borderBottom: '1px solid var(--border)', lineHeight: '1.5' }}>
+                      <strong style={{ color: 'var(--text)' }}>{c.front}</strong><br />
+                      <span style={{ color: 'var(--text4)' }}>{c.back}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn-secondary" style={{ flex: 1 }} onClick={() => loadQuiz(sel)}>🔄 Refazer</button>
+                <button className="btn-primary" style={{ flex: 1 }} onClick={() => { setSel(null); resetQuiz() }}>← Outro conteúdo</button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div>
