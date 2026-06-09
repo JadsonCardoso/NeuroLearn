@@ -1,8 +1,10 @@
 import * as Sentry from '@sentry/nextjs'
 
-// Inicialização client-side do Sentry (substitui sentry.client.config.ts para compatibilidade com Turbopack)
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+
+  // Proxy via mesmo domínio para contornar bloqueio por ad blockers
+  tunnel: '/api/sentry-tunnel',
 
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
@@ -16,5 +18,17 @@ Sentry.init({
     }),
   ],
 
+  // Suprime erros de rede causados por ad blockers / extensões de browser
+  ignoreErrors: [
+    'ERR_BLOCKED_BY_CLIENT',
+    'Failed to fetch',
+    'NetworkError',
+    'Load failed',
+    'AbortError',
+  ],
+
   debug: false,
 })
+
+// Necessário para o Sentry rastrear transições de rota no Next.js 15 App Router
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
