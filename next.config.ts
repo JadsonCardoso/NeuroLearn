@@ -8,7 +8,14 @@ const isProd = process.env.NODE_ENV === 'production'
 // Futuro: migrar para nonces por request para eliminar unsafe-inline
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+  // PostHog lazy-loads session replay e surveys via <script> dinâmico a partir do seu CDN.
+  // unsafe-eval e unsafe-inline obrigatórios para o runtime do Next.js/React.
+  [
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+    'https://app.posthog.com',
+    'https://us-assets.i.posthog.com',
+    'https://eu-assets.i.posthog.com',
+  ].join(' '),
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   [
@@ -19,12 +26,15 @@ const csp = [
     // Sentry — ingestão de erros e traces
     'https://*.ingest.sentry.io',
     'https://*.ingest.us.sentry.io',
-    // PostHog — analytics de eventos
+    // PostHog — analytics + CDN para módulos lazy-loaded (session replay, surveys)
     'https://app.posthog.com',
     'https://us.i.posthog.com',
     'https://eu.i.posthog.com',
+    'https://us-assets.i.posthog.com',
+    'https://eu-assets.i.posthog.com',
   ].join(' '),
-  "worker-src 'self'",
+  // blob: necessário para Web Workers criados pelo PostHog (session replay) e Service Worker PWA
+  "worker-src 'self' blob:",
   "frame-src 'none'",
   "frame-ancestors 'none'",
   "object-src 'none'",

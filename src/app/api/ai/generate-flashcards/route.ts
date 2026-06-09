@@ -68,7 +68,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       jsonMode: true,
     })
   } catch (err) {
-    console.error('[generate-flashcards] callAI error:', err instanceof Error ? err.message : err)
+    const msg = err instanceof Error ? err.message : String(err)
+    // Distingue ausência de chave de erros de API — facilita triagem em produção
+    if (msg.includes('OPENAI_API_KEY')) {
+      console.error('[generate-flashcards] OPENAI_API_KEY não configurada nas variáveis de ambiente da Vercel')
+      return NextResponse.json<AIErrorResponse>(
+        { error: 'Serviço de IA temporariamente indisponível.', code: 'AI_ERROR' },
+        { status: 503 },
+      )
+    }
+    console.error('[generate-flashcards] callAI error:', msg)
     return NextResponse.json<AIErrorResponse>(
       { error: 'Erro ao processar com IA. Tente novamente.', code: 'AI_ERROR' },
       { status: 500 },

@@ -35,6 +35,27 @@ export function DashboardView() {
   // Histórico de retenção para o gráfico de tendência (null = carregando)
   const [retentionHistory, setRetentionHistory] = useState<RetentionHistoryPoint[] | null>(null)
 
+  // Saudação e data: inicializadas vazias para evitar hydration mismatch.
+  // O servidor (UTC) e o cliente (UTC-3) chamam new Date() em momentos diferentes —
+  // diferenças de timezone ou de segundo causam React error #418 se calculadas durante o render.
+  const [greeting, setGreeting] = useState('')
+  const [dateLabel, setDateLabel] = useState('')
+
+  // Checklist de onboarding — dispensável, persiste no localStorage.
+  // Inicializa como false (valor seguro para SSR) e lê o localStorage somente no cliente,
+  // evitando mismatch quando o banner já foi dispensado (servidor renderizaria o banner,
+  // cliente não — React #418).
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
+
+  useEffect(() => {
+    // Valores dependentes de horário/timezone → somente no cliente
+    setGreeting(getGreeting())
+    setDateLabel(new Date().toLocaleDateString('pt-BR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    }))
+    setOnboardingDismissed(localStorage.getItem('neurolearn:onboarding:dismissed') === '1')
+  }, [])
+
   useEffect(() => {
     let mounted = true
     if (!userId) {
@@ -52,12 +73,6 @@ export function DashboardView() {
 
     return () => { mounted = false }
   }, [userId])
-
-  // Checklist de onboarding — dispensável, persiste no localStorage
-  const [onboardingDismissed, setOnboardingDismissed] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('neurolearn:onboarding:dismissed') === '1'
-  })
 
   const onboardingItems = [
     { label: 'Adicionar primeiro conteúdo', done: state.contents.length > 0, link: '/library' },
@@ -113,10 +128,6 @@ export function DashboardView() {
   }))
   const maxBar = Math.max(...weekBars.map((b) => b.n), 1)
 
-  const dateLabel = new Date().toLocaleDateString('pt-BR', {
-    weekday: 'long', day: 'numeric', month: 'long',
-  })
-
   return (
     <div className="slide-in" style={{ padding: 'var(--space-6)', maxWidth: '1200px', margin: '0 auto' }}>
       <style>{`
@@ -128,7 +139,7 @@ export function DashboardView() {
       {/* Header */}
       <PageHeader
         icon={<Brain />}
-        title={`${getGreeting()}! 👋`}
+        title={greeting ? `${greeting}! 👋` : 'NeuroLearn'}
         subtitle={dateLabel}
       />
 
