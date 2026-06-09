@@ -29,34 +29,36 @@ const COLORS = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-function hexToRgbStr(hex) {
-  const h = hex.replace('#', '')
-  const r = parseInt(h.slice(0,2),16)
-  const g = parseInt(h.slice(2,4),16)
-  const b = parseInt(h.slice(4,6),16)
-  return `rgb(${r},${g},${b})`
-}
-
 function renderTable(doc, rows, margin) {
   if (!rows.length) return
   const colCount = Math.max(...rows.map(r => r.length))
-  const tableW = doc.page.width - margin * 2
-  const colW = tableW / colCount
-  const rowH = 22
+  const tableW  = doc.page.width - margin * 2
+  const colW    = tableW / colCount
+  const rowH    = 22
+
   let y = doc.y
 
   rows.forEach((cells, rowIdx) => {
     if (y + rowH > doc.page.height - 60) { doc.addPage(); y = doc.page.margins.top }
+
+    // Fundo da linha — hex direto, sem save()/restore() para não poluir o path state
     const bg = rowIdx === 0 ? COLORS.tableH : rowIdx % 2 === 0 ? COLORS.tableR2 : COLORS.tableR1
-    doc.save().rect(margin, y, tableW, rowH).fill(hexToRgbStr(bg)).restore()
+    doc.fillColor(bg).rect(margin, y, tableW, rowH).fill()
+
+    // Texto de cada célula
+    const textColor = rowIdx === 0 ? COLORS.white : COLORS.dark
+    const fontName  = rowIdx === 0 ? 'Helvetica-Bold' : 'Helvetica'
     cells.slice(0, colCount).forEach((cell, colIdx) => {
-      doc.font(rowIdx === 0 ? 'Helvetica-Bold' : 'Helvetica')
-         .fontSize(9)
-         .fillColor(rowIdx === 0 ? COLORS.white : COLORS.dark)
-         .text(cell.trim(), margin + colIdx * colW + 4, y + 6, { width: colW - 8, ellipsis: true })
+      const clean = cell.trim().replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/`(.+?)`/g, '$1')
+      doc.font(fontName).fontSize(9).fillColor(textColor)
+         .text(clean, margin + colIdx * colW + 4, y + 6, { width: colW - 8, ellipsis: true })
     })
+
+    // Resetar fill color após a linha
+    doc.fillColor(COLORS.dark)
     y += rowH
   })
+
   doc.y = y + 8
 }
 
@@ -64,10 +66,14 @@ function renderTable(doc, rows, margin) {
 
 function mdToPdf(doc, markdown, margin) {
   const lines = markdown.split('\n')
+  const pageW  = doc.page.width
+  const pageH  = doc.page.height
+  const cW     = pageW - margin * 2
+
   let inCodeBlock = false
-  let codeLines = []
-  let inTable = false
-  let tableRows = []
+  let codeLines   = []
+  let inTable     = false
+  let tableRows   = []
 
   function flushTable() {
     if (!tableRows.length) return
@@ -76,26 +82,33 @@ function mdToPdf(doc, markdown, margin) {
     inTable = false
   }
 
-  function checkPage() {
-    if (doc.y > doc.page.height - 80) doc.addPage()
+  // Garante espaço suficiente para o próximo bloco — nunca chamado antes de linhas vazias
+  function need(h) {
+    if (doc.y + h > pageH - 60) doc.addPage()
+  }
+
+  function stripInline(s) {
+    return s
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g,    '$1')
+      .replace(/`(.+?)`/g,      '$1')
   }
 
   for (const line of lines) {
-    checkPage()
 
-    // Bloco de código
+    // ── Bloco de código ──────────────────────────────────────────────────
     if (line.startsWith('```')) {
       if (inCodeBlock) {
-        const code = codeLines.join('\n')
-        const lineCount = codeLines.length
-        const blockH = Math.max(30, lineCount * 13 + 16)
-        if (doc.y + blockH > doc.page.height - 60) doc.addPage()
-        doc.save().rect(margin, doc.y, doc.page.width - margin*2, blockH)
-           .fill(hexToRgbStr(COLORS.codeBg)).restore()
-        doc.font('Courier').fontSize(8).fillColor(COLORS.dark)
-           .text(code, margin + 8, doc.y + 6, { width: doc.page.width - margin*2 - 16 })
-        doc.y += 8
-        codeLines = []
+        const code   = codeLines.join('\n')
+        const blockH = Math.max(30, codeLines.length * 13 + 16)
+        need(blockH)
+        const y0 = doc.y
+        doc.fillColor(COLORS.codeBg).rect(margin, y0, cW, blockH).fill()
+        doc.fillColor(COLORS.dark)
+        doc.font('Courier').fontSize(8)
+           .text(code, margin + 8, y0 + 6, { width: cW - 16 })
+        doc.y = y0 + blockH + 4
+        codeLines   = []
         inCodeBlock = false
       } else {
         if (inTable) flushTable()
@@ -105,7 +118,7 @@ function mdToPdf(doc, markdown, margin) {
     }
     if (inCodeBlock) { codeLines.push(line); continue }
 
-    // Tabela
+    // ── Tabela ───────────────────────────────────────────────────────────
     if (line.includes('|')) {
       if (line.match(/^\|[\s\-|]+\|$/)) continue
       const cells = line.split('|').filter((_, i, a) => i > 0 && i < a.length - 1)
@@ -114,55 +127,96 @@ function mdToPdf(doc, markdown, margin) {
       flushTable()
     }
 
-    // Headings
+    // ── Headings ─────────────────────────────────────────────────────────
     if (line.startsWith('# ')) {
       if (inTable) flushTable()
+      need(50)
       doc.moveDown(0.8)
       doc.font('Helvetica-Bold').fontSize(20).fillColor(COLORS.purple)
-         .text(line.slice(2), margin, doc.y, { width: doc.page.width - margin*2 })
-      doc.moveTo(margin, doc.y).lineTo(doc.page.width - margin, doc.y)
+         .text(line.slice(2), margin, doc.y, { width: cW })
+      doc.moveTo(margin, doc.y).lineTo(pageW - margin, doc.y)
          .strokeColor(COLORS.purple).lineWidth(2).stroke()
       doc.moveDown(0.5)
+
     } else if (line.startsWith('## ')) {
       if (inTable) flushTable()
+      need(35)
       doc.moveDown(0.6)
       doc.font('Helvetica-Bold').fontSize(15).fillColor(COLORS.cyan)
-         .text(line.slice(3), margin, doc.y, { width: doc.page.width - margin*2 })
+         .text(line.slice(3), margin, doc.y, { width: cW })
       doc.moveDown(0.3)
+
     } else if (line.startsWith('### ')) {
       if (inTable) flushTable()
+      need(25)
       doc.moveDown(0.4)
       doc.font('Helvetica-Bold').fontSize(12).fillColor(COLORS.dark)
-         .text(line.slice(4), margin, doc.y, { width: doc.page.width - margin*2 })
+         .text(line.slice(4), margin, doc.y, { width: cW })
       doc.moveDown(0.2)
+
     } else if (line.startsWith('#### ')) {
+      need(20)
       doc.font('Helvetica-Bold').fontSize(11).fillColor(COLORS.gray)
-         .text(line.slice(5), margin, doc.y, { width: doc.page.width - margin*2 })
+         .text(line.slice(5), margin, doc.y, { width: cW })
       doc.moveDown(0.2)
+
+    // ── Listas ───────────────────────────────────────────────────────────
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
-      const text = line.slice(2).replace(/\*\*(.+?)\*\*/g, '$1').replace(/`(.+?)`/g, '$1')
+      need(16)
       doc.font('Helvetica').fontSize(11).fillColor(COLORS.dark)
-         .text(`• ${text}`, margin + 12, doc.y, { width: doc.page.width - margin*2 - 12 })
+         .text(`• ${stripInline(line.slice(2))}`, margin + 12, doc.y, { width: cW - 12 })
+
     } else if (line.match(/^\s{2,}[-*]\s/)) {
-      const text = line.replace(/^\s+[-*]\s/, '').replace(/\*\*(.+?)\*\*/g, '$1')
+      need(14)
       doc.font('Helvetica').fontSize(10).fillColor(COLORS.gray)
-         .text(`  ◦ ${text}`, margin + 24, doc.y, { width: doc.page.width - margin*2 - 24 })
+         .text(`  ◦ ${stripInline(line.replace(/^\s+[-*]\s/, ''))}`, margin + 24, doc.y, { width: cW - 24 })
+
+    // ── Blockquote ───────────────────────────────────────────────────────
     } else if (line.startsWith('> ')) {
-      doc.save().rect(margin, doc.y, 3, 18).fill(COLORS.purple).restore()
-      doc.font('Helvetica-Oblique').fontSize(11).fillColor(COLORS.gray)
-         .text(line.slice(2), margin + 12, doc.y, { width: doc.page.width - margin*2 - 12 })
-      doc.moveDown(0.3)
+      const content = line.slice(2)
+
+      // Placeholder de imagem — caixa cinza clara com borda
+      if (content.includes('📸') || content.toLowerCase().includes('[imagem:')) {
+        const imgW = cW
+        const imgH = 44
+        need(imgH + 12)
+        const y0 = doc.y
+        // Fill separado do stroke para compatibilidade PDFKit
+        doc.rect(margin, y0, imgW, imgH).fillColor('#F1F5F9').fill()
+        doc.rect(margin, y0, imgW, imgH).strokeColor('#CBD5E1').lineWidth(0.5).stroke()
+        // Texto centralizado na caixa — sem deixar doc.y avançar automaticamente
+        doc.fillColor('#94A3B8').font('Helvetica').fontSize(9)
+           .text('[ Imagem ilustrativa ]', margin, y0 + imgH / 2 - 6, { width: imgW, align: 'center' })
+        doc.y = y0 + imgH + 8   // posiciona explicitamente após a caixa
+
+      } else {
+        // Blockquote normal
+        need(20)
+        const cleanBlock = stripInline(content.replace(/^#{1,3}\s+/, ''))
+        const y0 = doc.y
+        doc.fillColor(COLORS.purple).rect(margin, y0, 3, 18).fill()
+        doc.fillColor(COLORS.gray)
+        doc.font('Helvetica-Oblique').fontSize(11)
+           .text(cleanBlock, margin + 12, y0, { width: cW - 12 })
+        doc.moveDown(0.3)
+      }
+
+    // ── Separador ────────────────────────────────────────────────────────
     } else if (line.startsWith('---')) {
       doc.moveDown(0.4)
-      doc.moveTo(margin, doc.y).lineTo(doc.page.width - margin, doc.y)
+      doc.moveTo(margin, doc.y).lineTo(pageW - margin, doc.y)
          .strokeColor(COLORS.border).lineWidth(0.5).stroke()
       doc.moveDown(0.4)
+
+    // ── Linha em branco — NÃO cria página nova, só avança se não estiver no topo ──
     } else if (line.trim() === '') {
-      doc.moveDown(0.4)
+      if (doc.y > doc.page.margins.top + 30) doc.moveDown(0.4)
+
+    // ── Parágrafo normal ─────────────────────────────────────────────────
     } else {
-      const clean = line.replace(/\*\*(.+?)\*\*/g, '$1').replace(/`(.+?)`/g, '$1')
+      need(16)
       doc.font('Helvetica').fontSize(11).fillColor(COLORS.dark)
-         .text(clean, margin, doc.y, { width: doc.page.width - margin*2 })
+         .text(stripInline(line), margin, doc.y, { width: cW })
     }
   }
   if (inTable) flushTable()
@@ -171,7 +225,8 @@ function mdToPdf(doc, markdown, margin) {
 // ─── Capa ─────────────────────────────────────────────────────────────────
 
 function createPdfCover(doc, title, subtitle, margin) {
-  doc.save().rect(0, 0, doc.page.width, 260).fill(hexToRgbStr(COLORS.purple)).restore()
+  doc.fillColor(COLORS.purple).rect(0, 0, doc.page.width, 260).fill()
+  doc.fillColor(COLORS.dark) // reset após o rect
 
   doc.font('Helvetica-Bold').fontSize(34).fillColor(COLORS.white)
      .text('NEUROLEARN', margin, 75, { align: 'center', width: doc.page.width - margin*2 })
