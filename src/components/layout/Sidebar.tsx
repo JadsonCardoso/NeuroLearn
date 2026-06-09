@@ -43,6 +43,16 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
       })
   }, [userId])
 
+  // Atualiza o nome exibido quando o usuário salva o perfil sem recarregar a página
+  useEffect(() => {
+    function handleProfileUpdate(e: Event) {
+      const name = (e as CustomEvent<{ name: string }>).detail?.name
+      if (name) setUserName(name)
+    }
+    window.addEventListener('nl:profile-updated', handleProfileUpdate)
+    return () => window.removeEventListener('nl:profile-updated', handleProfileUpdate)
+  }, [])
+
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()

@@ -88,6 +88,8 @@ export function ProfileView() {
       await updateUserProfile(data)
       toast.success('Perfil atualizado com sucesso!')
       reset(data)
+      // Notifica outros componentes (ex: Sidebar) que o nome foi atualizado
+      window.dispatchEvent(new CustomEvent('nl:profile-updated', { detail: { name: data.name } }))
     } catch {
       toast.error('Não foi possível salvar o perfil. Tente novamente.')
     }
