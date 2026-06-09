@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { FieldErrors } from 'react-hook-form'
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { LoadingButton } from '@/components/ui/LoadingButton'
 import { contentSchema, type ContentFormValues } from '@/lib/validation/schemas'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 const TYPE_CONFIG: Record<ContentType, { icon: string; color: string }> = {
   book:    { icon: '📚', color: '#7c3aed' },
@@ -27,15 +28,21 @@ interface AddContentModalProps {
 }
 
 export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const {
     register,
     handleSubmit,
     setFocus,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<ContentFormValues>({
     resolver: zodResolver(contentSchema),
-    defaultValues: { type: 'book' },
+    defaultValues: { type: 'book', title: '', author: '', desc: '' },
   })
+
+  function tryClose() {
+    if (isDirty) setShowCloseConfirm(true)
+    else onClose()
+  }
 
   // FIX BUG-04: foca no primeiro campo inválido ao submeter
   function onError(fieldErrors: FieldErrors<ContentFormValues>) {
@@ -46,10 +53,15 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
   }
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        if (isDirty) setShowCloseConfirm(true)
+        else onClose()
+      }
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, isDirty])
 
   function onSubmit(data: ContentFormValues) {
     const content: Content = {
@@ -72,7 +84,7 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
         zIndex: 200, display: 'flex', alignItems: 'center',
         justifyContent: 'center', padding: '20px',
       }}
-      onClick={onClose}
+      onClick={() => tryClose()}
     >
       <div
         className="card slide-in"
@@ -85,7 +97,7 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
             Novo Conteúdo
           </h2>
           <button
-            onClick={onClose}
+            onClick={tryClose}
             aria-label="Fechar modal"
             style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer' }}
           >
@@ -145,7 +157,7 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
             </FormField>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-              <button className="btn-secondary" style={{ flex: 1 }} type="button" onClick={onClose}>
+              <button className="btn-secondary" style={{ flex: 1 }} type="button" onClick={tryClose}>
                 Cancelar
               </button>
               <LoadingButton
@@ -160,6 +172,17 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
             </div>
           </div>
         </form>
+
+        <ConfirmDialog
+          open={showCloseConfirm}
+          title="Descartar alterações?"
+          description="Você tem dados não salvos. Deseja fechar e descartar tudo?"
+          confirmLabel="Descartar"
+          cancelLabel="Continuar editando"
+          variant="warning"
+          onConfirm={onClose}
+          onCancel={() => setShowCloseConfirm(false)}
+        />
       </div>
     </div>
   )

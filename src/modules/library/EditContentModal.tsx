@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { FieldErrors } from 'react-hook-form'
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { LoadingButton } from '@/components/ui/LoadingButton'
 import { contentSchema, type ContentFormValues } from '@/lib/validation/schemas'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface EditContentModalProps {
   content: Content
@@ -20,11 +21,12 @@ interface EditContentModalProps {
 
 // Modal de edição de conteúdo — pré-populado com dados atuais
 export function EditContentModal({ content, onSave, onClose }: EditContentModalProps) {
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const {
     register,
     handleSubmit,
     setFocus,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<ContentFormValues>({
     resolver: zodResolver(contentSchema),
     defaultValues: {
@@ -40,11 +42,21 @@ export function EditContentModal({ content, onSave, onClose }: EditContentModalP
     if (firstInvalid) setFocus(firstInvalid)
   }
 
+  function tryClose() {
+    if (isDirty) setShowCloseConfirm(true)
+    else onClose()
+  }
+
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        if (isDirty) setShowCloseConfirm(true)
+        else onClose()
+      }
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, isDirty])
 
   function onSubmit(data: ContentFormValues) {
     onSave({
@@ -62,7 +74,7 @@ export function EditContentModal({ content, onSave, onClose }: EditContentModalP
         zIndex: 200, display: 'flex', alignItems: 'center',
         justifyContent: 'center', padding: '20px',
       }}
-      onClick={onClose}
+      onClick={() => tryClose()}
     >
       <div
         data-testid="edit-content-modal"
@@ -75,7 +87,7 @@ export function EditContentModal({ content, onSave, onClose }: EditContentModalP
             Editar Conteúdo
           </h2>
           <button
-            onClick={onClose}
+            onClick={tryClose}
             aria-label="Fechar modal"
             style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer' }}
           >
@@ -131,7 +143,7 @@ export function EditContentModal({ content, onSave, onClose }: EditContentModalP
             </FormField>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-              <button className="btn-secondary" style={{ flex: 1 }} type="button" onClick={onClose}>
+              <button className="btn-secondary" style={{ flex: 1 }} type="button" onClick={tryClose}>
                 Cancelar
               </button>
               <LoadingButton
@@ -146,6 +158,17 @@ export function EditContentModal({ content, onSave, onClose }: EditContentModalP
             </div>
           </div>
         </form>
+
+        <ConfirmDialog
+          open={showCloseConfirm}
+          title="Descartar alterações?"
+          description="Você tem alterações não salvas. Deseja fechar e descartar tudo?"
+          confirmLabel="Descartar"
+          cancelLabel="Continuar editando"
+          variant="warning"
+          onConfirm={onClose}
+          onCancel={() => setShowCloseConfirm(false)}
+        />
       </div>
     </div>
   )

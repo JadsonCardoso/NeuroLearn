@@ -68,18 +68,67 @@ test.describe('Library — Adicionar conteúdo', () => {
     await library.waitForContentCard(title)
   })
 
-  test('TC-LIB-008: cancelar fecha o modal sem adicionar', async ({ page }) => {
+  test('TC-LIB-008: cancelar com dados exibe diálogo de confirmação', async ({ page }) => {
     const library = new LibraryPage(page)
     await library.goto()
     await library.openAddModal()
     await library.fillTitle('Conteúdo que não deve ser salvo')
     await library.cancelModal()
+    // Diálogo de confirmação deve aparecer — modal ainda visível
+    await expect(page.locator('[data-testid="confirm-dialog"]')).toBeVisible({ timeout: 3000 })
+    await expect(page.locator('#title')).toBeVisible()
+  })
+
+  test('TC-LIB-009: confirmar descarte fecha o modal e descarta os dados', async ({ page }) => {
+    const library = new LibraryPage(page)
+    await library.goto()
+    await library.openAddModal()
+    await library.fillTitle('Dados que serão descartados')
+    await library.cancelModal()
+    // Clica em "Descartar" no diálogo de confirmação
+    await page.click('[data-testid="confirm-dialog-confirm"]')
+    await expect(page.locator('#title')).not.toBeVisible({ timeout: 3000 })
+  })
+
+  test('TC-LIB-010: continuar editando mantém modal aberto com dados preservados', async ({ page }) => {
+    const library = new LibraryPage(page)
+    await library.goto()
+    await library.openAddModal()
+    await library.fillTitle('Dados preservados')
+    await library.cancelModal()
+    // Clica em "Continuar editando" no diálogo
+    await page.click('[data-testid="confirm-dialog-cancel"]')
+    // Modal permanece aberto
+    await expect(page.locator('#title')).toBeVisible()
+    // Dados preservados
+    await expect(page.locator('#title')).toHaveValue('Dados preservados')
+  })
+
+  test('TC-LIB-011: modal sem dados fecha diretamente ao cancelar (sem diálogo)', async ({ page }) => {
+    const library = new LibraryPage(page)
+    await library.goto()
+    await library.openAddModal()
+    // Não preenche nada — formulário não está sujo
+    await library.cancelModal()
+    await expect(page.locator('#title')).not.toBeVisible({ timeout: 3000 })
+    await expect(page.locator('[data-testid="confirm-dialog"]')).not.toBeVisible()
+  })
+
+  test('TC-LIB-012: Escape com dados exibe diálogo de confirmação', async ({ page }) => {
+    const library = new LibraryPage(page)
+    await library.goto()
+    await library.openAddModal()
+    await library.fillTitle('Dados via ESC')
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-testid="confirm-dialog"]')).toBeVisible({ timeout: 3000 })
+    // Confirma descarte — modal fecha
+    await page.click('[data-testid="confirm-dialog-confirm"]')
     await expect(page.locator('#title')).not.toBeVisible({ timeout: 3000 })
   })
 })
 
 test.describe('Library — Validação de campos', () => {
-  test('TC-LIB-010: título com apenas espaços é rejeitado (trim)', async ({ page }) => {
+  test('TC-LIB-013: título com apenas espaços é rejeitado (trim)', async ({ page }) => {
     const library = new LibraryPage(page)
     await library.goto()
     await library.openAddModal()
@@ -89,7 +138,7 @@ test.describe('Library — Validação de campos', () => {
     await expect(error).toBeVisible({ timeout: 3000 })
   })
 
-  test('TC-LIB-011: aria-invalid=true no campo título após erro', async ({ page }) => {
+  test('TC-LIB-014: aria-invalid=true no campo título após erro', async ({ page }) => {
     const library = new LibraryPage(page)
     await library.goto()
     await library.openAddModal()

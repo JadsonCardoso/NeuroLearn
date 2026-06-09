@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import type { Content, FlashCard } from '@/types'
 import type { FlashcardGenerated } from '@/types/ai'
 import { uid } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 // Estados internos do fluxo de geração
 type GenStep = 'form' | 'loading' | 'review'
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function GenerateFlashcardsModal({ content, onAdd, onClose }: Props) {
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [step, setStep] = useState<GenStep>('form')
   const [notes, setNotes] = useState('')
   const [count, setCount] = useState(5)
@@ -26,6 +28,13 @@ export function GenerateFlashcardsModal({ content, onAdd, onClose }: Props) {
   // Combinado com isSubmitting (state) para feedback visual no botão.
   const submitting = useRef(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const isDirty = notes.trim().length > 0 || step !== 'form'
+
+  function tryClose() {
+    if (isDirty) setShowCloseConfirm(true)
+    else onClose()
+  }
 
   async function handleGenerate() {
     if (submitting.current) return
@@ -111,7 +120,7 @@ export function GenerateFlashcardsModal({ content, onAdd, onClose }: Props) {
         background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(4px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
       }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => { if (e.target === e.currentTarget) tryClose() }}
     >
       <div
         className="card"
@@ -126,7 +135,7 @@ export function GenerateFlashcardsModal({ content, onAdd, onClose }: Props) {
             <p style={{ fontSize: '12px', color: 'var(--text3)' }}>{content.title}</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={tryClose}
             aria-label="Fechar modal"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: '20px', lineHeight: 1 }}
           >
@@ -191,7 +200,7 @@ export function GenerateFlashcardsModal({ content, onAdd, onClose }: Props) {
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
-                onClick={onClose}
+                onClick={tryClose}
                 style={{ padding: '9px 18px', borderRadius: '8px', fontSize: '13px', background: 'none', border: '1px solid var(--border2)', color: 'var(--text2)', cursor: 'pointer' }}
               >
                 Cancelar
@@ -310,6 +319,17 @@ export function GenerateFlashcardsModal({ content, onAdd, onClose }: Props) {
             </div>
           </div>
         )}
+
+        <ConfirmDialog
+          open={showCloseConfirm}
+          title="Descartar geração?"
+          description="Você tem anotações não salvas ou uma geração em andamento. Deseja fechar e descartar tudo?"
+          confirmLabel="Descartar"
+          cancelLabel="Continuar editando"
+          variant="warning"
+          onConfirm={onClose}
+          onCancel={() => setShowCloseConfirm(false)}
+        />
       </div>
     </div>
   )

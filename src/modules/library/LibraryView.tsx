@@ -255,10 +255,10 @@ export function LibraryView() {
                 {c.title}
               </h3>
               {c.author && (
-                <p style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '8px' }}>{c.author}</p>
+                <p style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '8px', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{c.author}</p>
               )}
               {c.desc && (
-                <p style={{ fontSize: '12px', color: 'var(--text4)', marginBottom: '12px', lineHeight: '1.5' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text4)', marginBottom: '12px', lineHeight: '1.5', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
                   {c.desc}
                 </p>
               )}
@@ -447,21 +447,32 @@ function CardEditModal({
   onSave: (front: string, back: string) => void
   onClose: () => void
 }) {
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<CardFormValues>({
     resolver: zodResolver(cardSchema),
     defaultValues: { front: card.front, back: card.back },
   })
 
+  function tryClose() {
+    if (isDirty) setShowCloseConfirm(true)
+    else onClose()
+  }
+
   // Fecha com ESC — consistente com os demais modais
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        if (isDirty) setShowCloseConfirm(true)
+        else onClose()
+      }
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, isDirty])
 
   return (
     <div
@@ -470,7 +481,7 @@ function CardEditModal({
         zIndex: 200, display: 'flex', alignItems: 'center',
         justifyContent: 'center', padding: '20px',
       }}
-      onClick={onClose}
+      onClick={() => tryClose()}
     >
       <div
         data-testid="card-edit-modal"
@@ -481,7 +492,7 @@ function CardEditModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text)' }}>Editar Flashcard</h2>
           <button
-            onClick={onClose}
+            onClick={tryClose}
             aria-label="Fechar modal"
             style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '18px' }}
           >
@@ -512,7 +523,7 @@ function CardEditModal({
             </FormField>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-              <button className="btn-secondary" style={{ flex: 1 }} type="button" onClick={onClose}>
+              <button className="btn-secondary" style={{ flex: 1 }} type="button" onClick={tryClose}>
                 Cancelar
               </button>
               <LoadingButton
@@ -527,6 +538,17 @@ function CardEditModal({
             </div>
           </div>
         </form>
+
+        <ConfirmDialog
+          open={showCloseConfirm}
+          title="Descartar alterações?"
+          description="Você tem alterações não salvas. Deseja fechar e descartar tudo?"
+          confirmLabel="Descartar"
+          cancelLabel="Continuar editando"
+          variant="warning"
+          onConfirm={onClose}
+          onCancel={() => setShowCloseConfirm(false)}
+        />
       </div>
     </div>
   )
