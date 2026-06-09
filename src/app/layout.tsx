@@ -10,6 +10,18 @@ export const metadata: Metadata = {
   title: 'NeuroLearn — Sistema Operacional de Aprendizagem',
   description: 'Plataforma cognitiva de aprendizagem baseada em neurociência. Revisão espaçada, recuperação ativa e consolidação de habilidades.',
   manifest: '/manifest.webmanifest',
+  openGraph: {
+    type: 'website',
+    siteName: 'NeuroLearn',
+    title: 'NeuroLearn — Sistema Operacional de Aprendizagem',
+    description: 'Plataforma cognitiva de aprendizagem baseada em neurociência. Revisão espaçada, recuperação ativa e consolidação de habilidades.',
+    url: 'https://neurolearn.tech',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'NeuroLearn — Sistema Operacional de Aprendizagem',
+    description: 'Plataforma cognitiva de aprendizagem baseada em neurociência.',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

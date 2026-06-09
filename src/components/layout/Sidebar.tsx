@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Brain, Book, Timer, Refresh, Zap, Tree, Help, Settings } from '@/components/icons'
+import { useEffect, useState } from 'react'
+import { Brain, Book, Timer, Refresh, Zap, Tree, Help, Settings, User } from '@/components/icons'
 import { ThemeToggle } from './ThemeToggle'
 import { useAppData } from '@/hooks/useAppData'
 import { createClient } from '@/lib/supabase/client'
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { id: 'skills',    label: 'Habilidades',         icon: Tree,    href: '/skills'    },
   { id: 'help',      label: 'Ajuda',               icon: Help,    href: '/help'      },
   { id: 'settings',  label: 'Configurações',       icon: Settings, href: '/settings' },
+  { id: 'profile',   label: 'Perfil',              icon: User,    href: '/profile'   },
 ]
 
 interface SidebarProps {
@@ -27,6 +29,19 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { state, userId } = useAppData()
+  const [userName, setUserName] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!userId) return
+    createClient()
+      .from('users')
+      .select('name')
+      .eq('id', userId)
+      .single()
+      .then(({ data }) => {
+        if (data?.name) setUserName(data.name)
+      })
+  }, [userId])
 
   async function handleLogout() {
     const supabase = createClient()
@@ -141,6 +156,53 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
             gap: 'var(--space-2)',
           }}
         >
+          {/* Nome do usuário com link para o perfil */}
+          {userName && (
+            <Link
+              href="/profile"
+              onClick={onClose}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                padding: 'var(--space-1) var(--space-2)',
+                borderRadius: 'var(--radius-sm)',
+                textDecoration: 'none',
+                transition: 'background var(--duration-fast)',
+              }}
+              className="nav-item"
+            >
+              <div
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-info))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  fontWeight: '800',
+                  color: 'white',
+                  flexShrink: 0,
+                }}
+              >
+                {userName.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')}
+              </div>
+              <span
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text2)',
+                  fontWeight: 500,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {userName}
+              </span>
+            </Link>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 var(--space-1)' }}>
             <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)' }}>Tema</span>
             <ThemeToggle />
