@@ -33,3 +33,29 @@ export type GenerateFlashcardsPayload = z.infer<typeof generateFlashcardsSchema>
 export type AnalyzeTeachingPayload = z.infer<typeof analyzeTeachingSchema>
 export type CognitiveCoachPayload = z.infer<typeof cognitiveCoachSchema>
 export type GenerateQuizPayload = z.infer<typeof generateQuizSchema>
+
+// ── Output schemas — validam resposta da IA antes de retornar ao cliente ──
+
+export const generateFlashcardsOutputSchema = z.object({
+  cards: z.array(z.object({
+    front: z.string().min(1),
+    back: z.string().min(1),
+  })).min(1).max(30),
+})
+
+export const generateQuizOutputSchema = z.object({
+  distractors: z.array(z.string().min(1)).min(1),
+})
+
+export const analyzeTeachingOutputSchema = z.object({
+  clarity_score: z.number().transform(v => Math.max(0, Math.min(100, v))),
+  coverage_score: z.number().transform(v => Math.max(0, Math.min(100, v))),
+  gaps: z.array(z.string()),
+  strengths: z.array(z.string()),
+  suggestions: z.array(z.string()),
+  estimated_retention: z.number().transform(v => Math.max(0, Math.min(100, v))),
+})
+
+export const coachOutputSchema = z.object({
+  message: z.string().min(1).max(2000),
+})

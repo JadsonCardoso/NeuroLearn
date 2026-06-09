@@ -12,7 +12,7 @@ import { listUserSkills, addUserSkill, gainSkillXP, updateUserTotalXP, updateUse
 import { saveRetentionSnapshot } from '@/services/retentionService'
 import { logCognitiveEvent } from '@/services/cognitiveEventsService'
 import { loadState, saveState } from '@/services/localStorageService'
-import { calcRetention } from '@/engine/retention'
+import { calcRetention } from '@/engine/retention/retentionModel'
 
 // ── Estado inicial vazio (antes de carregar do backend) ─────────────────────
 export const EMPTY_STATE: AppState = {

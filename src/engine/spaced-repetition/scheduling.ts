@@ -14,3 +14,25 @@ export function buildReviewQueue(cards: FlashCard[]): FlashCard[] {
     return dateA - dateB
   })
 }
+
+export function isDue(card: FlashCard): boolean {
+  if (!card.nextReview) return true
+  return new Date(card.nextReview) <= new Date()
+}
+
+export function addDays(days: number, from?: Date | null): string {
+  const base = from ?? new Date()
+  const result = new Date(base)
+  result.setDate(result.getDate() + days)
+  return result.toISOString()
+}
+
+export function relDate(iso: string | null | undefined): string {
+  if (!iso) return 'sem data'
+  const diff = Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000)
+  if (diff === 0) return 'hoje'
+  if (diff === 1) return 'amanhã'
+  if (diff === -1) return 'ontem'
+  if (diff > 0) return `em ${diff} dias`
+  return `${Math.abs(diff)} dias atrás`
+}

@@ -7,7 +7,7 @@ import { stripHtml } from '@/lib/security/sanitize'
 import { logSecurityEvent } from '@/lib/security/logger'
 import { callAI } from '@/lib/ai/client'
 import { buildQuizPrompt } from '@/lib/ai/prompts'
-import { generateQuizSchema } from '@/lib/ai/validation'
+import { generateQuizSchema, generateQuizOutputSchema } from '@/lib/ai/validation'
 import type { QuizDistractors, AIErrorResponse } from '@/types/ai'
 
 const AI_RATE_LIMIT = 10
@@ -76,11 +76,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const text = result.text.trim()
     const jsonText = text.startsWith('```') ? text.replace(/```json?\n?/g, '').replace(/```$/g, '').trim() : text
-    const parsed = JSON.parse(jsonText)
-    if (!parsed || !Array.isArray(parsed.distractors) || parsed.distractors.some((d: unknown) => typeof d !== 'string')) {
-      throw new Error('Estrutura inválida')
+    const rawParsed = JSON.parse(jsonText)
+    const output = generateQuizOutputSchema.safeParse(rawParsed)
+    if (!output.success) {
+      return NextResponse.json<AIErrorResponse>(
+        { error: 'IA retornou resposta inválida', code: 'AI_INVALID_OUTPUT' },
+        { status: 422 },
+      )
     }
-    quiz = { distractors: parsed.distractors.slice(0, count) }
+    quiz = { distractors: output.data.distractors.slice(0, count) }
   } catch {
     return NextResponse.json<AIErrorResponse>(
       { error: 'Resposta da IA em formato inesperado. Tente novamente.', code: 'AI_ERROR' },

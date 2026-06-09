@@ -3,11 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppData } from '@/hooks/useAppData'
-import { calcRetention } from '@/engine/retention'
+import { calcRetention } from '@/engine/retention/retentionModel'
 import { calcCognitiveScore } from '@/engine/cognitive-score/cognitiveScore'
-import { isDue } from '@/engine/scheduling'
-import { sm2 } from '@/engine/sm2'
-import { addDays } from '@/engine/scheduling'
+import { isDue, addDays } from '@/engine/spaced-repetition/scheduling'
+import { sm2 } from '@/engine/spaced-repetition/sm2'
 import type { CardMastery, FlashCard } from '@/types'
 
 function computeCogScore(cards: FlashCard[]) {

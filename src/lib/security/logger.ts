@@ -31,11 +31,9 @@ export function logSecurityEvent(
   const safe = sanitizeMeta(entry)
 
   if (process.env.NODE_ENV === 'production') {
-    // Em produção: apenas eventos relevantes
-    console.log(JSON.stringify(safe))
+    console.warn(JSON.stringify(safe))
   } else {
-    // Em dev: formato legível
-    console.log(`[SECURITY] ${safe.timestamp} | ${safe.event}`, safe.meta ?? '')
+    console.warn(`[SECURITY] ${safe.timestamp} | ${safe.event}`, safe.meta ?? '')
   }
 }
 

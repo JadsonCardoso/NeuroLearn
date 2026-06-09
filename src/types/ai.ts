@@ -60,7 +60,7 @@ export interface QuizDistractors {
 
 // ── Erros ──────────────────────────────────────────────────────────────────
 
-export type AIErrorCode = 'UNAUTHORIZED' | 'RATE_LIMITED' | 'INVALID_INPUT' | 'AI_ERROR'
+export type AIErrorCode = 'UNAUTHORIZED' | 'RATE_LIMITED' | 'INVALID_INPUT' | 'AI_ERROR' | 'AI_INVALID_OUTPUT'
 
 export interface AIErrorResponse {
   error: string
