@@ -40,7 +40,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: ['**/library.spec.ts', '**/review.spec.ts', '**/accessibility.spec.ts', '**/crud-01.spec.ts', '**/sprint1.spec.ts', '**/sprint2.spec.ts', '**/sprint3.spec.ts', '**/sprint4.spec.ts'],
+      testIgnore: ['**/library.spec.ts', '**/review.spec.ts', '**/accessibility.spec.ts', '**/crud-01.spec.ts', '**/sprint1.spec.ts', '**/sprint2.spec.ts', '**/sprint3.spec.ts', '**/sprint4.spec.ts', '**/capture-screenshots.spec.ts'],
     },
 
     // Testes autenticados (library, review, accessibility, crud-01) — requerem user.json gerado pelo globalSetup
@@ -50,7 +50,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: AUTH_FILE,
       },
-      testMatch: ['**/library.spec.ts', '**/review.spec.ts', '**/accessibility.spec.ts', '**/crud-01.spec.ts', '**/sprint1.spec.ts', '**/sprint2.spec.ts', '**/sprint3.spec.ts', '**/sprint4.spec.ts'],
+      testMatch: ['**/library.spec.ts', '**/review.spec.ts', '**/accessibility.spec.ts', '**/crud-01.spec.ts', '**/sprint1.spec.ts', '**/sprint2.spec.ts', '**/sprint3.spec.ts', '**/sprint4.spec.ts', '**/capture-screenshots.spec.ts'],
     },
   ],
 

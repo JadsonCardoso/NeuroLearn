@@ -125,7 +125,7 @@ Não precisa fazer tudo hoje. Um passo de cada vez.
 
 O **Dashboard** é o painel de controle do seu aprendizado. Quando você abre o NeuroLearn, é aqui que chega.
 
-> 📸 *[Imagem: Dashboard completo com saudação, métricas, revisões do dia e heatmap de atividade]*
+![Dashboard — central de aprendizagem do NeuroLearn](images/03-dashboard.png)
 
 ---
 
@@ -217,7 +217,7 @@ Um resumo das habilidades que você está desenvolvendo e o progresso atual de c
 
 A **Biblioteca** é onde você registra os conteúdos que estuda: livros, cursos, vídeos, artigos, podcasts, anotações.
 
-> 📸 *[Imagem: Biblioteca com cards de conteúdo listados, botão "Adicionar conteúdo" no topo]*
+![Biblioteca de conteúdos do NeuroLearn](images/04-library.png)
 
 ---
 
@@ -352,7 +352,7 @@ Isso alimenta as métricas do Dashboard.
 
 A **Revisão** é onde acontece a consolidação real do conhecimento.
 
-> 📸 *[Imagem: Tela de revisão com flashcard na frente, botão "Revelar" e avaliadores visíveis]*
+![Sessão de revisão espaçada com flashcard](images/06-review.png)
 
 ---
 
@@ -441,7 +441,7 @@ Esta é a regra mais importante da revisão:
 
 Os flashcards são a unidade básica do aprendizado no NeuroLearn. São perguntas e respostas que você cria sobre o que estudou.
 
-> 📸 *[Imagem: Formulário de criação de flashcard com campos Frente e Verso preenchidos]*
+![Modal de adição de conteúdo e criação de flashcards](images/04-library-modal.png)
 
 ---
 
@@ -498,7 +498,7 @@ A revisão garante que você não esqueça. O **Aprendizado Ativo** é o que tra
 
 Acesse pelo menu lateral em **"Aprendizado Ativo"**.
 
-> 📸 *[Imagem: Tela inicial do Aprendizado Ativo com os três modos: Modo Professor, Aplicação Prática e Auto-Avaliação]*
+![Aprendizado Ativo — Modo Professor, Aplicação Prática e Auto-Avaliação](images/08-active.png)
 
 Você verá três modos, cada um com um nível diferente de engajamento cognitivo:
 
@@ -600,7 +600,7 @@ O NeuroLearn não mede apenas o que você sabe. Mede o que você **consegue faze
 
 A seção de **Habilidades** é onde você registra e acompanha as competências que está desenvolvendo.
 
-> 📸 *[Imagem: Tela de Habilidades com cards de skill por categoria, barra de XP e level]*
+![Habilidades — progresso, XP e nível por competência](images/09-skills.png)
 
 ---
 

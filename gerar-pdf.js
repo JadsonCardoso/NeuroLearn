@@ -64,7 +64,7 @@ function renderTable(doc, rows, margin) {
 
 // ─── Parser markdown → PDF ────────────────────────────────────────────────
 
-function mdToPdf(doc, markdown, margin) {
+function mdToPdf(doc, markdown, margin, mdBasePath) {
   const lines = markdown.split('\n')
   const pageW  = doc.page.width
   const pageH  = doc.page.height
@@ -201,6 +201,44 @@ function mdToPdf(doc, markdown, margin) {
         doc.moveDown(0.3)
       }
 
+    // ── Imagem Markdown ──────────────────────────────────────────────────
+    } else if (line.startsWith('![')) {
+      const imgMatch = line.match(/^!\[(.*?)\]\((.+?)\)$/)
+      if (imgMatch && mdBasePath) {
+        if (inTable) flushTable()
+        const alt     = imgMatch[1]
+        const imgRel  = imgMatch[2]
+        const imgPath = path.resolve(mdBasePath, imgRel)
+        const maxH    = 220
+        need(maxH + 40)
+        if (fs.existsSync(imgPath)) {
+          try {
+            const beforeY = doc.y
+            doc.image(imgPath, margin, beforeY, { fit: [cW, maxH], align: 'center' })
+            doc.y = beforeY + maxH + 6
+            if (alt) {
+              doc.font('Helvetica-Oblique').fontSize(9).fillColor(COLORS.gray)
+                 .text(alt, margin, doc.y, { width: cW, align: 'center' })
+              doc.moveDown(0.5)
+            }
+          } catch (_e) {
+            const imgH = 44, y0 = doc.y
+            doc.rect(margin, y0, cW, imgH).fillColor('#F1F5F9').fill()
+            doc.rect(margin, y0, cW, imgH).strokeColor('#CBD5E1').lineWidth(0.5).stroke()
+            doc.fillColor('#94A3B8').font('Helvetica').fontSize(9)
+               .text(`[ ${alt || 'Imagem'} ]`, margin, y0 + imgH / 2 - 6, { width: cW, align: 'center' })
+            doc.y = y0 + imgH + 8
+          }
+        } else {
+          const imgH = 44, y0 = doc.y
+          doc.rect(margin, y0, cW, imgH).fillColor('#F1F5F9').fill()
+          doc.rect(margin, y0, cW, imgH).strokeColor('#CBD5E1').lineWidth(0.5).stroke()
+          doc.fillColor('#94A3B8').font('Helvetica').fontSize(9)
+             .text(`[ ${alt || 'Imagem não encontrada'} ]`, margin, y0 + imgH / 2 - 6, { width: cW, align: 'center' })
+          doc.y = y0 + imgH + 8
+        }
+      }
+
     // ── Separador ────────────────────────────────────────────────────────
     } else if (line.startsWith('---')) {
       doc.moveDown(0.4)
@@ -277,7 +315,7 @@ async function generatePdf(mdPath, outputPath, title, subtitle) {
   doc.pipe(stream)
 
   createPdfCover(doc, title, subtitle, margin)
-  mdToPdf(doc, markdown, margin)
+  mdToPdf(doc, markdown, margin, path.dirname(path.resolve(mdPath)))
   addFooters(doc, title)
 
   doc.end()
