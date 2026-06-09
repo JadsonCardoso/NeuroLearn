@@ -1,18 +1,13 @@
-// ── Legado — backward compat (imports existentes continuam funcionando) ────
-export { sm2 } from './sm2'
-export { calcRetention } from './retention'
-export { isDue, addDays, relDate } from './scheduling'
-
 // ── Spaced Repetition ─────────────────────────────────────────────────────
-export { sm2Enhanced } from './spaced-repetition/sm2'
+export { sm2, sm2Enhanced } from './spaced-repetition/sm2'
 export type { SM2Input, SM2Output } from './spaced-repetition/sm2'
-export { buildReviewQueue } from './spaced-repetition/scheduling'
+export { buildReviewQueue, isDue, addDays, relDate } from './spaced-repetition/scheduling'
 
 // ── Retention ─────────────────────────────────────────────────────────────
 export {
   calcStability,
   calcRetentionFromDays,
-  calcRetention as calcRetentionModel,
+  calcRetention,
 } from './retention/retentionModel'
 export { calcRiskScore } from './retention/forgettingRisk'
 export type { RiskLevel } from './retention/forgettingRisk'

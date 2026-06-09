@@ -3,7 +3,7 @@
 // Protegido por CRON_SECRET — só o Vercel Cron (ou chamada manual) pode acionar.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { calcRetention } from '@/engine/retention'
+import { calcRetention } from '@/engine/retention/retentionModel'
 import type { FlashCard, CardMastery } from '@/types'
 
 export const runtime = 'nodejs'

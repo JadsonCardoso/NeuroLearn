@@ -1,5 +1,5 @@
 import type { AppState } from '@/types'
-import { addDays } from '@/engine/scheduling'
+import { addDays } from '@/engine/spaced-repetition/scheduling'
 
 export const SEED: AppState = {
   contents: [

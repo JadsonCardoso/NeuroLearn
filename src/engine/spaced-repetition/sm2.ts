@@ -1,4 +1,4 @@
-import type { CardMastery } from '@/types'
+import type { CardMastery, SM2Result } from '@/types'
 
 // Entradas do SM-2 aprimorado com bônus de tempo de resposta
 export interface SM2Input {
@@ -51,4 +51,25 @@ export function sm2Enhanced(input: SM2Input): SM2Output {
   const nextReview = new Date(Date.now() + ni * 86_400_000)
 
   return { easeFactor: nef, intervalDays: ni, repetitions: nr, mastery, nextReview }
+}
+
+export function sm2(
+  quality: 1 | 2 | 3 | 4,
+  ef = 2.5,
+  interval = 1,
+  reps = 0
+): SM2Result {
+  const nef = Math.max(1.3, ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)))
+  let ni: number
+  let nr: number
+  if (quality < 3) {
+    nr = 0
+    ni = 1
+  } else {
+    nr = reps + 1
+    if (reps === 0) ni = 1
+    else if (reps === 1) ni = 6
+    else ni = Math.round(interval * nef)
+  }
+  return { ef: nef, interval: ni, repetitions: nr }
 }

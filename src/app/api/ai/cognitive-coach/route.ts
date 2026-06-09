@@ -6,7 +6,7 @@ import { checkRateLimit } from '@/lib/security/rateLimit'
 import { logSecurityEvent } from '@/lib/security/logger'
 import { callAI } from '@/lib/ai/client'
 import { buildCoachPrompt } from '@/lib/ai/prompts'
-import { cognitiveCoachSchema } from '@/lib/ai/validation'
+import { cognitiveCoachSchema, coachOutputSchema } from '@/lib/ai/validation'
 import type { CoachInput, CoachResponse, AIErrorResponse } from '@/types/ai'
 
 const AI_RATE_LIMIT = 10
@@ -74,7 +74,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const result = await callAI(buildCoachPrompt(coachInput), {
       maxTokens: 512,
     })
-    message = result.text.trim()
+    const rawMessage = result.text.trim()
+    const output = coachOutputSchema.safeParse({ message: rawMessage })
+    message = output.success ? output.data.message : staticCoachMessage(coachInput)
     inputTokens = result.inputTokens
     outputTokens = result.outputTokens
   } catch {
