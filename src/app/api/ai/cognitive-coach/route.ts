@@ -26,21 +26,28 @@ function staticCoachMessage(input: CoachInput): string {
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Auth
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) {
     return NextResponse.json<AIErrorResponse>(
       { error: 'Não autenticado', code: 'UNAUTHORIZED' },
-      { status: 401 },
+      { status: 401 }
     )
   }
 
   // Rate limit
-  const rl = checkRateLimit(`ai:coach:${user.id}`, AI_RATE_LIMIT, AI_RATE_WINDOW_MS)
+  const rl = await checkRateLimit(`ai:coach:${user.id}`, AI_RATE_LIMIT, AI_RATE_WINDOW_MS)
   if (!rl.allowed) {
     logSecurityEvent('rate_limit.exceeded', { userId: user.id, endpoint: 'cognitive-coach' })
     return NextResponse.json<AIErrorResponse>(
-      { error: 'Limite de chamadas atingido. Tente novamente em instantes.', code: 'RATE_LIMITED', retryAfter: Math.ceil(rl.retryAfterMs / 1000) },
-      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } },
+      {
+        error: 'Limite de chamadas atingido. Tente novamente em instantes.',
+        code: 'RATE_LIMITED',
+        retryAfter: Math.ceil(rl.retryAfterMs / 1000),
+      },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } }
     )
   }
 
@@ -51,7 +58,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch {
     return NextResponse.json<AIErrorResponse>(
       { error: 'Body inválido', code: 'INVALID_INPUT' },
-      { status: 422 },
+      { status: 422 }
     )
   }
 
@@ -59,7 +66,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!parsed.success) {
     return NextResponse.json<AIErrorResponse>(
       { error: parsed.error.issues[0]?.message ?? 'Input inválido', code: 'INVALID_INPUT' },
-      { status: 422 },
+      { status: 422 }
     )
   }
 

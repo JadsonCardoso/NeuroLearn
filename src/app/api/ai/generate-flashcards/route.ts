@@ -16,21 +16,28 @@ const AI_RATE_WINDOW_MS = 15 * 60 * 1000
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Auth
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) {
     return NextResponse.json<AIErrorResponse>(
       { error: 'Não autenticado', code: 'UNAUTHORIZED' },
-      { status: 401 },
+      { status: 401 }
     )
   }
 
   // Rate limit por userId
-  const rl = checkRateLimit(`ai:flashcards:${user.id}`, AI_RATE_LIMIT, AI_RATE_WINDOW_MS)
+  const rl = await checkRateLimit(`ai:flashcards:${user.id}`, AI_RATE_LIMIT, AI_RATE_WINDOW_MS)
   if (!rl.allowed) {
     logSecurityEvent('rate_limit.exceeded', { userId: user.id, endpoint: 'generate-flashcards' })
     return NextResponse.json<AIErrorResponse>(
-      { error: 'Limite de chamadas atingido. Tente novamente em instantes.', code: 'RATE_LIMITED', retryAfter: Math.ceil(rl.retryAfterMs / 1000) },
-      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } },
+      {
+        error: 'Limite de chamadas atingido. Tente novamente em instantes.',
+        code: 'RATE_LIMITED',
+        retryAfter: Math.ceil(rl.retryAfterMs / 1000),
+      },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } }
     )
   }
 
@@ -41,7 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch {
     return NextResponse.json<AIErrorResponse>(
       { error: 'Body inválido', code: 'INVALID_INPUT' },
-      { status: 422 },
+      { status: 422 }
     )
   }
 
@@ -49,7 +56,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!parsed.success) {
     return NextResponse.json<AIErrorResponse>(
       { error: parsed.error.issues[0]?.message ?? 'Input inválido', code: 'INVALID_INPUT' },
-      { status: 422 },
+      { status: 422 }
     )
   }
 
@@ -63,24 +70,34 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // Chamada IA
   let result
   try {
-    result = await callAI(buildFlashcardPrompt({ notes: safeNotes, highlights: safeHighlights, title: safeTitle, count }), {
-      maxTokens: 1024,
-      jsonMode: true,
-    })
+    result = await callAI(
+      buildFlashcardPrompt({
+        notes: safeNotes,
+        highlights: safeHighlights,
+        title: safeTitle,
+        count,
+      }),
+      {
+        maxTokens: 1024,
+        jsonMode: true,
+      }
+    )
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     // Distingue ausência de chave de erros de API — facilita triagem em produção
     if (msg.includes('OPENAI_API_KEY')) {
-      console.error('[generate-flashcards] OPENAI_API_KEY não configurada nas variáveis de ambiente da Vercel')
+      console.error(
+        '[generate-flashcards] OPENAI_API_KEY não configurada nas variáveis de ambiente da Vercel'
+      )
       return NextResponse.json<AIErrorResponse>(
         { error: 'Serviço de IA temporariamente indisponível.', code: 'AI_ERROR' },
-        { status: 503 },
+        { status: 503 }
       )
     }
     console.error('[generate-flashcards] callAI error:', msg)
     return NextResponse.json<AIErrorResponse>(
       { error: 'Erro ao processar com IA. Tente novamente.', code: 'AI_ERROR' },
-      { status: 500 },
+      { status: 500 }
     )
   }
 
@@ -88,7 +105,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let cards: FlashcardGenerated[]
   try {
     const text = result.text.trim()
-    const jsonText = text.startsWith('```') ? text.replace(/```json?\n?/g, '').replace(/```$/g, '').trim() : text
+    const jsonText = text.startsWith('```')
+      ? text
+          .replace(/```json?\n?/g, '')
+          .replace(/```$/g, '')
+          .trim()
+      : text
     const rawParsed: unknown = JSON.parse(jsonText)
     // Normaliza: aceita tanto {"cards":[...]} quanto array direto
     const normalized = Array.isArray(rawParsed) ? { cards: rawParsed } : rawParsed
@@ -96,14 +118,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!output.success) {
       return NextResponse.json<AIErrorResponse>(
         { error: 'IA retornou resposta inválida', code: 'AI_INVALID_OUTPUT' },
-        { status: 422 },
+        { status: 422 }
       )
     }
     cards = output.data.cards
   } catch {
     return NextResponse.json<AIErrorResponse>(
       { error: 'Resposta da IA em formato inesperado. Tente novamente.', code: 'AI_ERROR' },
-      { status: 500 },
+      { status: 500 }
     )
   }
 

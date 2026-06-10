@@ -28,7 +28,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // Rate limit
-  const rl = checkRateLimit(`ai:analyze:${user.id}`, AI_RATE_LIMIT, AI_RATE_WINDOW_MS)
+  const rl = await checkRateLimit(`ai:analyze:${user.id}`, AI_RATE_LIMIT, AI_RATE_WINDOW_MS)
   if (!rl.allowed) {
     logSecurityEvent('rate_limit.exceeded', { userId: user.id, endpoint: 'analyze-teaching' })
     return NextResponse.json<AIErrorResponse>(

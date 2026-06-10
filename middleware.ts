@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
   // Rate limiting para rotas de autenticação (proteção brute force)
   if (pathname.startsWith('/auth')) {
     const key = getRateLimitKey('auth', ip)
-    const { allowed, retryAfterMs } = checkRateLimit(key)
+    const { allowed, retryAfterMs } = await checkRateLimit(key)
 
     if (!allowed) {
       logSecurityEvent('rate_limit.exceeded', { ip, pathname })

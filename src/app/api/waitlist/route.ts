@@ -21,7 +21,7 @@ async function sendMagicLink(supabase: SupabaseClient, email: string, name: stri
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
-  const { allowed, retryAfterMs } = checkRateLimit(getRateLimitKey('waitlist', ip))
+  const { allowed, retryAfterMs } = await checkRateLimit(getRateLimitKey('waitlist', ip))
 
   if (!allowed) {
     return NextResponse.json(
@@ -46,10 +46,7 @@ export async function POST(request: NextRequest) {
     if (error.code === '23505') {
       // Email já cadastrado — reenvia magic link mesmo assim
       await sendMagicLink(supabase, parsed.data.email, parsed.data.name)
-      return NextResponse.json(
-        { error: 'Este email já está na lista.' },
-        { status: 409 }
-      )
+      return NextResponse.json({ error: 'Este email já está na lista.' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Erro ao salvar. Tente novamente.' }, { status: 500 })
   }
