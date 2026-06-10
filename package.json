@@ -19,6 +19,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
     "@hookform/resolvers": "^5.4.0",
     "@sentry/nextjs": "^10.56.0",
     "@supabase/ssr": "^0.10.3",

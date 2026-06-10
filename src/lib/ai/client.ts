@@ -1,20 +1,20 @@
-// Cliente OpenAI — server-only (nunca importar em Client Components)
-import OpenAI from 'openai'
+// Cliente Anthropic — server-only (nunca importar em Client Components)
+import Anthropic from '@anthropic-ai/sdk'
 
-const DEFAULT_MODEL = 'gpt-4o-mini'
+const DEFAULT_MODEL = 'claude-haiku-4-5-20251001'
 const DEFAULT_MAX_TOKENS = 1024
 
-let _client: OpenAI | null = null
+let _client: Anthropic | null = null
 
-export function getAIClient(): OpenAI {
+export function getAIClient(): Anthropic {
   if (!_client) {
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       throw new Error(
-        'OPENAI_API_KEY não configurada. Adicione a variável ao .env.local e reinicie o servidor.',
+        'ANTHROPIC_API_KEY não configurada. Adicione a variável ao .env.local e reinicie o servidor.'
       )
     }
-    _client = new OpenAI({ apiKey })
+    _client = new Anthropic({ apiKey })
   }
   return _client
 }
@@ -23,7 +23,7 @@ export interface AICallOptions {
   model?: string
   maxTokens?: number
   systemPrompt?: string
-  /** Ativa JSON mode do OpenAI — apenas para rotas que retornam JSON estruturado */
+  /** Ativa prefill com '{' para forçar saída JSON — equivalente ao json_object mode do OpenAI */
   jsonMode?: boolean
 }
 
@@ -35,31 +35,35 @@ export interface AICallResult {
 
 export async function callAI(
   userMessage: string,
-  options: AICallOptions = {},
+  options: AICallOptions = {}
 ): Promise<AICallResult> {
   const client = getAIClient()
   const model = options.model ?? DEFAULT_MODEL
   const maxTokens = options.maxTokens ?? DEFAULT_MAX_TOKENS
 
-  const messages: OpenAI.ChatCompletionMessageParam[] = [
-    ...(options.systemPrompt
-      ? [{ role: 'system' as const, content: options.systemPrompt }]
-      : []),
-    { role: 'user', content: userMessage },
-  ]
+  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: userMessage }]
 
-  const response = await client.chat.completions.create({
+  // Prefill com '{' força o modelo a continuar com JSON sem markdown
+  if (options.jsonMode) {
+    messages.push({ role: 'assistant', content: '{' })
+  }
+
+  const response = await client.messages.create({
     model,
     max_tokens: maxTokens,
+    ...(options.systemPrompt ? { system: options.systemPrompt } : {}),
     messages,
-    ...(options.jsonMode ? { response_format: { type: 'json_object' } } : {}),
   })
 
-  const text = response.choices[0]?.message?.content ?? ''
+  const block = response.content[0]
+  const rawText = block.type === 'text' ? block.text : ''
+
+  // Restaura o '{' do prefill que o modelo não repete na resposta
+  const text = options.jsonMode ? '{' + rawText : rawText
 
   return {
     text,
-    inputTokens: response.usage?.prompt_tokens ?? 0,
-    outputTokens: response.usage?.completion_tokens ?? 0,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
   }
 }
