@@ -1,26 +1,36 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import type { LearningTrail, Content } from '@/types'
+import type { LearningTrail, Content, StudySession } from '@/types'
 
 export type ReviewContext =
   | { type: 'all' }
   | { type: 'trail'; id: string; name: string }
   | { type: 'content'; id: string; name: string; trailId: string | null }
+  | { type: 'session'; id: string; name: string; cid: string }
 
 interface ContextSelectorProps {
   context: ReviewContext
   onChange: (ctx: ReviewContext) => void
   trails: LearningTrail[]
   contents: Content[]
+  sessions?: StudySession[]
 }
 
-export function ContextSelector({ context, onChange, trails, contents }: ContextSelectorProps) {
-  const [mode, setMode] = useState<'all' | 'trail' | 'content'>(context.type)
+export function ContextSelector({
+  context,
+  onChange,
+  trails,
+  contents,
+  sessions = [],
+}: ContextSelectorProps) {
+  const [mode, setMode] = useState<'all' | 'trail' | 'content' | 'session'>(context.type)
   const [trailOpen, setTrailOpen] = useState(false)
   const [contentOpen, setContentOpen] = useState(false)
+  const [sessionOpen, setSessionOpen] = useState(false)
   const trailRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+  const sessionRef = useRef<HTMLDivElement>(null)
 
   // Fecha dropdowns ao clicar fora
   useEffect(() => {
@@ -28,6 +38,8 @@ export function ContextSelector({ context, onChange, trails, contents }: Context
       if (trailRef.current && !trailRef.current.contains(e.target as Node)) setTrailOpen(false)
       if (contentRef.current && !contentRef.current.contains(e.target as Node))
         setContentOpen(false)
+      if (sessionRef.current && !sessionRef.current.contains(e.target as Node))
+        setSessionOpen(false)
     }
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
@@ -38,10 +50,11 @@ export function ContextSelector({ context, onChange, trails, contents }: Context
     setMode(context.type)
   }, [context.type])
 
-  function selectMode(m: 'all' | 'trail' | 'content') {
+  function selectMode(m: 'all' | 'trail' | 'content' | 'session') {
     setMode(m)
     setTrailOpen(false)
     setContentOpen(false)
+    setSessionOpen(false)
     if (m === 'all') onChange({ type: 'all' })
   }
 
@@ -51,8 +64,7 @@ export function ContextSelector({ context, onChange, trails, contents }: Context
       ? contents.filter((c) => c.trailId === context.id)
       : contents
 
-  const activeLabel =
-    context.type === 'all' ? 'Todos' : context.type === 'trail' ? context.name : context.name
+  const activeLabel = context.type === 'all' ? 'Todos' : context.name
 
   return (
     <div data-testid="context-selector" className="flex flex-wrap items-center gap-2">
@@ -95,6 +107,19 @@ export function ContextSelector({ context, onChange, trails, contents }: Context
           }`}
         >
           Por Conteúdo
+        </button>
+        <button
+          type="button"
+          data-testid="context-by-session"
+          onClick={() => selectMode('session')}
+          disabled={sessions.length === 0}
+          className={`px-3 py-1.5 font-medium transition-colors border-l border-[var(--border)] disabled:opacity-40 ${
+            mode === 'session'
+              ? 'bg-violet-600 text-white'
+              : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)]'
+          }`}
+        >
+          Por Sessão
         </button>
       </div>
 
@@ -163,6 +188,48 @@ export function ContextSelector({ context, onChange, trails, contents }: Context
                 <p className="px-3 py-2 text-xs text-[var(--muted)]">
                   Nenhum conteúdo nesta trilha.
                 </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Dropdown de sessão */}
+      {mode === 'session' && (
+        <div ref={sessionRef} className="relative">
+          <button
+            type="button"
+            data-testid="context-session-select"
+            onClick={() => setSessionOpen((o) => !o)}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--bg2)] transition-colors"
+          >
+            <span>{context.type === 'session' ? context.name : 'Selecionar sessão'}</span>
+            <span className="text-[var(--muted)]">▼</span>
+          </button>
+          {sessionOpen && (
+            <div className="absolute top-full left-0 mt-1 z-50 min-w-[280px] max-h-60 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-lg">
+              {sessions.map((s) => {
+                const ct = contents.find((c) => c.id === s.cid)
+                const label = `${new Date(s.date).toLocaleDateString('pt-BR')} — ${ct?.title ?? 'Conteúdo removido'}`
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      onChange({ type: 'session', id: s.id, name: label, cid: s.cid })
+                      setSessionOpen(false)
+                    }}
+                    className="w-full flex flex-col gap-0.5 px-3 py-2 text-xs text-left hover:bg-[var(--bg2)] transition-colors"
+                  >
+                    <span className="font-medium truncate">{label}</span>
+                    <span className="text-[var(--muted)]">
+                      {s.cardsCreated} card{s.cardsCreated !== 1 ? 's' : ''} · {s.duration} min
+                    </span>
+                  </button>
+                )
+              })}
+              {sessions.length === 0 && (
+                <p className="px-3 py-2 text-xs text-[var(--muted)]">Nenhuma sessão registrada.</p>
               )}
             </div>
           )}

@@ -107,7 +107,9 @@ export function LibraryView() {
   }
 
   function handleSaveContent(
-    updates: Partial<Pick<Content, 'title' | 'type' | 'author' | 'desc'>>
+    updates: Partial<Pick<Content, 'title' | 'type' | 'author' | 'desc'>> & {
+      trailId: string | null
+    }
   ) {
     if (!editContent) return
     const color = updates.type ? TYPE_CONFIG[updates.type].color : editContent.color

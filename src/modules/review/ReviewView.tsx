@@ -43,6 +43,7 @@ function getContextIds(
 ): string[] | null {
   if (ctx.type === 'all') return null
   if (ctx.type === 'content') return [ctx.id]
+  if (ctx.type === 'session') return [ctx.cid]
   return contents.filter((c) => c.trailId === ctx.id).map((c) => c.id)
 }
 
@@ -229,6 +230,7 @@ export function ReviewView() {
         onChange={handleContextChange}
         trails={state.trails ?? []}
         contents={state.contents}
+        sessions={state.sessions ?? []}
       />
     </div>
   )
@@ -286,7 +288,13 @@ export function ReviewView() {
       {/* ── Meu Material ── */}
       <div style={{ display: activeTab === 'knowledge' ? 'block' : 'none' }}>
         <MemoryView
-          contentId={reviewContext.type === 'content' ? reviewContext.id : undefined}
+          contentId={
+            reviewContext.type === 'content'
+              ? reviewContext.id
+              : reviewContext.type === 'session'
+                ? reviewContext.cid
+                : undefined
+          }
           trailId={reviewContext.type === 'trail' ? reviewContext.id : undefined}
         />
       </div>

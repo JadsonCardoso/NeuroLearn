@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { LoadingButton } from '@/components/ui/LoadingButton'
 import { contentSchema, type ContentFormValues } from '@/lib/validation/schemas'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useAppData } from '@/hooks/useAppData'
 
 const TYPE_CONFIG: Record<ContentType, { icon: string; color: string }> = {
   book: { icon: '📚', color: '#7c3aed' },
@@ -28,7 +29,9 @@ interface AddContentModalProps {
 }
 
 export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
+  const { state } = useAppData()
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [trailId, setTrailId] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
@@ -71,7 +74,7 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
       color: TYPE_CONFIG[data.type]?.color ?? '#7c3aed',
       addedAt: new Date().toISOString(),
       progress: 0,
-      trailId: null,
+      trailId,
     }
     onAdd(content)
   }
@@ -171,6 +174,24 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
                 {...register('desc')}
               />
             </FormField>
+
+            {state.trails.length > 0 && (
+              <FormField label="Trilha" htmlFor="add-trail" hint="Opcional">
+                <select
+                  id="add-trail"
+                  className="input"
+                  value={trailId ?? ''}
+                  onChange={(e) => setTrailId(e.target.value || null)}
+                >
+                  <option value="">Sem trilha</option>
+                  {state.trails.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.iconEmoji} {t.title}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            )}
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
               <button

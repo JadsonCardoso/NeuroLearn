@@ -12,16 +12,23 @@ import { Textarea } from '@/components/ui/Textarea'
 import { LoadingButton } from '@/components/ui/LoadingButton'
 import { contentSchema, type ContentFormValues } from '@/lib/validation/schemas'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useAppData } from '@/hooks/useAppData'
 
 interface EditContentModalProps {
   content: Content
-  onSave: (updates: Partial<Pick<Content, 'title' | 'type' | 'author' | 'desc'>>) => void
+  onSave: (
+    updates: Partial<Pick<Content, 'title' | 'type' | 'author' | 'desc'>> & {
+      trailId: string | null
+    }
+  ) => void
   onClose: () => void
 }
 
 // Modal de edição de conteúdo — pré-populado com dados atuais
 export function EditContentModal({ content, onSave, onClose }: EditContentModalProps) {
+  const { state } = useAppData()
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [trailId, setTrailId] = useState<string | null>(content.trailId)
   const {
     register,
     handleSubmit,
@@ -64,15 +71,21 @@ export function EditContentModal({ content, onSave, onClose }: EditContentModalP
       type: data.type,
       author: data.author ?? '',
       desc: data.desc ?? '',
+      trailId,
     })
   }
 
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
-        zIndex: 200, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', padding: '20px',
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,.6)',
+        zIndex: 200,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
       }}
       onClick={() => tryClose()}
     >
@@ -82,7 +95,14 @@ export function EditContentModal({ content, onSave, onClose }: EditContentModalP
         style={{ padding: '24px', width: '100%', maxWidth: '440px' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
+          }}
+        >
           <h2 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text)' }}>
             Editar Conteúdo
           </h2>
@@ -132,7 +152,12 @@ export function EditContentModal({ content, onSave, onClose }: EditContentModalP
               />
             </FormField>
 
-            <FormField label="Descrição" htmlFor="edit-desc" error={errors.desc?.message} hint="Opcional">
+            <FormField
+              label="Descrição"
+              htmlFor="edit-desc"
+              error={errors.desc?.message}
+              hint="Opcional"
+            >
               <Textarea
                 id="edit-desc"
                 placeholder="Do que se trata este conteúdo?"
@@ -142,8 +167,29 @@ export function EditContentModal({ content, onSave, onClose }: EditContentModalP
               />
             </FormField>
 
+            <FormField label="Trilha" htmlFor="edit-trail" hint="Opcional">
+              <select
+                id="edit-trail"
+                className="input"
+                value={trailId ?? ''}
+                onChange={(e) => setTrailId(e.target.value || null)}
+              >
+                <option value="">Sem trilha</option>
+                {state.trails.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.iconEmoji} {t.title}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
             <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-              <button className="btn-secondary" style={{ flex: 1 }} type="button" onClick={tryClose}>
+              <button
+                className="btn-secondary"
+                style={{ flex: 1 }}
+                type="button"
+                onClick={tryClose}
+              >
                 Cancelar
               </button>
               <LoadingButton
