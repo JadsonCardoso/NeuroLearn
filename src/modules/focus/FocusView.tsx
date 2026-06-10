@@ -188,6 +188,7 @@ export function FocusView({ content }: FocusViewProps) {
       cid: content.id,
       date: new Date().toISOString(),
       duration: 25,
+      cardsCreated: newCards.length,
       highlights,
       notes,
       teach,

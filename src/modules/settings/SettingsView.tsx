@@ -72,6 +72,7 @@ const BackupDataSchema = z.object({
         cid: z.string(),
         date: z.string(),
         duration: z.number(),
+        cardsCreated: z.number().default(0),
         highlights: z.array(z.string()),
         notes: z.string(),
         teach: z.string(),

@@ -79,6 +79,7 @@ export interface StudySession {
   cid: string
   date: string
   duration: number
+  cardsCreated: number
   highlights: string[]
   notes: string
   teach: string

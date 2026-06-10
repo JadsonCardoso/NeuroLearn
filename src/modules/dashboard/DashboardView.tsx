@@ -17,6 +17,8 @@ import { ContentProgressChart } from '@/components/ui/ContentProgressChart'
 import { Brain, Refresh, Book, Award, Warn } from '@/components/icons'
 import { getAtRiskCards, getRetentionHistory } from '@/services/analyticsService'
 import type { AtRiskCard, RetentionHistoryPoint } from '@/services/analyticsService'
+import { getUserProfile, DEFAULT_STUDY_GOALS } from '@/services/profileService'
+import type { StudyGoals } from '@/services/profileService'
 
 // Saudação contextual baseada no horário
 function getGreeting(): string {
@@ -34,6 +36,8 @@ export function DashboardView() {
   const [realRiskCards, setRealRiskCards] = useState<AtRiskCard[] | null>(null)
   // Histórico de retenção para o gráfico de tendência (null = carregando)
   const [retentionHistory, setRetentionHistory] = useState<RetentionHistoryPoint[] | null>(null)
+  // Metas de estudo do perfil do usuário
+  const [studyGoals, setStudyGoals] = useState<StudyGoals>(DEFAULT_STUDY_GOALS)
 
   // Saudação e data: inicializadas vazias para evitar hydration mismatch.
   // O servidor (UTC) e o cliente (UTC-3) chamam new Date() em momentos diferentes —
@@ -50,9 +54,13 @@ export function DashboardView() {
   useEffect(() => {
     // Valores dependentes de horário/timezone → somente no cliente
     setGreeting(getGreeting())
-    setDateLabel(new Date().toLocaleDateString('pt-BR', {
-      weekday: 'long', day: 'numeric', month: 'long',
-    }))
+    setDateLabel(
+      new Date().toLocaleDateString('pt-BR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      })
+    )
     setOnboardingDismissed(localStorage.getItem('neurolearn:onboarding:dismissed') === '1')
   }, [])
 
@@ -64,21 +72,39 @@ export function DashboardView() {
       return
     }
     getAtRiskCards(userId)
-      .then((d) => { if (mounted) setRealRiskCards(d) })
-      .catch(() => { if (mounted) setRealRiskCards([]) })
+      .then((d) => {
+        if (mounted) setRealRiskCards(d)
+      })
+      .catch(() => {
+        if (mounted) setRealRiskCards([])
+      })
 
     getRetentionHistory(userId)
-      .then((d) => { if (mounted) setRetentionHistory(d) })
-      .catch(() => { if (mounted) setRetentionHistory([]) })
+      .then((d) => {
+        if (mounted) setRetentionHistory(d)
+      })
+      .catch(() => {
+        if (mounted) setRetentionHistory([])
+      })
 
-    return () => { mounted = false }
+    getUserProfile()
+      .then((p) => {
+        if (mounted && p?.studyGoals) setStudyGoals(p.studyGoals)
+      })
+      .catch(() => {
+        /* usa DEFAULT_STUDY_GOALS */
+      })
+
+    return () => {
+      mounted = false
+    }
   }, [userId])
 
   const onboardingItems = [
     { label: 'Adicionar primeiro conteúdo', done: state.contents.length > 0, link: '/library' },
-    { label: 'Criar primeiro flashcard',    done: state.cards.length > 0,    link: '/library' },
-    { label: 'Completar primeira revisão',  done: state.sessions.length > 0, link: '/review'  },
-    { label: 'Manter sequência de 3 dias',  done: state.streak >= 3,         link: null        },
+    { label: 'Criar primeiro flashcard', done: state.cards.length > 0, link: '/library' },
+    { label: 'Completar primeira revisão', done: state.sessions.length > 0, link: '/review' },
+    { label: 'Manter sequência de 3 dias', done: state.streak >= 3, link: null },
   ]
   const onboardingDone = onboardingItems.filter((i) => i.done).length
   const showOnboarding = !onboardingDismissed && onboardingDone < onboardingItems.length
@@ -92,7 +118,10 @@ export function DashboardView() {
   const avgRet = state.cards.length
     ? Math.round(state.cards.reduce((a, c) => a + calcRetention(c), 0) / state.cards.length)
     : 0
-  const risk = state.cards.filter((c) => { const r = calcRetention(c); return r < 50 && r > 0 })
+  const risk = state.cards.filter((c) => {
+    const r = calcRetention(c)
+    return r < 50 && r > 0
+  })
   const strong = state.cards.filter((c) => calcRetention(c) >= 75).length
 
   // Cognitive Score — derivado do engine a partir dos dados do estado atual
@@ -117,6 +146,23 @@ export function DashboardView() {
     activeLearning: 0,
   })
 
+  // ── Metas de estudo — métricas do dia/semana ──────────────────────────────
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const cardsReviewedToday = state.cards.filter(
+    (c) => c.lastReview && c.lastReview.startsWith(todayStr)
+  ).length
+  const minutesToday = Math.round(
+    state.sessions
+      .filter((s) => s.date.startsWith(todayStr))
+      .reduce((sum, s) => sum + s.duration, 0) / 60
+  )
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)
+  const activeWeekDays = new Set(
+    state.sessions
+      .filter((s) => s.date.slice(0, 10) >= sevenDaysAgo)
+      .map((s) => s.date.slice(0, 10))
+  ).size
+
   const weekBars = [0, 1, 2, 3, 4, 5, 6].map((i) => ({
     day: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][i],
     n: state.cards.filter((c) => {
@@ -129,7 +175,10 @@ export function DashboardView() {
   const maxBar = Math.max(...weekBars.map((b) => b.n), 1)
 
   return (
-    <div className="slide-in" style={{ padding: 'var(--space-6)', maxWidth: '1200px', margin: '0 auto' }}>
+    <div
+      className="slide-in"
+      style={{ padding: 'var(--space-6)', maxWidth: '1200px', margin: '0 auto' }}
+    >
       <style>{`
         @media (max-width: 640px) {
           .dash-stats-grid { grid-template-columns: repeat(2,1fr) !important; }
@@ -159,10 +208,23 @@ export function DashboardView() {
           }}
         >
           <div>
-            <p style={{ fontSize: 'var(--text-lg)', fontWeight: '800', color: 'var(--color-primary-text)', margin: 0 }}>
+            <p
+              style={{
+                fontSize: 'var(--text-lg)',
+                fontWeight: '800',
+                color: 'var(--color-primary-text)',
+                margin: 0,
+              }}
+            >
               {due.length} card{due.length !== 1 ? 's' : ''} aguardando revisão
             </p>
-            <p style={{ fontSize: 'var(--text-base)', color: 'var(--text4)', margin: 'var(--space-1) 0 0' }}>
+            <p
+              style={{
+                fontSize: 'var(--text-base)',
+                color: 'var(--text4)',
+                margin: 'var(--space-1) 0 0',
+              }}
+            >
               Revise agora para consolidar a memória no momento ideal
             </p>
           </div>
@@ -187,18 +249,59 @@ export function DashboardView() {
         }}
       >
         {[
-          { l: 'Sequência',       v: state.streak + 'd',                     icon: '🔥', c: 'var(--color-warning)', bg: 'var(--color-warning-dim)' },
-          { l: 'Total XP',        v: (state.totalXp ?? 0).toLocaleString(), icon: '⚡', c: 'var(--color-primary)', bg: 'var(--color-primary-dim)' },
-          { l: 'Para revisar',    v: due.length,                             icon: '🔄', c: 'var(--color-info)',    bg: 'var(--color-info-dim)'    },
-          { l: 'Cognitive Score', v: cogScore.score + '/100',                icon: '🧠', c: 'var(--color-success)', bg: 'var(--color-success-dim)' },
+          {
+            l: 'Sequência',
+            v: state.streak + 'd',
+            icon: '🔥',
+            c: 'var(--color-warning)',
+            bg: 'var(--color-warning-dim)',
+          },
+          {
+            l: 'Total XP',
+            v: (state.totalXp ?? 0).toLocaleString(),
+            icon: '⚡',
+            c: 'var(--color-primary)',
+            bg: 'var(--color-primary-dim)',
+          },
+          {
+            l: 'Para revisar',
+            v: due.length,
+            icon: '🔄',
+            c: 'var(--color-info)',
+            bg: 'var(--color-info-dim)',
+          },
+          {
+            l: 'Cognitive Score',
+            v: cogScore.score + '/100',
+            icon: '🧠',
+            c: 'var(--color-success)',
+            bg: 'var(--color-success-dim)',
+          },
         ].map((s, i) => (
           <div key={i} className="card" style={{ padding: 'var(--space-4)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
+            >
               <div>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', marginBottom: 'var(--space-1)' }}>{s.l}</p>
+                <p
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text3)',
+                    marginBottom: 'var(--space-1)',
+                  }}
+                >
+                  {s.l}
+                </p>
                 <p style={{ fontSize: 'var(--text-2xl)', fontWeight: '800', color: s.c }}>{s.v}</p>
               </div>
-              <div style={{ background: s.bg, borderRadius: 'var(--radius-sm)', padding: 'var(--space-2)', fontSize: 'var(--text-lg)' }}>
+              <div
+                style={{
+                  background: s.bg,
+                  borderRadius: 'var(--radius-sm)',
+                  padding: 'var(--space-2)',
+                  fontSize: 'var(--text-lg)',
+                }}
+              >
                 {s.icon}
               </div>
             </div>
@@ -208,13 +311,24 @@ export function DashboardView() {
 
       {/* Heat map de atividade — últimas 16 semanas */}
       <div className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
-        <h2 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--text)', margin: '0 0 var(--space-4)' }}>
+        <h2
+          style={{
+            fontSize: 'var(--text-base)',
+            fontWeight: '700',
+            color: 'var(--text)',
+            margin: '0 0 var(--space-4)',
+          }}
+        >
           📅 Atividade de Estudo
         </h2>
         {state.sessions.length > 0 ? (
           <ActivityHeatmap sessions={state.sessions} weeks={16} />
         ) : (
-          <EmptyState icon="📅" title="Nenhuma sessão registrada" description="Complete uma sessão de foco para ver seu histórico de atividade." />
+          <EmptyState
+            icon="📅"
+            title="Nenhuma sessão registrada"
+            description="Complete uma sessão de foco para ver seu histórico de atividade."
+          />
         )}
       </div>
 
@@ -223,14 +337,39 @@ export function DashboardView() {
         <div
           data-testid="onboarding-checklist"
           className="card"
-          style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-4)', border: '1px solid rgba(124,58,237,.25)', background: 'rgba(124,58,237,.04)' }}
+          style={{
+            padding: 'var(--space-5)',
+            marginBottom: 'var(--space-4)',
+            border: '1px solid rgba(124,58,237,.25)',
+            background: 'rgba(124,58,237,.04)',
+          }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 'var(--space-3)',
+            }}
+          >
             <div>
-              <h2 style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--text)', margin: 0 }}>
+              <h2
+                style={{
+                  fontSize: 'var(--text-md)',
+                  fontWeight: '700',
+                  color: 'var(--text)',
+                  margin: 0,
+                }}
+              >
                 Primeiros passos 🚀
               </h2>
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', margin: 'var(--space-1) 0 0' }}>
+              <p
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text3)',
+                  margin: 'var(--space-1) 0 0',
+                }}
+              >
                 {onboardingDone}/{onboardingItems.length} etapas concluídas
               </p>
             </div>
@@ -238,7 +377,14 @@ export function DashboardView() {
               data-testid="btn-dismiss-onboarding"
               onClick={dismissOnboarding}
               title="Dispensar"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: '18px', lineHeight: 1 }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text3)',
+                fontSize: '18px',
+                lineHeight: 1,
+              }}
             >
               ×
             </button>
@@ -249,7 +395,10 @@ export function DashboardView() {
             <div
               className="progress-fill"
               data-testid="onboarding-progress"
-              style={{ width: `${(onboardingDone / onboardingItems.length) * 100}%`, background: 'linear-gradient(90deg,#7c3aed,#06b6d4)' }}
+              style={{
+                width: `${(onboardingDone / onboardingItems.length) * 100}%`,
+                background: 'linear-gradient(90deg,#7c3aed,#06b6d4)',
+              }}
             />
           </div>
 
@@ -258,18 +407,39 @@ export function DashboardView() {
               <div
                 key={i}
                 data-testid={`onboarding-item-${i}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', opacity: item.done ? 0.55 : 1 }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-3)',
+                  opacity: item.done ? 0.55 : 1,
+                }}
               >
                 <span style={{ fontSize: '16px', flexShrink: 0 }}>{item.done ? '✅' : '⬜'}</span>
                 {item.link && !item.done ? (
                   <button
                     onClick={() => router.push(item.link!)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'var(--text-sm)', color: '#7c3aed', fontWeight: '600', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      fontSize: 'var(--text-sm)',
+                      color: '#7c3aed',
+                      fontWeight: '600',
+                      textDecoration: 'underline',
+                      textDecorationStyle: 'dotted',
+                    }}
                   >
                     {item.label}
                   </button>
                 ) : (
-                  <span style={{ fontSize: 'var(--text-sm)', color: item.done ? 'var(--text3)' : 'var(--text)', textDecoration: item.done ? 'line-through' : 'none' }}>
+                  <span
+                    style={{
+                      fontSize: 'var(--text-sm)',
+                      color: item.done ? 'var(--text3)' : 'var(--text)',
+                      textDecoration: item.done ? 'line-through' : 'none',
+                    }}
+                  >
                     {item.label}
                   </span>
                 )}
@@ -279,16 +449,41 @@ export function DashboardView() {
         </div>
       )}
 
-      <div className="dash-main-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-4)' }}>
+      <div
+        className="dash-main-grid"
+        style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-4)' }}
+      >
         {/* Coluna esquerda */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           {/* Revisões de hoje */}
           <div className="card" style={{ padding: 'var(--space-5)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-              <h2 style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', margin: 0 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 'var(--space-4)',
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: 'var(--text-md)',
+                  fontWeight: '700',
+                  color: 'var(--text)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  margin: 0,
+                }}
+              >
                 <Refresh /> Revisões de Hoje
               </h2>
-              <Badge style={{ background: 'var(--color-primary-dim)', color: 'var(--color-primary-text)' }}>
+              <Badge
+                style={{
+                  background: 'var(--color-primary-dim)',
+                  color: 'var(--color-primary-text)',
+                }}
+              >
                 {due.length} cards
               </Badge>
             </div>
@@ -298,29 +493,79 @@ export function DashboardView() {
                 {due.slice(0, 3).map((card) => {
                   const ct = state.contents.find((c) => c.id === card.cid)
                   const ret = calcRetention(card)
-                  const retColor = ret > 60 ? 'var(--color-success)' : ret > 30 ? 'var(--color-warning)' : 'var(--color-danger)'
-                  const retBg   = ret > 60 ? 'var(--color-success-dim)' : ret > 30 ? 'var(--color-warning-dim)' : 'var(--color-danger-dim)'
+                  const retColor =
+                    ret > 60
+                      ? 'var(--color-success)'
+                      : ret > 30
+                        ? 'var(--color-warning)'
+                        : 'var(--color-danger)'
+                  const retBg =
+                    ret > 60
+                      ? 'var(--color-success-dim)'
+                      : ret > 30
+                        ? 'var(--color-warning-dim)'
+                        : 'var(--color-danger-dim)'
                   return (
                     <div
                       key={card.id}
-                      style={{ background: 'var(--card2)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2) var(--space-3)', border: '1px solid var(--border2)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-2)' }}
+                      style={{
+                        background: 'var(--card2)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: 'var(--space-2) var(--space-3)',
+                        border: '1px solid var(--border2)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: 'var(--space-2)',
+                      }}
                     >
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', marginBottom: '2px' }}>
+                        <div
+                          style={{
+                            fontSize: 'var(--text-sm)',
+                            color: 'var(--text3)',
+                            marginBottom: '2px',
+                          }}
+                        >
                           {ct?.title?.slice(0, 30)}
                         </div>
-                        <div style={{ fontSize: 'var(--text-base)', color: 'var(--text)', fontWeight: '500', lineHeight: '1.4' }}>
-                          {card.front.slice(0, 60)}{card.front.length > 60 ? '…' : ''}
+                        <div
+                          style={{
+                            fontSize: 'var(--text-base)',
+                            color: 'var(--text)',
+                            fontWeight: '500',
+                            lineHeight: '1.4',
+                          }}
+                        >
+                          {card.front.slice(0, 60)}
+                          {card.front.length > 60 ? '…' : ''}
                         </div>
                       </div>
-                      <span style={{ fontSize: 'var(--text-xs)', padding: '2px var(--space-2)', borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap', background: retBg, color: retColor, fontWeight: '700' }}>
+                      <span
+                        style={{
+                          fontSize: 'var(--text-xs)',
+                          padding: '2px var(--space-2)',
+                          borderRadius: 'var(--radius-full)',
+                          whiteSpace: 'nowrap',
+                          background: retBg,
+                          color: retColor,
+                          fontWeight: '700',
+                        }}
+                      >
                         {ret}%
                       </span>
                     </div>
                   )
                 })}
                 {due.length > 3 && (
-                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', textAlign: 'center', margin: 0 }}>
+                  <p
+                    style={{
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--text3)',
+                      textAlign: 'center',
+                      margin: 0,
+                    }}
+                  >
                     +{due.length - 3} mais
                   </p>
                 )}
@@ -344,12 +589,42 @@ export function DashboardView() {
             if (realRiskCards === null) {
               return (
                 <div className="card" style={{ padding: 'var(--space-4)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
-                    <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: 'var(--border2)' }} />
-                    <div style={{ height: '12px', width: '140px', borderRadius: '4px', background: 'var(--border2)' }} />
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
+                      marginBottom: 'var(--space-3)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '50%',
+                        background: 'var(--border2)',
+                      }}
+                    />
+                    <div
+                      style={{
+                        height: '12px',
+                        width: '140px',
+                        borderRadius: '4px',
+                        background: 'var(--border2)',
+                      }}
+                    />
                   </div>
                   {[1, 2].map((i) => (
-                    <div key={i} style={{ height: '32px', borderRadius: 'var(--radius-sm)', background: 'var(--border2)', marginBottom: 'var(--space-1)', opacity: 1 - i * 0.2 }} />
+                    <div
+                      key={i}
+                      style={{
+                        height: '32px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--border2)',
+                        marginBottom: 'var(--space-1)',
+                        opacity: 1 - i * 0.2,
+                      }}
+                    />
                   ))}
                 </div>
               )
@@ -358,7 +633,11 @@ export function DashboardView() {
             // Usa dados reais do Supabase se disponíveis, senão fallback client-side
             const displayCards: { id: string; front: string; retention: number }[] =
               realRiskCards.length > 0
-                ? realRiskCards.map((c) => ({ id: c.flashcardId, front: c.front, retention: c.retention }))
+                ? realRiskCards.map((c) => ({
+                    id: c.flashcardId,
+                    front: c.front,
+                    retention: c.retention,
+                  }))
                 : risk.map((c) => ({ id: c.id, front: c.front, retention: calcRetention(c) }))
 
             const isRealData = realRiskCards.length > 0
@@ -367,7 +646,11 @@ export function DashboardView() {
             if (displayCards.length === 0) {
               return (
                 <div className="card" style={{ padding: 'var(--space-4)' }}>
-                  <EmptyState icon="🛡️" title="Nenhum card em risco" description="Sua retenção está saudável." />
+                  <EmptyState
+                    icon="🛡️"
+                    title="Nenhum card em risco"
+                    description="Sua retenção está saudável."
+                  />
                 </div>
               )
             }
@@ -376,28 +659,71 @@ export function DashboardView() {
               <div
                 data-testid="risk-cards-real"
                 className="card"
-                style={{ padding: 'var(--space-4)', borderColor: 'rgba(245,158,11,.3)', background: 'var(--color-warning-dim)' }}
+                style={{
+                  padding: 'var(--space-4)',
+                  borderColor: 'rgba(245,158,11,.3)',
+                  background: 'var(--color-warning-dim)',
+                }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
-                  <span style={{ color: 'var(--color-warning)' }}><Warn /></span>
-                  <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--color-warning)', margin: 0 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    marginBottom: 'var(--space-3)',
+                  }}
+                >
+                  <span style={{ color: 'var(--color-warning)' }}>
+                    <Warn />
+                  </span>
+                  <h3
+                    style={{
+                      fontSize: 'var(--text-base)',
+                      fontWeight: '700',
+                      color: 'var(--color-warning)',
+                      margin: 0,
+                    }}
+                  >
                     Risco de Esquecimento
                   </h3>
                 </div>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text4)', marginBottom: 'var(--space-3)' }}>
+                <p
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text4)',
+                    marginBottom: 'var(--space-3)',
+                  }}
+                >
                   {displayCards.length} card(s) com retenção abaixo de 50%
-                  <span style={{ fontSize: '10px', color: 'var(--text3)', marginLeft: '6px' }}>({label})</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text3)', marginLeft: '6px' }}>
+                    ({label})
+                  </span>
                 </p>
                 {displayCards.slice(0, 3).map((c, i) => (
                   <div
                     key={c.id}
                     data-testid={`risk-card-${i}`}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) var(--space-3)', background: 'rgba(245,158,11,.1)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-1)' }}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: 'var(--space-2) var(--space-3)',
+                      background: 'rgba(245,158,11,.1)',
+                      borderRadius: 'var(--radius-sm)',
+                      marginBottom: 'var(--space-1)',
+                    }}
                   >
                     <span style={{ fontSize: 'var(--text-base)', color: 'var(--text)' }}>
-                      {c.front.slice(0, 45)}{c.front.length > 45 ? '…' : ''}
+                      {c.front.slice(0, 45)}
+                      {c.front.length > 45 ? '…' : ''}
                     </span>
-                    <span style={{ fontSize: 'var(--text-base)', color: 'var(--color-warning)', fontWeight: '700' }}>
+                    <span
+                      style={{
+                        fontSize: 'var(--text-base)',
+                        color: 'var(--color-warning)',
+                        fontWeight: '700',
+                      }}
+                    >
                       {c.retention}%
                     </span>
                   </div>
@@ -408,7 +734,14 @@ export function DashboardView() {
 
           {/* Progresso por conteúdo */}
           <div className="card" style={{ padding: 'var(--space-5)' }}>
-            <h2 style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--text)', margin: '0 0 var(--space-4)' }}>
+            <h2
+              style={{
+                fontSize: 'var(--text-md)',
+                fontWeight: '700',
+                color: 'var(--text)',
+                margin: '0 0 var(--space-4)',
+              }}
+            >
               📊 Domínio por Conteúdo
             </h2>
             <ContentProgressChart cards={state.cards} contents={state.contents} limit={5} />
@@ -416,24 +749,60 @@ export function DashboardView() {
 
           {/* Calendário semanal */}
           <div className="card" style={{ padding: 'var(--space-5)' }}>
-            <h2 style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--text)', marginBottom: 'var(--space-4)', margin: '0 0 var(--space-4)' }}>
+            <h2
+              style={{
+                fontSize: 'var(--text-md)',
+                fontWeight: '700',
+                color: 'var(--text)',
+                marginBottom: 'var(--space-4)',
+                margin: '0 0 var(--space-4)',
+              }}
+            >
               🗓️ Calendário de Revisões
             </h2>
-            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', height: '80px' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: 'var(--space-2)',
+                alignItems: 'flex-end',
+                height: '80px',
+              }}
+            >
               {weekBars.map((b, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-1)', height: '100%', justifyContent: 'flex-end' }}>
-                  {b.n > 0 && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text3)' }}>{b.n}</span>}
+                <div
+                  key={i}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 'var(--space-1)',
+                    height: '100%',
+                    justifyContent: 'flex-end',
+                  }}
+                >
+                  {b.n > 0 && (
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text3)' }}>{b.n}</span>
+                  )}
                   <div
                     style={{
                       width: '100%',
                       borderRadius: 'var(--radius-sm)',
                       height: Math.max(4, (b.n / maxBar) * 56) + 'px',
-                      background: i === 0 ? 'linear-gradient(180deg, var(--color-primary), var(--color-primary-text))' : 'var(--border)',
+                      background:
+                        i === 0
+                          ? 'linear-gradient(180deg, var(--color-primary), var(--color-primary-text))'
+                          : 'var(--border)',
                       border: i === 0 ? 'none' : '1px solid var(--border2)',
                       transition: 'height var(--duration-base)',
                     }}
                   />
-                  <span style={{ fontSize: 'var(--text-xs)', color: i === 0 ? 'var(--color-primary-text)' : 'var(--text3)' }}>
+                  <span
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      color: i === 0 ? 'var(--color-primary-text)' : 'var(--text3)',
+                    }}
+                  >
                     {b.day}
                   </span>
                 </div>
@@ -446,33 +815,72 @@ export function DashboardView() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           {/* Mapa de retenção */}
           <div className="card" style={{ padding: 'var(--space-5)', textAlign: 'center' }}>
-            <h2 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--text)', marginBottom: 'var(--space-4)', margin: '0 0 var(--space-4)' }}>
+            <h2
+              style={{
+                fontSize: 'var(--text-base)',
+                fontWeight: '700',
+                color: 'var(--text)',
+                marginBottom: 'var(--space-4)',
+                margin: '0 0 var(--space-4)',
+              }}
+            >
               Mapa de Retenção
             </h2>
             {state.cards.length > 0 ? (
               <>
                 <Ring value={avgRet} size={96} />
-                <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 'var(--space-4)' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-around',
+                    marginTop: 'var(--space-4)',
+                  }}
+                >
                   {[
                     { l: 'Fortes', v: strong, c: 'var(--color-success)' },
-                    { l: 'Médios', v: state.cards.filter((c) => { const r = calcRetention(c); return r >= 50 && r < 75 }).length, c: 'var(--color-warning)' },
-                    { l: 'Fracos', v: state.cards.filter((c) => calcRetention(c) < 50 && calcRetention(c) > 0).length, c: 'var(--color-danger)' },
+                    {
+                      l: 'Médios',
+                      v: state.cards.filter((c) => {
+                        const r = calcRetention(c)
+                        return r >= 50 && r < 75
+                      }).length,
+                      c: 'var(--color-warning)',
+                    },
+                    {
+                      l: 'Fracos',
+                      v: state.cards.filter((c) => calcRetention(c) < 50 && calcRetention(c) > 0)
+                        .length,
+                      c: 'var(--color-danger)',
+                    },
                   ].map((s, i) => (
                     <div key={i}>
-                      <div style={{ fontSize: 'var(--text-xl)', fontWeight: '800', color: s.c }}>{s.v}</div>
+                      <div style={{ fontSize: 'var(--text-xl)', fontWeight: '800', color: s.c }}>
+                        {s.v}
+                      </div>
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text3)' }}>{s.l}</div>
                     </div>
                   ))}
                 </div>
               </>
             ) : (
-              <EmptyState icon="🧠" title="Sem dados ainda" description="Adicione conteúdos e crie flashcards para ver sua retenção." />
+              <EmptyState
+                icon="🧠"
+                title="Sem dados ainda"
+                description="Adicione conteúdos e crie flashcards para ver sua retenção."
+              />
             )}
           </div>
 
           {/* Tendência de retenção histórica */}
           <div className="card" style={{ padding: 'var(--space-5)' }}>
-            <h2 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--text)', margin: '0 0 var(--space-4)' }}>
+            <h2
+              style={{
+                fontSize: 'var(--text-base)',
+                fontWeight: '700',
+                color: 'var(--text)',
+                margin: '0 0 var(--space-4)',
+              }}
+            >
               📈 Tendência de Retenção
             </h2>
             <CognitiveScoreTrend
@@ -484,53 +892,191 @@ export function DashboardView() {
 
           {/* Em progresso */}
           <div className="card" style={{ padding: 'var(--space-4)' }}>
-            <h2 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--text)', marginBottom: 'var(--space-3)', margin: '0 0 var(--space-3)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <h2
+              style={{
+                fontSize: 'var(--text-base)',
+                fontWeight: '700',
+                color: 'var(--text)',
+                marginBottom: 'var(--space-3)',
+                margin: '0 0 var(--space-3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+              }}
+            >
               <Book /> Em Progresso
             </h2>
             {state.contents.filter((c) => c.progress < 100).length > 0 ? (
               <>
-                {state.contents.filter((c) => c.progress < 100).slice(0, 3).map((c) => (
-                  <div key={c.id} style={{ marginBottom: 'var(--space-2)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-1)' }}>
-                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text)', fontWeight: '500' }}>
-                        {c.title.slice(0, 22)}…
-                      </span>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text3)' }}>{c.progress}%</span>
+                {state.contents
+                  .filter((c) => c.progress < 100)
+                  .slice(0, 3)
+                  .map((c) => (
+                    <div key={c.id} style={{ marginBottom: 'var(--space-2)' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: 'var(--space-1)',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 'var(--text-sm)',
+                            color: 'var(--text)',
+                            fontWeight: '500',
+                          }}
+                        >
+                          {c.title.slice(0, 22)}…
+                        </span>
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text3)' }}>
+                          {c.progress}%
+                        </span>
+                      </div>
+                      <ProgressBar value={c.progress} color={c.color} />
                     </div>
-                    <ProgressBar value={c.progress} color={c.color} />
-                  </div>
-                ))}
-                <button className="btn-secondary" style={{ width: '100%', marginTop: 'var(--space-2)', fontSize: 'var(--text-sm)' }} onClick={() => router.push('/library')}>
+                  ))}
+                <button
+                  className="btn-secondary"
+                  style={{ width: '100%', marginTop: 'var(--space-2)', fontSize: 'var(--text-sm)' }}
+                  onClick={() => router.push('/library')}
+                >
                   Ver Biblioteca →
                 </button>
               </>
             ) : (
-              <EmptyState icon="📚" title="Nenhum conteúdo em progresso" action={{ label: 'Adicionar conteúdo', onClick: () => router.push('/library') }} />
+              <EmptyState
+                icon="📚"
+                title="Nenhum conteúdo em progresso"
+                action={{ label: 'Adicionar conteúdo', onClick: () => router.push('/library') }}
+              />
             )}
+          </div>
+
+          {/* Metas de Estudo */}
+          <div data-testid="dashboard-goals" className="card" style={{ padding: 'var(--space-4)' }}>
+            <h2
+              style={{
+                fontSize: 'var(--text-base)',
+                fontWeight: '700',
+                color: 'var(--text)',
+                margin: '0 0 var(--space-3)',
+              }}
+            >
+              🎯 Metas de Hoje
+            </h2>
+            {[
+              {
+                label: 'Cards revisados',
+                value: cardsReviewedToday,
+                goal: studyGoals.cardsPerDay,
+                color: '#7c3aed',
+              },
+              {
+                label: 'Minutos de estudo',
+                value: minutesToday,
+                goal: studyGoals.minutesPerDay,
+                color: '#ec4899',
+              },
+              {
+                label: 'Dias ativos (7d)',
+                value: activeWeekDays,
+                goal: studyGoals.daysPerWeek,
+                color: '#10b981',
+              },
+              {
+                label: 'Streak',
+                value: state.streak,
+                goal: studyGoals.streakGoal,
+                color: '#ef4444',
+              },
+            ].map((m) => {
+              const pct = Math.min(100, Math.round((m.value / Math.max(m.goal, 1)) * 100))
+              return (
+                <div key={m.label} style={{ marginBottom: 'var(--space-3)' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginBottom: 'var(--space-1)',
+                    }}
+                  >
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text)' }}>
+                      {m.label}
+                    </span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: m.color, fontWeight: '700' }}>
+                      {m.value}/{m.goal}
+                    </span>
+                  </div>
+                  <ProgressBar value={pct} color={m.color} />
+                </div>
+              )
+            })}
+            <button
+              className="btn-secondary"
+              style={{ width: '100%', marginTop: 'var(--space-1)', fontSize: 'var(--text-sm)' }}
+              onClick={() => router.push('/profile')}
+            >
+              Editar metas →
+            </button>
           </div>
 
           {/* Habilidades */}
           <div className="card" style={{ padding: 'var(--space-4)' }}>
-            <h2 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--text)', marginBottom: 'var(--space-3)', margin: '0 0 var(--space-3)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <h2
+              style={{
+                fontSize: 'var(--text-base)',
+                fontWeight: '700',
+                color: 'var(--text)',
+                marginBottom: 'var(--space-3)',
+                margin: '0 0 var(--space-3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+              }}
+            >
               <Award /> Habilidades
             </h2>
             {state.skills.length > 0 ? (
               <>
-                {[...state.skills].sort((a, b) => b.level - a.level).slice(0, 4).map((s) => (
-                  <div key={s.id} style={{ marginBottom: 'var(--space-2)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-1)' }}>
-                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text)' }}>{s.name}</span>
-                      <span style={{ fontSize: 'var(--text-xs)', color: s.color, fontWeight: '700' }}>Nv.{s.level}</span>
+                {[...state.skills]
+                  .sort((a, b) => b.level - a.level)
+                  .slice(0, 4)
+                  .map((s) => (
+                    <div key={s.id} style={{ marginBottom: 'var(--space-2)' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: 'var(--space-1)',
+                        }}
+                      >
+                        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text)' }}>
+                          {s.name}
+                        </span>
+                        <span
+                          style={{ fontSize: 'var(--text-xs)', color: s.color, fontWeight: '700' }}
+                        >
+                          Nv.{s.level}
+                        </span>
+                      </div>
+                      <ProgressBar value={Math.round((s.xp / s.maxXp) * 100)} color={s.color} />
                     </div>
-                    <ProgressBar value={Math.round((s.xp / s.maxXp) * 100)} color={s.color} />
-                  </div>
-                ))}
-                <button className="btn-secondary" style={{ width: '100%', marginTop: 'var(--space-2)', fontSize: 'var(--text-sm)' }} onClick={() => router.push('/skills')}>
+                  ))}
+                <button
+                  className="btn-secondary"
+                  style={{ width: '100%', marginTop: 'var(--space-2)', fontSize: 'var(--text-sm)' }}
+                  onClick={() => router.push('/skills')}
+                >
                   Árvore de Habilidades →
                 </button>
               </>
             ) : (
-              <EmptyState icon="🌳" title="Nenhuma habilidade" action={{ label: 'Adicionar habilidade', onClick: () => router.push('/skills') }} />
+              <EmptyState
+                icon="🌳"
+                title="Nenhuma habilidade"
+                action={{ label: 'Adicionar habilidade', onClick: () => router.push('/skills') }}
+              />
             )}
           </div>
         </div>
