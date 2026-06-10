@@ -29,6 +29,10 @@ function LoginForm() {
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetSent, setResetSent] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [showReset, setShowReset] = useState(false)
   const [serverError, setServerError] = useState<string | null>(
     errorParam === 'callback_failed'
       ? 'Link expirado ou inválido. Solicite um novo link abaixo.'
@@ -67,6 +71,16 @@ function LoginForm() {
     } else {
       setSuccessMessage(AUTH_SUCCESS_MESSAGES.magicLinkSent)
     }
+  }
+
+  async function sendPasswordReset() {
+    if (!resetEmail) return
+    setResetLoading(true)
+    await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?type=recovery`,
+    })
+    setResetLoading(false)
+    setResetSent(true)
   }
 
   async function signInWithGoogle() {
@@ -345,8 +359,94 @@ function LoginForm() {
               >
                 ✉️ Enviar Magic Link
               </LoadingButton>
+
+              <div style={{ textAlign: 'right' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReset((v) => !v)
+                    setResetSent(false)
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#a78bfa',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  Esqueceu a senha?
+                </button>
+              </div>
             </div>
           </form>
+
+          {showReset && (
+            <div
+              style={{
+                marginTop: '16px',
+                padding: '16px',
+                background: 'var(--card2)',
+                borderRadius: '10px',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {resetSent ? (
+                <p style={{ fontSize: '13px', color: '#34d399', margin: 0 }}>
+                  ✅ Link enviado! Verifique seu email.
+                </p>
+              ) : (
+                <>
+                  <p
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--text3)',
+                      marginBottom: '10px',
+                      marginTop: 0,
+                    }}
+                  >
+                    Digite seu email para receber o link de redefinição de senha.
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      style={{
+                        flex: 1,
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border2)',
+                        background: 'var(--input)',
+                        color: 'var(--text)',
+                        fontSize: '13px',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={resetLoading || !resetEmail}
+                      onClick={sendPasswordReset}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: '#7c3aed',
+                        color: '#fff',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        opacity: resetLoading ? 0.7 : 1,
+                      }}
+                    >
+                      {resetLoading ? '...' : 'Enviar'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Divisor OAuth */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '20px 0 4px' }}>
