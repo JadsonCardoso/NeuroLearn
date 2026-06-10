@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 interface HelpModule {
   id: string
@@ -355,8 +356,40 @@ const MODULES: HelpModule[] = [
   },
 ]
 
+function normalize(s: string) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+}
+
+const VALID_IDS = new Set(MODULES.map((m) => m.id))
+
 export function HelpView() {
+  const searchParams = useSearchParams()
   const [open, setOpen] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+
+  // Deep-link: abre e rola até o módulo indicado por ?section=id
+  useEffect(() => {
+    const section = searchParams.get('section')
+    if (section && VALID_IDS.has(section)) {
+      setOpen(section)
+      setTimeout(() => {
+        document
+          .querySelector(`[data-testid="help-module-${section}"]`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 150)
+    }
+  }, [searchParams])
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return MODULES
+    const term = normalize(search)
+    return MODULES.filter(
+      (m) =>
+        normalize(m.title).includes(term) ||
+        normalize(m.tagline).includes(term) ||
+        m.steps.some((s) => normalize(s.t).includes(term) || normalize(s.d).includes(term))
+    )
+  }, [search])
 
   function toggle(id: string) {
     setOpen((o) => (o === id ? null : id))
@@ -373,12 +406,81 @@ export function HelpView() {
       >
         Central de Ajuda
       </h1>
-      <p style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '24px' }}>
+      <p style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '16px' }}>
         Como usar cada módulo do NeuroLearn para maximizar seu aprendizado.
       </p>
 
+      {/* Campo de busca */}
+      <div style={{ position: 'relative', marginBottom: '20px' }}>
+        <span
+          style={{
+            position: 'absolute',
+            left: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            fontSize: '14px',
+            pointerEvents: 'none',
+            color: 'var(--text3)',
+          }}
+        >
+          🔍
+        </span>
+        <input
+          type="text"
+          data-testid="help-search"
+          placeholder="Buscar módulos..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '10px 12px 10px 36px',
+            borderRadius: '8px',
+            border: '1px solid var(--border2)',
+            background: 'var(--card)',
+            color: 'var(--text)',
+            fontSize: '13px',
+            fontFamily: 'inherit',
+            boxSizing: 'border-box',
+          }}
+        />
+        {search.trim() && (
+          <button
+            type="button"
+            aria-label="Limpar busca"
+            onClick={() => setSearch('')}
+            style={{
+              position: 'absolute',
+              right: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text3)',
+              fontSize: '14px',
+              padding: '2px 4px',
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* Contador de resultados durante busca */}
+      {search.trim() && (
+        <p
+          data-testid="help-search-count"
+          style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '12px' }}
+        >
+          {filtered.length > 0
+            ? `${filtered.length} módulo${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`
+            : 'Nenhum módulo encontrado'}
+        </p>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {MODULES.map((mod) => {
+        {filtered.map((mod) => {
           const isOpen = open === mod.id
           return (
             <div
