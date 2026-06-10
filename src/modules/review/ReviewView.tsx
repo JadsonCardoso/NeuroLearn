@@ -9,6 +9,7 @@ import { isDue, addDays } from '@/engine/spaced-repetition/scheduling'
 import { sm2 } from '@/engine/spaced-repetition/sm2'
 import type { CardMastery, FlashCard } from '@/types'
 import { MemoryView } from '@/modules/memory/MemoryView'
+import { trackEvent } from '@/services/missionsService'
 
 function computeCogScore(cards: FlashCard[]) {
   if (cards.length === 0) return { score: 0 }
@@ -34,7 +35,7 @@ function computeCogScore(cards: FlashCard[]) {
 }
 
 export function ReviewView() {
-  const { state, dispatch } = useAppData()
+  const { state, dispatch, userId } = useAppData()
   const router = useRouter()
 
   // Fila estável: calculada uma vez ao montar — evita que cards "somam" da fila após RATE_CARD
@@ -88,6 +89,9 @@ export function ReviewView() {
           xpEarned: xpDelta,
         },
       })
+      if (userId) {
+        trackEvent(userId, 'card_reviewed', { cardCount: 1 }).catch(() => {})
+      }
       setHistory((h) => [...h, idx])
       setLog((l) => [...l, { q }])
       setFlipped(false)
@@ -98,7 +102,7 @@ export function ReviewView() {
         setIdx((i) => i + 1)
       }
     },
-    [queue, idx, dispatch]
+    [queue, idx, dispatch, userId]
   )
 
   const goBack = useCallback(() => {

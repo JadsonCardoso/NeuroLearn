@@ -96,6 +96,7 @@ export interface AppState {
   streak: number
   lastStudyDate: string
   totalXp: number
+  streakShields: number
 }
 
 // ── Store actions ──────────────────────────────────────────────────────────
@@ -120,6 +121,8 @@ export type AppAction =
   | { type: 'UPDATE_TRAIL'; payload: Partial<LearningTrail> & { id: string } }
   | { type: 'DELETE_TRAIL'; payload: string }
   | { type: 'ASSIGN_CONTENT_TRAIL'; payload: { contentId: string; trailId: string | null } }
+  | { type: 'LOAD_SHIELDS'; payload: number }
+  | { type: 'USE_SHIELD' }
 
 export interface RateCardPayload {
   cardId: string

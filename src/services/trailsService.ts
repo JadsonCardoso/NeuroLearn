@@ -22,7 +22,7 @@ function toTrail(row: DbTrail): LearningTrail {
     iconEmoji: row.icon_emoji,
     goal: row.goal ?? '',
     skillId: row.skill_id,
-    createdAt: row.created_at,
+    createdAt: row.created_at ?? '',
   }
 }
 

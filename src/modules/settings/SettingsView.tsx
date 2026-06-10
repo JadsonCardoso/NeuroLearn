@@ -81,6 +81,7 @@ const BackupDataSchema = z.object({
     streak: z.number(),
     lastStudyDate: z.string(),
     totalXp: z.number(),
+    streakShields: z.number().optional().default(0),
     trails: z
       .array(
         z.object({

@@ -27,6 +27,7 @@ export function loadState(): AppState {
       streak: typeof parsed.streak === 'number' ? parsed.streak : 0,
       lastStudyDate: parsed.lastStudyDate ?? '',
       totalXp: typeof parsed.totalXp === 'number' ? parsed.totalXp : 0,
+      streakShields: typeof parsed.streakShields === 'number' ? parsed.streakShields : 0,
     }
   } catch (err) {
     console.warn('[NeuroLearn] Erro ao ler localStorage — usando SEED:', err)
