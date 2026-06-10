@@ -1,33 +1,39 @@
 # Project State
 
-**Last updated:** 2026-06-06
-**Session:** HOTFIX-01 — Correções Críticas em Produção
+**Last updated:** 2026-06-09
+**Session:** ARCHITECTURE-REFINE-01 — Refatoração Arquitetural Completa (Fases A–D)
 
 ---
 
 ## Decisions
 
-| ID    | Decision                                                  | Rationale                                                                                              | Date       |
-| ----- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------- |
-| D-001 | Single HTML file como arquitetura v1                      | Zero fricção de setup; prova de conceito rápida                                                        | 2026-06-05 |
-| D-002 | localStorage como persistência v1                         | Sem backend simplifica deploy e onboarding                                                             | 2026-06-05 |
-| D-003 | React CDN + Babel Standalone                              | Permite JSX sem toolchain de build                                                                     | 2026-06-05 |
-| D-004 | CSS Custom Properties para dark/light                     | Troca de tema sem re-render React                                                                      | 2026-06-05 |
-| D-005 | SM-2 como algoritmo de spaced repetition                  | Comprovado, simples, excelentes resultados                                                             | 2026-06-05 |
-| D-006 | North Star: habilidades consolidadas                      | Mede capacidade real, não consumo                                                                      | 2026-06-05 |
-| D-007 | **Next.js 15 + TypeScript como frontend** ✅ IMPLEMENTADO | SSR nativo, SEO, tipagem, ecossistema maduro, Vercel deploy                                            | 2026-06-05 |
-| D-017 | **React Context + useReducer para estado**                | Zero deps extras; fácil upgrade para Zustand/Supabase nas fases seguintes                              | 2026-06-05 |
-| D-018 | **CSS Custom Properties mantidas para theming**           | Compatibilidade v1.0 e zero flash na troca de tema; Tailwind usa vars como tokens                      | 2026-06-05 |
-| D-019 | **Módulos como Client Components**                        | Todos os módulos usam estado/router/localStorage — `'use client'` obrigatório                          | 2026-06-05 |
-| D-008 | **TailwindCSS como sistema de estilos**                   | Utility-first, design system escalável, sem CSS-in-JS overhead                                         | 2026-06-05 |
-| D-009 | **Supabase como backend/BaaS**                            | PostgreSQL + Auth + Realtime + Storage + Edge Functions em um serviço; acelera MVP v2                  | 2026-06-05 |
-| D-010 | **PostgreSQL como banco de dados**                        | Relações complexas (users, cards, reviews, skills); ACID; RLS nativo no Supabase                       | 2026-06-05 |
-| D-011 | **Supabase Auth para autenticação**                       | JWT, OAuth, Magic Link, MFA — pronto para uso; sem implementar auth do zero                            | 2026-06-05 |
-| D-012 | **RBAC com 4 perfis**                                     | aluno / mentor / admin / IA services — necessário para uso corporativo e multi-tenant                  | 2026-06-05 |
-| D-013 | **Motor cognitivo no backend (Edge Functions)**           | Algoritmos SM-2 + IA precisam de dados históricos do usuário; frontend não tem acesso a todos os dados | 2026-06-05 |
-| D-014 | **Sentry + PostHog para observabilidade**                 | Sentry → erros em produção; PostHog → eventos cognitivos e product analytics                           | 2026-06-05 |
-| D-015 | **Vercel para deploy**                                    | Integração nativa Next.js, Edge Network global, CI/CD automático                                       | 2026-06-05 |
-| D-016 | **LGPD como requisito de negócio**                        | Dados cognitivos são sensíveis (histórico, comportamento, uploads); compliance obrigatório             | 2026-06-05 |
+| ID    | Decision                                                               | Rationale                                                                                                                                       | Date       |
+| ----- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| D-001 | Single HTML file como arquitetura v1                                   | Zero fricção de setup; prova de conceito rápida                                                                                                 | 2026-06-05 |
+| D-002 | localStorage como persistência v1                                      | Sem backend simplifica deploy e onboarding                                                                                                      | 2026-06-05 |
+| D-003 | React CDN + Babel Standalone                                           | Permite JSX sem toolchain de build                                                                                                              | 2026-06-05 |
+| D-004 | CSS Custom Properties para dark/light                                  | Troca de tema sem re-render React                                                                                                               | 2026-06-05 |
+| D-005 | SM-2 como algoritmo de spaced repetition                               | Comprovado, simples, excelentes resultados                                                                                                      | 2026-06-05 |
+| D-006 | North Star: habilidades consolidadas                                   | Mede capacidade real, não consumo                                                                                                               | 2026-06-05 |
+| D-007 | **Next.js 15 + TypeScript como frontend** ✅ IMPLEMENTADO              | SSR nativo, SEO, tipagem, ecossistema maduro, Vercel deploy                                                                                     | 2026-06-05 |
+| D-017 | **React Context + useReducer para estado**                             | Zero deps extras; fácil upgrade para Zustand/Supabase nas fases seguintes                                                                       | 2026-06-05 |
+| D-018 | **CSS Custom Properties mantidas para theming**                        | Compatibilidade v1.0 e zero flash na troca de tema; Tailwind usa vars como tokens                                                               | 2026-06-05 |
+| D-019 | **Módulos como Client Components**                                     | Todos os módulos usam estado/router/localStorage — `'use client'` obrigatório                                                                   | 2026-06-05 |
+| D-008 | **TailwindCSS como sistema de estilos**                                | Utility-first, design system escalável, sem CSS-in-JS overhead                                                                                  | 2026-06-05 |
+| D-009 | **Supabase como backend/BaaS**                                         | PostgreSQL + Auth + Realtime + Storage + Edge Functions em um serviço; acelera MVP v2                                                           | 2026-06-05 |
+| D-010 | **PostgreSQL como banco de dados**                                     | Relações complexas (users, cards, reviews, skills); ACID; RLS nativo no Supabase                                                                | 2026-06-05 |
+| D-011 | **Supabase Auth para autenticação**                                    | JWT, OAuth, Magic Link, MFA — pronto para uso; sem implementar auth do zero                                                                     | 2026-06-05 |
+| D-012 | **RBAC com 4 perfis**                                                  | aluno / mentor / admin / IA services — necessário para uso corporativo e multi-tenant                                                           | 2026-06-05 |
+| D-013 | **Motor cognitivo no backend (Edge Functions)**                        | Algoritmos SM-2 + IA precisam de dados históricos do usuário; frontend não tem acesso a todos os dados                                          | 2026-06-05 |
+| D-014 | **Sentry + PostHog para observabilidade**                              | Sentry → erros em produção; PostHog → eventos cognitivos e product analytics                                                                    | 2026-06-05 |
+| D-015 | **Vercel para deploy**                                                 | Integração nativa Next.js, Edge Network global, CI/CD automático                                                                                | 2026-06-05 |
+| D-016 | **LGPD como requisito de negócio**                                     | Dados cognitivos são sensíveis (histórico, comportamento, uploads); compliance obrigatório                                                      | 2026-06-05 |
+| D-020 | **calculateLevelUp usa `skill.maxXp + 100` em vez de tabela estática** | Preserva dados existentes de usuários — tabela MAX_XP_TABLE quebraria thresholds de nível já persistidos no banco                               | 2026-06-09 |
+| D-021 | **`calculateLevelUp<T extends LevelUpFields>(skill: T): T`**           | Generic constraint permite uso com Skill completo (AppContext) e objeto mínimo (skillsService) sem campos dummy                                 | 2026-06-09 |
+| D-022 | **study_sessions usa coluna `started_at`, não `created_at`**           | Schema real do Supabase — spec original da task T-B2 tinha nome errado; corrigido via type inference do Supabase                                | 2026-06-09 |
+| D-023 | **lint-staged: prettier only (sem eslint --fix)**                      | ESLint v9 exige `eslint.config.js` (flat config); projeto usa `.eslintrc.json` (v8 format) via `next lint`; lint no pre-push via `npm run lint` | 2026-06-09 |
+| D-024 | **`.specs/` e `progress.md` removidos do .gitignore**                  | Já eram versionados via `git add -f`; lint-staged falhava ao tentar re-stagear arquivos ignorados após prettier                                 | 2026-06-09 |
+| D-025 | **achievements.ts movido para achievements/index.ts**                  | Alinha com convenção de subpastas do engine/; callers não precisam de update (module resolution resolve dir/index.ts)                           | 2026-06-09 |
 
 ---
 
@@ -35,7 +41,7 @@
 
 | ID        | Blocker                                                                          | Impacto                                                   | Resolução necessária                                                     |
 | --------- | -------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------ |
-| B-001     | Algoritmo SM-2 sem testes unitários                                              | Qualquer refatoração pode quebrar silenciosamente         | Implementar Vitest em v1.1                                               |
+| ~~B-001~~ | ~~Algoritmo SM-2 sem testes unitários~~                                          | ~~Qualquer refatoração pode quebrar silenciosamente~~     | ✅ RESOLVIDO: 369 testes unitários em 28 arquivos (Vitest)               |
 | B-002     | Sem definição de provider IA (OpenAI vs Anthropic)                               | Bloqueia início da spec de IA                             | Decisão técnica a tomar em v1.3                                          |
 | ~~B-003~~ | ~~[HOTFIX-01] updateUserTotalXP usa .single() — joga erro em usuário sem linha~~ | ~~Score 500 em produção~~                                 | ✅ RESOLVIDO: maybeSingle + update com early return                      |
 | ~~B-004~~ | ~~[HOTFIX-01] /politica-de-privacidade retorna 404~~                             | ~~Viola LGPD art. 9º, ConsentBanner com link quebrado~~   | ✅ RESOLVIDO: página criada + redirect /privacy → 301                    |
