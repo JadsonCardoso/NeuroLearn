@@ -6,7 +6,10 @@ import { logSecurityEvent } from '@/lib/security/logger'
 // DELETE /api/user/delete — exclui todos os dados do usuário autenticado (LGPD Art. 18)
 export async function DELETE() {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
 
   if (authError || !user) {
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
@@ -23,6 +26,7 @@ export async function DELETE() {
     await supabase.from('user_skills').delete().eq('user_id', userId)
     await supabase.from('flashcards').delete().eq('user_id', userId)
     await supabase.from('contents').delete().eq('user_id', userId)
+    await supabase.from('learning_trails').delete().eq('user_id', userId)
     // Tabela users usa `id` como chave primária (não user_id)
     await supabase.from('users').delete().eq('id', userId)
 
