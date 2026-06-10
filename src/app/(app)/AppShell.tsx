@@ -1,12 +1,33 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { ToastContainer } from '@/components/ui/Toast'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
-import { AnalyticsIdentifier } from '@/components/analytics/AnalyticsIdentifier'
-import { ServiceWorkerRegistrar } from '@/components/ui/ServiceWorkerRegistrar'
-import { PushNotificationPrompt } from '@/components/ui/PushNotificationPrompt'
+
+// Componentes não-críticos carregados após hidratação (INP: menos JS no caminho crítico)
+const AnalyticsIdentifier = dynamic(
+  () =>
+    import('@/components/analytics/AnalyticsIdentifier').then((m) => ({
+      default: m.AnalyticsIdentifier,
+    })),
+  { ssr: false }
+)
+const ServiceWorkerRegistrar = dynamic(
+  () =>
+    import('@/components/ui/ServiceWorkerRegistrar').then((m) => ({
+      default: m.ServiceWorkerRegistrar,
+    })),
+  { ssr: false }
+)
+const PushNotificationPrompt = dynamic(
+  () =>
+    import('@/components/ui/PushNotificationPrompt').then((m) => ({
+      default: m.PushNotificationPrompt,
+    })),
+  { ssr: false }
+)
 
 // Client Component separado — gerencia estado da sidebar mobile
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -34,9 +55,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 gap: '5px',
               }}
             >
-              <span style={{ display: 'block', width: '20px', height: '2px', background: 'currentColor', borderRadius: '2px' }} />
-              <span style={{ display: 'block', width: '20px', height: '2px', background: 'currentColor', borderRadius: '2px' }} />
-              <span style={{ display: 'block', width: '20px', height: '2px', background: 'currentColor', borderRadius: '2px' }} />
+              <span
+                style={{
+                  display: 'block',
+                  width: '20px',
+                  height: '2px',
+                  background: 'currentColor',
+                  borderRadius: '2px',
+                }}
+              />
+              <span
+                style={{
+                  display: 'block',
+                  width: '20px',
+                  height: '2px',
+                  background: 'currentColor',
+                  borderRadius: '2px',
+                }}
+              />
+              <span
+                style={{
+                  display: 'block',
+                  width: '20px',
+                  height: '2px',
+                  background: 'currentColor',
+                  borderRadius: '2px',
+                }}
+              />
             </button>
             <span style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--text)' }}>
               NeuroLearn

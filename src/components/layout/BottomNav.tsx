@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Brain, Book, Timer, Refresh, Tree } from '@/components/icons'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -8,14 +8,14 @@ import { useFocusSession } from '@/store/FocusSessionContext'
 
 // Itens principais exibidos na barra de navegação inferior (mobile ≤767px)
 const BOTTOM_NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', Icon: Brain,   href: '/dashboard' },
-  { id: 'library',   label: 'Biblioteca', Icon: Book,   href: '/library'   },
-  { id: 'focus',     label: 'Foco',       Icon: Timer,  href: '/focus'     },
-  { id: 'review',    label: 'Revisão',    Icon: Refresh, href: '/review'   },
-  { id: 'skills',    label: 'Skills',     Icon: Tree,   href: '/skills'    },
+  { id: 'dashboard', label: 'Dashboard', Icon: Brain, href: '/dashboard' },
+  { id: 'library', label: 'Biblioteca', Icon: Book, href: '/library' },
+  { id: 'focus', label: 'Foco', Icon: Timer, href: '/focus' },
+  { id: 'review', label: 'Revisão', Icon: Refresh, href: '/review' },
+  { id: 'skills', label: 'Skills', Icon: Tree, href: '/skills' },
 ] as const
 
-export function BottomNav() {
+export const BottomNav = memo(function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
   const { isRunning } = useFocusSession()
@@ -49,11 +49,7 @@ export function BottomNav() {
         onCancel={() => setConfirm({ open: false, href: '' })}
       />
 
-      <nav
-        className="bottom-nav"
-        aria-label="Navegação principal mobile"
-        data-testid="bottom-nav"
-      >
+      <nav className="bottom-nav" aria-label="Navegação principal mobile" data-testid="bottom-nav">
         {BOTTOM_NAV_ITEMS.map(({ id, label, Icon, href }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
@@ -120,4 +116,4 @@ export function BottomNav() {
       `}</style>
     </>
   )
-}
+})

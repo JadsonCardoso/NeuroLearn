@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useTransition } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 interface HelpModule {
@@ -366,6 +366,7 @@ export function HelpView() {
   const searchParams = useSearchParams()
   const [open, setOpen] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [, startTransition] = useTransition()
 
   // Deep-link: abre e rola até o módulo indicado por ?section=id
   useEffect(() => {
@@ -430,7 +431,10 @@ export function HelpView() {
           data-testid="help-search"
           placeholder="Buscar módulos..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value
+            startTransition(() => setSearch(v))
+          }}
           style={{
             width: '100%',
             padding: '10px 12px 10px 36px',

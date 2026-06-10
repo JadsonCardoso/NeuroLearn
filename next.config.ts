@@ -1,4 +1,5 @@
 import { withSentryConfig } from '@sentry/nextjs'
+import withBundleAnalyzer from '@next/bundle-analyzer'
 import type { NextConfig } from 'next'
 
 const isProd = process.env.NODE_ENV === 'production'
@@ -40,7 +41,7 @@ const csp = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  "upgrade-insecure-requests",
+  'upgrade-insecure-requests',
 ].join('; ')
 
 const securityHeaders = [
@@ -57,6 +58,14 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  experimental: {
+    optimizePackageImports: [
+      '@supabase/supabase-js',
+      'zod',
+      'react-hook-form',
+      '@hookform/resolvers',
+    ],
+  },
   async headers() {
     return [
       {
@@ -67,7 +76,9 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withSentryConfig(nextConfig, {
+const analyzedConfig = withBundleAnalyzer({ enabled: process.env.ANALYZE === 'true' })(nextConfig)
+
+export default withSentryConfig(analyzedConfig, {
   // Obtido em: sentry.io → Settings → Auth Tokens
   authToken: process.env.SENTRY_AUTH_TOKEN,
 
