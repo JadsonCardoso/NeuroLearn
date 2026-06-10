@@ -19,8 +19,10 @@ supabase/.temp/
 Thumbs.db
 
 # Documentação interna e estratégia de produto (não versionar)
+progress.md
 CLAUDE.md
 PRD.md
+.specs/
 .cursor/
 .windsurf/
 
