@@ -6,12 +6,18 @@ import type { Content, FlashCard } from '@/types'
 import type { TeachAnalysis, QuizDistractors } from '@/types/ai'
 import { Chevron, X } from '@/components/icons'
 
-interface QuizItem { card: FlashCard; options: string[] }
+interface QuizItem {
+  card: FlashCard
+  options: string[]
+}
 type QuizPhase = 'idle' | 'loading' | 'playing' | 'done'
 
 type ActiveMode = 'teach' | 'apply' | 'quiz'
 
-const MODES: Record<ActiveMode, { icon: string; title: string; col: string; ret: string; desc: string }> = {
+const MODES: Record<
+  ActiveMode,
+  { icon: string; title: string; col: string; ret: string; desc: string }
+> = {
   teach: {
     icon: '🎓',
     title: 'Modo Professor',
@@ -95,7 +101,7 @@ export function ActiveView() {
         setAnalyzeError(data.error ?? 'Erro ao analisar. Tente novamente.')
         return
       }
-      setAnalysis(data as TeachAnalysis)
+      setAnalysis(data.analysis as TeachAnalysis)
     } catch {
       setAnalyzeError('Falha na conexão. Verifique sua internet e tente novamente.')
     } finally {
@@ -155,7 +161,7 @@ export function ActiveView() {
           body: JSON.stringify({ front: card.front, back: card.back, count: 3 }),
         })
         if (!res.ok) throw new Error('api error')
-        const data = await res.json() as QuizDistractors
+        const data = (await res.json()) as QuizDistractors
         const opts = [...data.distractors, card.back]
         for (let i = opts.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1))
@@ -203,7 +209,9 @@ export function ActiveView() {
   if (mode === 'home') {
     return (
       <div className="slide-in" style={{ padding: '24px', maxWidth: '880px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text)', marginBottom: '6px' }}>
+        <h1
+          style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text)', marginBottom: '6px' }}
+        >
           Aprendizado Ativo
         </h1>
         <p style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '22px' }}>
@@ -258,10 +266,7 @@ export function ActiveView() {
               >
                 {m.desc}
               </p>
-              <span
-                className="badge"
-                style={{ background: m.col + '20', color: m.col }}
-              >
+              <span className="badge" style={{ background: m.col + '20', color: m.col }}>
                 ~{m.ret} retenção
               </span>
             </div>
@@ -286,8 +291,7 @@ export function ActiveView() {
             💡 A Pirâmide de Glasser:
           </p>
           <p style={{ fontSize: '12px', color: 'var(--text4)', lineHeight: '1.6' }}>
-            Leitura = 10% · Ouvir = 20% · Visualizar = 30% · Demonstrar = 50% · Discussão = 70%
-            ·{' '}
+            Leitura = 10% · Ouvir = 20% · Visualizar = 30% · Demonstrar = 50% · Discussão = 70% ·{' '}
             <strong style={{ color: '#a78bfa' }}>Praticar = 75% · Ensinar = 90%</strong>
           </p>
         </div>
@@ -327,7 +331,9 @@ export function ActiveView() {
         <span style={{ fontSize: '28px' }}>{m.icon}</span>
         <div>
           <h1 style={{ fontSize: '17px', fontWeight: '800', color: 'var(--text)' }}>{m.title}</h1>
-          <p style={{ fontSize: '12px', color: 'var(--text3)' }}>~{m.ret} retenção de longo prazo</p>
+          <p style={{ fontSize: '12px', color: 'var(--text3)' }}>
+            ~{m.ret} retenção de longo prazo
+          </p>
         </div>
       </div>
 
@@ -349,7 +355,7 @@ export function ActiveView() {
                   alignItems: 'center',
                   transition: 'border-color .2s',
                 }}
-                onClick={() => mode === 'quiz' ? loadQuiz(c) : setSel(c)}
+                onClick={() => (mode === 'quiz' ? loadQuiz(c) : setSel(c))}
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = m.col)}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
               >
@@ -358,7 +364,8 @@ export function ActiveView() {
                     {c.title}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text3)' }}>
-                    {c.author || '—'} · {c.progress > 0 ? `${c.progress}% completo` : 'Não iniciado'}
+                    {c.author || '—'} ·{' '}
+                    {c.progress > 0 ? `${c.progress}% completo` : 'Não iniciado'}
                   </div>
                 </div>
                 <Chevron />
@@ -374,91 +381,295 @@ export function ActiveView() {
       ) : mode === 'quiz' ? (
         /* ── Quiz Adaptativo com IA ─────────────────────────────────────── */
         <div className="slide-in">
-          <div className="card" style={{ padding: '12px 16px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderColor: m.col + '40', background: m.col + '08' }}>
+          <div
+            className="card"
+            style={{
+              padding: '12px 16px',
+              marginBottom: '16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderColor: m.col + '40',
+              background: m.col + '08',
+            }}
+          >
             <div>
-              <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text)' }}>{sel.title}</div>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text)' }}>
+                {sel.title}
+              </div>
               <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{sel.author}</div>
             </div>
-            <button onClick={() => { setSel(null); resetQuiz() }} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer' }}><X /></button>
+            <button
+              onClick={() => {
+                setSel(null)
+                resetQuiz()
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text3)',
+                cursor: 'pointer',
+              }}
+            >
+              <X />
+            </button>
           </div>
 
           {quizPhase === 'loading' && (
             <div data-testid="quiz-loading" style={{ textAlign: 'center', padding: '48px 0' }}>
               <p style={{ fontSize: '36px', marginBottom: '12px' }}>🧠</p>
-              <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text)', marginBottom: '6px' }}>Preparando quiz adaptativo…</p>
-              <p style={{ fontSize: '12px', color: 'var(--text3)' }}>A IA está gerando perguntas personalizadas com base nos seus flashcards.</p>
+              <p
+                style={{
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  color: 'var(--text)',
+                  marginBottom: '6px',
+                }}
+              >
+                Preparando quiz adaptativo…
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text3)' }}>
+                A IA está gerando perguntas personalizadas com base nos seus flashcards.
+              </p>
             </div>
           )}
 
           {quizPhase === 'idle' && quizError && (
-            <p data-testid="quiz-error" style={{ fontSize: '13px', color: '#ef4444', textAlign: 'center', padding: '32px 0' }}>{quizError}</p>
+            <p
+              data-testid="quiz-error"
+              style={{ fontSize: '13px', color: '#ef4444', textAlign: 'center', padding: '32px 0' }}
+            >
+              {quizError}
+            </p>
           )}
 
-          {quizPhase === 'playing' && quizItems[quizIndex] && (() => {
-            const item = quizItems[quizIndex]
-            const correct = item.card.back
-            return (
-              <div data-testid="quiz-playing">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <span data-testid="quiz-progress" style={{ fontSize: '11px', color: 'var(--text3)' }}>Pergunta {quizIndex + 1} de {quizItems.length}</span>
-                  <span data-testid="quiz-score-live" style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}>{quizScore} corretas</span>
+          {quizPhase === 'playing' &&
+            quizItems[quizIndex] &&
+            (() => {
+              const item = quizItems[quizIndex]
+              const correct = item.card.back
+              return (
+                <div data-testid="quiz-playing">
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '10px',
+                    }}
+                  >
+                    <span
+                      data-testid="quiz-progress"
+                      style={{ fontSize: '11px', color: 'var(--text3)' }}
+                    >
+                      Pergunta {quizIndex + 1} de {quizItems.length}
+                    </span>
+                    <span
+                      data-testid="quiz-score-live"
+                      style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}
+                    >
+                      {quizScore} corretas
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: '4px',
+                      background: 'var(--border2)',
+                      borderRadius: '2px',
+                      marginBottom: '18px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${(quizIndex / quizItems.length) * 100}%`,
+                        background: m.col,
+                        borderRadius: '2px',
+                        transition: 'width .3s',
+                      }}
+                    />
+                  </div>
+                  <div
+                    className="card"
+                    style={{
+                      padding: '20px',
+                      marginBottom: '14px',
+                      borderColor: m.col + '30',
+                      background: m.col + '06',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        color: m.col,
+                        textTransform: 'uppercase',
+                        letterSpacing: '.5px',
+                        marginBottom: '10px',
+                      }}
+                    >
+                      Pergunta
+                    </p>
+                    <p
+                      data-testid="quiz-question"
+                      style={{
+                        fontSize: '15px',
+                        fontWeight: '600',
+                        color: 'var(--text)',
+                        lineHeight: '1.5',
+                      }}
+                    >
+                      {item.card.front}
+                    </p>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      marginBottom: '14px',
+                    }}
+                  >
+                    {item.options.map((opt, i) => {
+                      const isCorrect = opt === correct
+                      const isPicked = opt === quizPick
+                      let bg = 'var(--card)',
+                        border = 'var(--border)',
+                        color = 'var(--text)'
+                      if (quizRevealed) {
+                        if (isCorrect) {
+                          bg = 'rgba(16,185,129,.12)'
+                          border = '#10b981'
+                          color = '#10b981'
+                        } else if (isPicked) {
+                          bg = 'rgba(239,68,68,.1)'
+                          border = '#ef4444'
+                          color = '#ef4444'
+                        }
+                      }
+                      return (
+                        <button
+                          key={i}
+                          data-testid="quiz-option"
+                          onClick={() => handleQuizPick(opt)}
+                          disabled={quizRevealed}
+                          style={{
+                            padding: '12px 16px',
+                            borderRadius: '10px',
+                            border: `1.5px solid ${border}`,
+                            background: bg,
+                            color,
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            cursor: quizRevealed ? 'default' : 'pointer',
+                            textAlign: 'left',
+                            transition: 'all .2s',
+                            lineHeight: '1.4',
+                          }}
+                        >
+                          {quizRevealed && isCorrect ? '✅ ' : ''}
+                          {quizRevealed && isPicked && !isCorrect ? '❌ ' : ''}
+                          {opt}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {quizRevealed && (
+                    <button
+                      data-testid="quiz-next"
+                      className="btn-primary"
+                      onClick={handleQuizNext}
+                      style={{ width: '100%' }}
+                    >
+                      {quizIndex + 1 >= quizItems.length ? 'Ver resultado →' : 'Próxima →'}
+                    </button>
+                  )}
                 </div>
-                <div style={{ height: '4px', background: 'var(--border2)', borderRadius: '2px', marginBottom: '18px' }}>
-                  <div style={{ height: '100%', width: `${(quizIndex / quizItems.length) * 100}%`, background: m.col, borderRadius: '2px', transition: 'width .3s' }} />
-                </div>
-                <div className="card" style={{ padding: '20px', marginBottom: '14px', borderColor: m.col + '30', background: m.col + '06', textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: m.col, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '10px' }}>Pergunta</p>
-                  <p data-testid="quiz-question" style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text)', lineHeight: '1.5' }}>{item.card.front}</p>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
-                  {item.options.map((opt, i) => {
-                    const isCorrect = opt === correct
-                    const isPicked = opt === quizPick
-                    let bg = 'var(--card)', border = 'var(--border)', color = 'var(--text)'
-                    if (quizRevealed) {
-                      if (isCorrect) { bg = 'rgba(16,185,129,.12)'; border = '#10b981'; color = '#10b981' }
-                      else if (isPicked) { bg = 'rgba(239,68,68,.1)'; border = '#ef4444'; color = '#ef4444' }
-                    }
-                    return (
-                      <button key={i} data-testid="quiz-option" onClick={() => handleQuizPick(opt)} disabled={quizRevealed}
-                        style={{ padding: '12px 16px', borderRadius: '10px', border: `1.5px solid ${border}`, background: bg, color, fontSize: '13px', fontWeight: '500', cursor: quizRevealed ? 'default' : 'pointer', textAlign: 'left', transition: 'all .2s', lineHeight: '1.4' }}>
-                        {quizRevealed && isCorrect ? '✅ ' : ''}{quizRevealed && isPicked && !isCorrect ? '❌ ' : ''}{opt}
-                      </button>
-                    )
-                  })}
-                </div>
-                {quizRevealed && (
-                  <button data-testid="quiz-next" className="btn-primary" onClick={handleQuizNext} style={{ width: '100%' }}>
-                    {quizIndex + 1 >= quizItems.length ? 'Ver resultado →' : 'Próxima →'}
-                  </button>
-                )}
-              </div>
-            )
-          })()}
+              )
+            })()}
 
           {quizPhase === 'done' && (
             <div data-testid="quiz-done" className="slide-in">
               <div style={{ textAlign: 'center', padding: '24px 0 20px' }}>
                 <p style={{ fontSize: '48px', marginBottom: '8px' }}>
-                  {quizScore === quizItems.length ? '🏆' : quizScore >= quizItems.length / 2 ? '⭐' : '📚'}
+                  {quizScore === quizItems.length
+                    ? '🏆'
+                    : quizScore >= quizItems.length / 2
+                      ? '⭐'
+                      : '📚'}
                 </p>
-                <p data-testid="quiz-score" style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text)', marginBottom: '4px' }}>{quizScore}/{quizItems.length} corretas</p>
-                <p data-testid="quiz-xp" style={{ fontSize: '12px', color: '#10b981', fontWeight: '700' }}>+{quizScore * 10} XP ganhos</p>
+                <p
+                  data-testid="quiz-score"
+                  style={{
+                    fontSize: '20px',
+                    fontWeight: '800',
+                    color: 'var(--text)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  {quizScore}/{quizItems.length} corretas
+                </p>
+                <p
+                  data-testid="quiz-xp"
+                  style={{ fontSize: '12px', color: '#10b981', fontWeight: '700' }}
+                >
+                  +{quizScore * 10} XP ganhos
+                </p>
               </div>
               {quizWrong.length > 0 && (
-                <div data-testid="quiz-wrong-cards" className="card" style={{ padding: '14px 16px', marginBottom: '14px', borderColor: 'rgba(245,158,11,.3)', background: 'rgba(245,158,11,.06)' }}>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', marginBottom: '10px' }}>⚠️ Flashcards para revisar ({quizWrong.length})</p>
+                <div
+                  data-testid="quiz-wrong-cards"
+                  className="card"
+                  style={{
+                    padding: '14px 16px',
+                    marginBottom: '14px',
+                    borderColor: 'rgba(245,158,11,.3)',
+                    background: 'rgba(245,158,11,.06)',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: '#f59e0b',
+                      marginBottom: '10px',
+                    }}
+                  >
+                    ⚠️ Flashcards para revisar ({quizWrong.length})
+                  </p>
                   {quizWrong.map((c) => (
-                    <div key={c.id} style={{ fontSize: '12px', color: 'var(--text3)', padding: '6px 0', borderBottom: '1px solid var(--border)', lineHeight: '1.5' }}>
-                      <strong style={{ color: 'var(--text)' }}>{c.front}</strong><br />
+                    <div
+                      key={c.id}
+                      style={{
+                        fontSize: '12px',
+                        color: 'var(--text3)',
+                        padding: '6px 0',
+                        borderBottom: '1px solid var(--border)',
+                        lineHeight: '1.5',
+                      }}
+                    >
+                      <strong style={{ color: 'var(--text)' }}>{c.front}</strong>
+                      <br />
                       <span style={{ color: 'var(--text4)' }}>{c.back}</span>
                     </div>
                   ))}
                 </div>
               )}
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="btn-secondary" style={{ flex: 1 }} onClick={() => loadQuiz(sel)}>🔄 Refazer</button>
-                <button className="btn-primary" style={{ flex: 1 }} onClick={() => { setSel(null); resetQuiz() }}>← Outro conteúdo</button>
+                <button className="btn-secondary" style={{ flex: 1 }} onClick={() => loadQuiz(sel)}>
+                  🔄 Refazer
+                </button>
+                <button
+                  className="btn-primary"
+                  style={{ flex: 1 }}
+                  onClick={() => {
+                    setSel(null)
+                    resetQuiz()
+                  }}
+                >
+                  ← Outro conteúdo
+                </button>
               </div>
             </div>
           )}
@@ -484,8 +695,17 @@ export function ActiveView() {
               <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{sel.author}</div>
             </div>
             <button
-              onClick={() => { setSel(null); setAnalysis(null); setAnalyzeError('') }}
-              style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer' }}
+              onClick={() => {
+                setSel(null)
+                setAnalysis(null)
+                setAnalyzeError('')
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text3)',
+                cursor: 'pointer',
+              }}
             >
               <X />
             </button>
@@ -546,8 +766,7 @@ export function ActiveView() {
             <span
               style={{
                 fontSize: '11px',
-                color:
-                  text.split(' ').filter((w) => w).length > 50 ? '#10b981' : 'var(--text3)',
+                color: text.split(' ').filter((w) => w).length > 50 ? '#10b981' : 'var(--text3)',
               }}
             >
               {text.split(' ').filter((w) => w).length} palavras
@@ -564,7 +783,10 @@ export function ActiveView() {
                   onClick={analyzeTeaching}
                   disabled={isAnalyzing}
                   style={{
-                    padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: '700',
                     cursor: isAnalyzing ? 'default' : 'pointer',
                     border: '1.5px solid rgba(124,58,237,.4)',
                     background: 'rgba(124,58,237,.1)',
@@ -576,11 +798,7 @@ export function ActiveView() {
                   {isAnalyzing ? '⏳ Analisando…' : '✦ Analisar com IA'}
                 </button>
               )}
-              <button
-                className="btn-primary"
-                onClick={savePractice}
-                disabled={text.length < 10}
-              >
+              <button className="btn-primary" onClick={savePractice} disabled={text.length < 10}>
                 {ok ? '✓ Salvo! +XP' : 'Salvar e ganhar XP →'}
               </button>
             </div>
@@ -606,16 +824,27 @@ export function ActiveView() {
                 marginBottom: '14px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '14px',
+                }}
+              >
                 <p style={{ fontSize: '12px', fontWeight: '800', color: '#7c3aed', margin: 0 }}>
                   ✦ Análise Cognitiva
                 </p>
                 <span
                   data-testid="teaching-retention-badge"
                   style={{
-                    fontSize: '11px', fontWeight: '700', color: '#10b981',
-                    background: 'rgba(16,185,129,.12)', border: '1px solid rgba(16,185,129,.3)',
-                    borderRadius: '20px', padding: '2px 10px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#10b981',
+                    background: 'rgba(16,185,129,.12)',
+                    border: '1px solid rgba(16,185,129,.3)',
+                    borderRadius: '20px',
+                    padding: '2px 10px',
                   }}
                 >
                   Retenção estimada: {analysis.estimated_retention}%
@@ -623,18 +852,56 @@ export function ActiveView() {
               </div>
 
               {/* Barras de score */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '12px',
+                  marginBottom: '14px',
+                }}
+              >
                 {[
-                  { label: 'Clareza', value: analysis.clarity_score, testid: 'teaching-clarity-score', color: '#7c3aed' },
-                  { label: 'Cobertura', value: analysis.coverage_score, testid: 'teaching-coverage-score', color: '#06b6d4' },
+                  {
+                    label: 'Clareza',
+                    value: analysis.clarity_score,
+                    testid: 'teaching-clarity-score',
+                    color: '#7c3aed',
+                  },
+                  {
+                    label: 'Cobertura',
+                    value: analysis.coverage_score,
+                    testid: 'teaching-coverage-score',
+                    color: '#06b6d4',
+                  },
                 ].map((s) => (
                   <div key={s.testid}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '4px',
+                      }}
+                    >
                       <span style={{ fontSize: '11px', color: 'var(--text3)' }}>{s.label}</span>
-                      <span data-testid={s.testid} style={{ fontSize: '11px', fontWeight: '700', color: s.color }}>{s.value}/100</span>
+                      <span
+                        data-testid={s.testid}
+                        style={{ fontSize: '11px', fontWeight: '700', color: s.color }}
+                      >
+                        {s.value}/100
+                      </span>
                     </div>
-                    <div style={{ height: '5px', background: 'var(--border2)', borderRadius: '3px' }}>
-                      <div style={{ height: '100%', width: `${s.value}%`, background: s.color, borderRadius: '3px', transition: 'width .5s ease' }} />
+                    <div
+                      style={{ height: '5px', background: 'var(--border2)', borderRadius: '3px' }}
+                    >
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${s.value}%`,
+                          background: s.color,
+                          borderRadius: '3px',
+                          transition: 'width .5s ease',
+                        }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -643,10 +910,29 @@ export function ActiveView() {
               {/* Pontos Fortes */}
               {analysis.strengths.length > 0 && (
                 <div style={{ marginBottom: '10px' }}>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', marginBottom: '6px' }}>✅ Pontos Fortes</p>
+                  <p
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: '#10b981',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    ✅ Pontos Fortes
+                  </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                     {analysis.strengths.map((s, i) => (
-                      <span key={i} style={{ fontSize: '11px', padding: '3px 9px', borderRadius: '20px', background: 'rgba(16,185,129,.12)', color: '#10b981', border: '1px solid rgba(16,185,129,.25)' }}>
+                      <span
+                        key={i}
+                        style={{
+                          fontSize: '11px',
+                          padding: '3px 9px',
+                          borderRadius: '20px',
+                          background: 'rgba(16,185,129,.12)',
+                          color: '#10b981',
+                          border: '1px solid rgba(16,185,129,.25)',
+                        }}
+                      >
                         {s}
                       </span>
                     ))}
@@ -657,10 +943,29 @@ export function ActiveView() {
               {/* Lacunas */}
               {analysis.gaps.length > 0 && (
                 <div style={{ marginBottom: '10px' }}>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', marginBottom: '6px' }}>⚠️ Lacunas Identificadas</p>
+                  <p
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: '#f59e0b',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    ⚠️ Lacunas Identificadas
+                  </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                     {analysis.gaps.map((g, i) => (
-                      <span key={i} style={{ fontSize: '11px', padding: '3px 9px', borderRadius: '20px', background: 'rgba(245,158,11,.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,.25)' }}>
+                      <span
+                        key={i}
+                        style={{
+                          fontSize: '11px',
+                          padding: '3px 9px',
+                          borderRadius: '20px',
+                          background: 'rgba(245,158,11,.12)',
+                          color: '#f59e0b',
+                          border: '1px solid rgba(245,158,11,.25)',
+                        }}
+                      >
                         {g}
                       </span>
                     ))}
@@ -671,10 +976,29 @@ export function ActiveView() {
               {/* Sugestões */}
               {analysis.suggestions.length > 0 && (
                 <div>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text2)', marginBottom: '6px' }}>💡 Sugestões</p>
+                  <p
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: 'var(--text2)',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    💡 Sugestões
+                  </p>
                   <ol style={{ margin: 0, paddingLeft: '16px' }}>
                     {analysis.suggestions.map((s, i) => (
-                      <li key={i} style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: '1.6', marginBottom: '2px' }}>{s}</li>
+                      <li
+                        key={i}
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--text3)',
+                          lineHeight: '1.6',
+                          marginBottom: '2px',
+                        }}
+                      >
+                        {s}
+                      </li>
                     ))}
                   </ol>
                 </div>
