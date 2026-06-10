@@ -71,10 +71,9 @@ export function DashboardView() {
   const [dateLabel, setDateLabel] = useState('')
 
   // Checklist de onboarding — dispensável, persiste no localStorage.
-  // Inicializa como false (valor seguro para SSR) e lê o localStorage somente no cliente,
-  // evitando mismatch quando o banner já foi dispensado (servidor renderizaria o banner,
-  // cliente não — React #418).
-  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
+  // null = estado ainda desconhecido (SSR / antes do useEffect) → banner oculto para evitar flash.
+  // false = não dispensado → banner visível. true = dispensado → banner oculto.
+  const [onboardingDismissed, setOnboardingDismissed] = useState<boolean | null>(null)
 
   useEffect(() => {
     // Valores dependentes de horário/timezone → somente no cliente
@@ -96,29 +95,17 @@ export function DashboardView() {
       setRetentionHistory([])
       return
     }
-    getAtRiskCards(userId)
-      .then((d) => {
-        if (mounted) setRealRiskCards(d)
-      })
-      .catch(() => {
-        if (mounted) setRealRiskCards([])
-      })
-
-    getRetentionHistory(userId)
-      .then((d) => {
-        if (mounted) setRetentionHistory(d)
-      })
-      .catch(() => {
-        if (mounted) setRetentionHistory([])
-      })
-
-    getUserProfile()
-      .then((p) => {
-        if (mounted && p?.studyGoals) setStudyGoals(p.studyGoals)
-      })
-      .catch(() => {
-        /* usa DEFAULT_STUDY_GOALS */
-      })
+    // Dispara as 3 chamadas em paralelo — reduz latência de ~3x RTT para ~1x RTT
+    Promise.all([
+      getAtRiskCards(userId).catch((): AtRiskCard[] => []),
+      getRetentionHistory(userId).catch((): RetentionHistoryPoint[] => []),
+      getUserProfile().catch(() => null),
+    ]).then(([riskCards, history, profile]) => {
+      if (!mounted) return
+      setRealRiskCards(riskCards)
+      setRetentionHistory(history)
+      if (profile?.studyGoals) setStudyGoals(profile.studyGoals)
+    })
 
     return () => {
       mounted = false
@@ -132,7 +119,8 @@ export function DashboardView() {
     { label: 'Manter sequência de 3 dias', done: state.streak >= 3, link: null },
   ]
   const onboardingDone = onboardingItems.filter((i) => i.done).length
-  const showOnboarding = !onboardingDismissed && onboardingDone < onboardingItems.length
+  // null = estado desconhecido → oculta o banner até o useEffect resolver (evita flash)
+  const showOnboarding = onboardingDismissed === false && onboardingDone < onboardingItems.length
 
   function dismissOnboarding() {
     localStorage.setItem('neurolearn:onboarding:dismissed', '1')
