@@ -1,7 +1,7 @@
 # NeuroLearn — Progresso do Projeto
 
 > **Última atualização:** 2026-06-10
-> **Status geral:** F-080 Core Web Vitals completo. 373 testes unitários. Otimizações LCP (preconnect, font display:swap), CLS (skeletons com altura reservada), INP (startTransition + React.memo Sidebar/BottomNav), bundle (bundle-analyzer, optimizePackageImports), lazy load (dynamic ssr:false). Branch-per-feature workflow ativo.
+> **Status geral:** F-090 Gamificação v2 completo. 399 testes unitários. Missões diárias/semanais, streak recovery via Streak Shields, MissionsPanel + StreakRecoveryBanner no Dashboard. Branch-per-feature workflow ativo.
 
 ---
 
@@ -47,8 +47,8 @@
 | HELP-UX-01                       | Busca em tempo real na Central de Ajuda (title+tagline+steps), deep-link ?section=id, Suspense Next.js 15, TC-HELP-001..013                                   | ✅ Concluída |
 | PROFILE-UPGRADE                  | Metas de estudo (JSONB), histórico de atividade (7 sessões), stats de resumo; Dashboard com 4 progress bars de metas; TC-PROF-001..012                        | ✅ Concluída |
 | F-080                            | Core Web Vitals: LCP (preconnect+font swap), CLS (skeletons), INP (startTransition+memo), bundle (analyzer+optimizePackageImports), lazy load (dynamic ssr:false) | ✅ Concluída |
-| 6                                | Gamificação v2: missões diárias, ranking, streak recovery                                                                                                      | 🔜 Futura    |
-| 6                                | Gamificação v2: missões diárias, ranking, streak recovery                                                                                                      | 🔜 Futura    |
+| F-090                            | Gamificação v2: missões diárias/semanais, streak recovery (Streak Shields), MissionsPanel, StreakRecoveryBanner | ✅ Concluída |
+| 7                                | Crescimento: ranking entre usuários, blog educacional, landing v2                                                                                              | 🔜 Futura    |
 | 7                                | Crescimento: blog educacional, landing v2, Open Graph                                                                                                          | 🔜 Futura    |
 
 ---
@@ -1472,7 +1472,8 @@ Medir e corrigir os gargalos reais de LCP, CLS e INP no NeuroLearn com base em a
 ### Fase 6 — Gamificação Avançada
 
 - [ ] Ranking entre usuários
-- [ ] Missões diárias/semanais com XP bônus
+- [x] ~~Missões diárias/semanais com XP bônus~~ ✅ F-090
+- [x] ~~Streak Recovery (Streak Shields)~~ ✅ F-090
 - [x] ~~Quiz adaptativo via IA~~ ✅ AI-02
 - [x] ~~Notificações de revisão agendada~~ ✅ PWA-01
 - [x] ~~Sistema de conquistas (badges)~~ ✅ SPRINT-4 (US-GM-01)
@@ -1490,6 +1491,44 @@ Medir e corrigir os gargalos reais de LCP, CLS e INP no NeuroLearn com base em a
 - [ ] **Google OAuth** — ativar no Supabase dashboard (Client ID/Secret) e remover `disabled` do botão
 - [ ] **Migrar Supabase para `sa-east-1`** — latência atual ~150ms do Brasil; São Paulo seria ~30ms
 - [ ] **DMARC `p=none` → `p=quarantine`** — subir após 3+ semanas de monitoramento sem falsos positivos
+
+---
+
+## F-090 — Gamificação v2 (Missões + Streak Recovery) ✅
+
+**Data:** 2026-06-10 | **Branch:** `feature/f-090-gamification-v2` | **399 testes**
+
+### Arquivos criados
+
+| Arquivo | Papel |
+|---|---|
+| `src/engine/missions/missionDefinitions.ts` | Pool de 5 missões diárias + 4 semanais com tracking events |
+| `src/engine/missions/missionSelector.ts` | Seleção determinística LCG Fisher-Yates (seed = userId + periodKey) |
+| `src/engine/missions/missionSelector.test.ts` | 26 testes unitários (determinismo, unicidade, datas, pool sizes) |
+| `src/services/missionsService.ts` | ensureMissionsForPeriod, trackEvent, completeMission, consumeStreakShield |
+| `src/hooks/useMissions.ts` | Hook com listener `nl:missions_updated` para refresh reativo |
+| `src/components/ui/MissionsPanel.tsx` | Painel colapsável com seções diárias/semanais + progress bars |
+| `src/components/ui/StreakRecoveryBanner.tsx` | Banner âmbar com botões "Usar Escudo" e "Deixar resetar" |
+| `tests/e2e/missions.spec.ts` | 7 testes E2E (TC-MSS-001..007) |
+
+### Arquivos modificados
+
+| Arquivo | O que mudou |
+|---|---|
+| `src/types/index.ts` | `AppState.streakShields`, `LOAD_SHIELDS`, `USE_SHIELD` actions |
+| `src/types/database.types.ts` | Tabelas `user_missions`, `streak_shield_uses`, campo `streak_shields` em `users` |
+| `src/store/AppContext.tsx` | streakRecoverable, handleUseShield, trackMissionEvent fire-and-forget |
+| `src/modules/dashboard/DashboardView.tsx` | MissionsPanel + StreakRecoveryBanner integrados |
+| `src/modules/review/ReviewView.tsx` | trackEvent fire-and-forget após RATE_CARD |
+| `src/lib/seed.ts` / `localStorageService.ts` | streakShields adicionado ao AppState default |
+| `src/modules/settings/SettingsView.tsx` | BackupDataSchema: campo streakShields opcional |
+
+### Gate final
+
+- type-check ✅ zero erros
+- lint ✅ zero warnings
+- test:unit ✅ 399/399 (26 novos)
+- build ✅ limpo
 
 ---
 
