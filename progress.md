@@ -1,7 +1,7 @@
 # NeuroLearn — Progresso do Projeto
 
 > **Última atualização:** 2026-06-10
-> **Status geral:** F-090 Gamificação v2 completo. 399 testes unitários. Missões diárias/semanais, streak recovery via Streak Shields, MissionsPanel + StreakRecoveryBanner no Dashboard. Branch-per-feature workflow ativo.
+> **Status geral:** LIBRARY-UX-REVISION-01 completo. 399 testes unitários. ContentDrawer, DnD (@dnd-kit), collapse de trilhas, ContextSelector, Exercícios (Prática Livre), MemoryView contextual. Branch-per-feature workflow ativo.
 
 ---
 
@@ -48,6 +48,7 @@
 | PROFILE-UPGRADE                  | Metas de estudo (JSONB), histórico de atividade (7 sessões), stats de resumo; Dashboard com 4 progress bars de metas; TC-PROF-001..012                        | ✅ Concluída |
 | F-080                            | Core Web Vitals: LCP (preconnect+font swap), CLS (skeletons), INP (startTransition+memo), bundle (analyzer+optimizePackageImports), lazy load (dynamic ssr:false) | ✅ Concluída |
 | F-090                            | Gamificação v2: missões diárias/semanais, streak recovery (Streak Shields), MissionsPanel, StreakRecoveryBanner | ✅ Concluída |
+| LIBRARY-UX-REVISION-01           | ContentDrawer lateral, DnD @dnd-kit, collapse de trilhas + localStorage, ContextSelector, aba Exercícios (Prática Livre), MemoryView contextual | ✅ Concluída |
 | 7                                | Crescimento: ranking entre usuários, blog educacional, landing v2                                                                                              | 🔜 Futura    |
 | 7                                | Crescimento: blog educacional, landing v2, Open Graph                                                                                                          | 🔜 Futura    |
 

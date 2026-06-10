@@ -36,9 +36,16 @@ function normalize(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
 
+// ── Tipos de props ────────────────────────────────────────────────────────────
+
+interface MemoryViewProps {
+  contentId?: string
+  trailId?: string
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export function MemoryView() {
+export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
   const { state } = useAppData()
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -56,11 +63,22 @@ export function MemoryView() {
     })
   }
 
+  // IDs de conteúdo permitidos pelo contexto (null = todos)
+  const allowedContentIds = useMemo<Set<string> | null>(() => {
+    if (contentId) return new Set([contentId])
+    if (trailId) {
+      const ids = state.contents.filter((c) => c.trailId === trailId).map((c) => c.id)
+      return new Set(ids)
+    }
+    return null
+  }, [contentId, trailId, state.contents])
+
   // Agrupa sessões por conteúdo, ordenando as sessões por data decrescente
   const groups = useMemo<MemoryGroup[]>(() => {
     const map = new Map<string, StudySession[]>()
 
     for (const session of state.sessions) {
+      if (allowedContentIds && !allowedContentIds.has(session.cid)) continue
       const list = map.get(session.cid) ?? []
       list.push(session)
       map.set(session.cid, list)
@@ -75,7 +93,7 @@ export function MemoryView() {
         ),
         totalCards: state.cards.filter((c) => c.cid === content.id).length,
       }))
-  }, [state.sessions, state.contents, state.cards])
+  }, [state.sessions, state.contents, state.cards, allowedContentIds])
 
   // Aplica filtro de busca por título do conteúdo
   const filteredGroups = useMemo<MemoryGroup[]>(() => {
@@ -143,8 +161,11 @@ export function MemoryView() {
         >
           <div style={{ fontSize: '40px', marginBottom: '12px' }}>🧠</div>
           <p style={{ margin: 0 }}>
-            Nenhum conhecimento registrado ainda. Inicie uma Sessão de Foco para começar a construir
-            sua memória cognitiva! 🧠
+            {contentId
+              ? 'Nenhuma sessão registrada para este conteúdo ainda. Inicie uma Sessão de Foco para começar!'
+              : trailId
+                ? 'Nenhuma sessão registrada para esta trilha ainda. Inicie uma Sessão de Foco para começar!'
+                : 'Nenhum conhecimento registrado ainda. Inicie uma Sessão de Foco para começar a construir sua memória cognitiva! 🧠'}
           </p>
         </div>
       )}
