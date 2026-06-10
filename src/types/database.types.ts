@@ -524,6 +524,7 @@ export type Database = {
           name: string | null
           role: string
           streak: number
+          study_goals: Json | null
           total_xp: number
           updated_at: string
         }
@@ -536,6 +537,7 @@ export type Database = {
           name?: string | null
           role?: string
           streak?: number
+          study_goals?: Json | null
           total_xp?: number
           updated_at?: string
         }
@@ -548,6 +550,7 @@ export type Database = {
           name?: string | null
           role?: string
           streak?: number
+          study_goals?: Json | null
           total_xp?: number
           updated_at?: string
         }

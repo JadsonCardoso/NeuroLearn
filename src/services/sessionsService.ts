@@ -50,6 +50,7 @@ export async function listRecentSessions(userId: string, limit = 30): Promise<St
     cid: row.content_id,
     date: row.started_at ?? new Date().toISOString(),
     duration: row.duration ?? 0,
+    cardsCreated: row.cards_created ?? 0,
     notes: row.notes ?? '',
     highlights: Array.isArray(row.highlights) ? (row.highlights as string[]) : [],
     teach: row.teach_text ?? '',
