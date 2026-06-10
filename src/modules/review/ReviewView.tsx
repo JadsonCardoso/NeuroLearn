@@ -55,7 +55,7 @@ export function ReviewView() {
 
   // ── Fila SM-2 (reset quando contexto muda) ───────────────────────────────
   const [queue, setQueue] = useState<FlashCard[]>(() => state.cards.filter(isDue))
-  const [scoreBefore] = useState(() => computeCogScore(state.cards))
+  const [scoreBefore, setScoreBefore] = useState(() => computeCogScore(state.cards))
   const ratedCards = useRef<Map<string, number>>(new Map())
 
   // ── Estado de revisão SM-2 ───────────────────────────────────────────────
@@ -90,6 +90,8 @@ export function ReviewView() {
     setHistory([])
     setLog([])
     ratedCards.current = new Map()
+    // Recaptura scoreBefore para a nova sessão (evita delta inflado por sessões anteriores)
+    setScoreBefore(computeCogScore(state.cards))
     setPracticeIdx(0)
     setPracticeFlipped(false)
     setPracticeDone(false)

@@ -595,7 +595,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         case 'ASSIGN_CONTENT_TRAIL': {
-          await assignContentToTrail(action.payload.contentId, action.payload.trailId)
+          const prevContent = state.contents.find((c) => c.id === action.payload.contentId)
+          const prevTrailId = prevContent?.trailId ?? null
+          try {
+            await assignContentToTrail(action.payload.contentId, action.payload.trailId)
+          } catch {
+            // Reverte o optimistic update se a persistência falhar
+            dispatch({
+              type: 'ASSIGN_CONTENT_TRAIL',
+              payload: { contentId: action.payload.contentId, trailId: prevTrailId },
+            })
+            addToast('error', 'Não foi possível mover o conteúdo. Tente novamente.')
+          }
           break
         }
       }

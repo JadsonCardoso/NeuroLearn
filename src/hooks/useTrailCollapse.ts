@@ -33,5 +33,19 @@ export function useTrailCollapse() {
     })
   }
 
-  return { collapsed, toggle }
+  function remove(trailId: string) {
+    setCollapsed((prev) => {
+      if (!prev.has(trailId)) return prev
+      const next = new Set(prev)
+      next.delete(trailId)
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([...next]))
+      } catch {
+        // ignora erros de quota
+      }
+      return next
+    })
+  }
+
+  return { collapsed, toggle, remove }
 }

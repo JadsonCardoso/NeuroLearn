@@ -33,6 +33,11 @@ export function ContextSelector({ context, onChange, trails, contents }: Context
     return () => document.removeEventListener('mousedown', handle)
   }, [])
 
+  // Sincroniza mode quando context prop é resetado externamente (ex: limpar badge)
+  useEffect(() => {
+    setMode(context.type)
+  }, [context.type])
+
   function selectMode(m: 'all' | 'trail' | 'content') {
     setMode(m)
     setTrailOpen(false)
@@ -40,9 +45,11 @@ export function ContextSelector({ context, onChange, trails, contents }: Context
     if (m === 'all') onChange({ type: 'all' })
   }
 
-  // Conteúdos filtrados: se trilha está selecionada, mostrar apenas da trilha
+  // Conteúdos filtrados: usa mode+context para evitar dessincronização ao trocar modos
   const filteredContents =
-    context.type === 'trail' ? contents.filter((c) => c.trailId === context.id) : contents
+    mode === 'trail' && context.type === 'trail'
+      ? contents.filter((c) => c.trailId === context.id)
+      : contents
 
   const activeLabel =
     context.type === 'all' ? 'Todos' : context.type === 'trail' ? context.name : context.name

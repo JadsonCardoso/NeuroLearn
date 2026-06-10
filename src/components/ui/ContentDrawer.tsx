@@ -81,12 +81,13 @@ export function ContentDrawer({
   const overlayRef = useRef<HTMLDivElement>(null)
 
   const contentCards = content ? cards.filter((c) => c.cid === content.id) : []
-  const contentSessions = content
+  const allContentSessions = content
     ? sessions
         .filter((s) => s.cid === content.id)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 5)
     : []
+  const contentSessions = allContentSessions.slice(0, 5)
+  const totalSessions = allContentSessions.length
 
   const avgRetention =
     contentCards.length > 0
@@ -121,14 +122,20 @@ export function ContentDrawer({
     }
   }, [content, reset])
 
-  // ESC fecha o drawer
+  // ESC: fecha ConfirmDialog primeiro; só depois fecha o drawer
   useEffect(() => {
     function handler(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        if (confirmDelete) {
+          setConfirmDelete(false)
+        } else {
+          onClose()
+        }
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onClose])
+  }, [onClose, confirmDelete])
 
   async function onSubmit(values: ContentFormValues) {
     if (!content) return
@@ -330,7 +337,12 @@ export function ContentDrawer({
                   type="button"
                   onClick={() => {
                     setEditing(false)
-                    reset()
+                    reset({
+                      title: content.title,
+                      type: content.type,
+                      author: content.author,
+                      desc: content.desc,
+                    })
                   }}
                   className="flex-1 border border-[var(--border)] text-[var(--foreground)] text-sm font-medium py-2 rounded-lg hover:bg-[var(--bg2)] transition-colors"
                 >
@@ -407,6 +419,11 @@ export function ContentDrawer({
               {contentSessions.length === 0 && (
                 <p className="text-center text-sm text-[var(--muted)] py-8">
                   Nenhuma sessão registrada. Inicie uma Sessão de Foco para começar.
+                </p>
+              )}
+              {totalSessions > 5 && (
+                <p className="text-center text-xs text-[var(--muted)] pb-1">
+                  Exibindo 5 de {totalSessions} sessões
                 </p>
               )}
               {contentSessions.map((s) => (

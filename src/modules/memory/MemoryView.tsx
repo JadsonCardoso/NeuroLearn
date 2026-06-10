@@ -173,7 +173,7 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
       {/* ── Estado vazio: busca sem resultado ── */}
       {groups.length > 0 && filteredGroups.length === 0 && (
         <div
-          data-testid="memory-empty-state"
+          data-testid="memory-empty-search"
           style={{
             textAlign: 'center',
             padding: '48px 24px',

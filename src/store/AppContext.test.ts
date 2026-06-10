@@ -267,3 +267,63 @@ describe('appReducer — default', () => {
     expect(next).toBe(EMPTY_STATE)
   })
 })
+
+// ── ASSIGN_CONTENT_TRAIL (TC-DND-010..012) ────────────────────────────────────
+
+describe('appReducer — ASSIGN_CONTENT_TRAIL', () => {
+  it('TC-DND-010: move conteúdo para nova trilha', () => {
+    const content = makeContent('c1')
+    content.trailId = 'trail-a'
+    const state: AppState = { ...EMPTY_STATE, contents: [content] }
+
+    const next = appReducer(state, {
+      type: 'ASSIGN_CONTENT_TRAIL',
+      payload: { contentId: 'c1', trailId: 'trail-b' },
+    })
+
+    expect(next.contents.find((c) => c.id === 'c1')?.trailId).toBe('trail-b')
+  })
+
+  it('TC-DND-011: move conteúdo para null (sem trilha)', () => {
+    const content = makeContent('c1')
+    content.trailId = 'trail-a'
+    const state: AppState = { ...EMPTY_STATE, contents: [content] }
+
+    const next = appReducer(state, {
+      type: 'ASSIGN_CONTENT_TRAIL',
+      payload: { contentId: 'c1', trailId: null },
+    })
+
+    expect(next.contents.find((c) => c.id === 'c1')?.trailId).toBeNull()
+  })
+
+  it('TC-DND-012: não altera outros conteúdos ao mover um', () => {
+    const c1 = makeContent('c1')
+    c1.trailId = 'trail-a'
+    const c2 = { ...makeContent('c2'), trailId: 'trail-b' }
+    const state: AppState = { ...EMPTY_STATE, contents: [c1, c2] }
+
+    const next = appReducer(state, {
+      type: 'ASSIGN_CONTENT_TRAIL',
+      payload: { contentId: 'c1', trailId: 'trail-c' },
+    })
+
+    expect(next.contents.find((c) => c.id === 'c1')?.trailId).toBe('trail-c')
+    expect(next.contents.find((c) => c.id === 'c2')?.trailId).toBe('trail-b')
+  })
+
+  it('TC-DND-013: não altera cards ao mover conteúdo entre trilhas', () => {
+    const content = makeContent('c1')
+    content.trailId = 'trail-a'
+    const card = makeCard('card1', 'c1')
+    const state: AppState = { ...EMPTY_STATE, contents: [content], cards: [card] }
+
+    const next = appReducer(state, {
+      type: 'ASSIGN_CONTENT_TRAIL',
+      payload: { contentId: 'c1', trailId: 'trail-b' },
+    })
+
+    expect(next.cards).toHaveLength(1)
+    expect(next.cards[0].cid).toBe('c1')
+  })
+})

@@ -55,7 +55,7 @@ function normalize(s: string) {
 export function LibraryView() {
   const { state, dispatch, loading } = useAppData()
   const router = useRouter()
-  const { collapsed, toggle: toggleCollapse } = useTrailCollapse()
+  const { collapsed, toggle: toggleCollapse, remove: removeCollapse } = useTrailCollapse()
 
   const [search, setSearch] = useState('')
   const [, startTransition] = useTransition()
@@ -102,6 +102,7 @@ export function LibraryView() {
 
   function handleDeleteTrail(id: string) {
     dispatch({ type: 'DELETE_TRAIL', payload: id })
+    removeCollapse(id)
     setTrailModal(null)
   }
 
