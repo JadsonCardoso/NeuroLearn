@@ -28,8 +28,27 @@ function getGreeting(): string {
   return 'Boa noite'
 }
 
+function DashboardSkeleton() {
+  return (
+    <div style={{ padding: 'var(--space-6)', maxWidth: '900px', margin: '0 auto' }}>
+      {[80, 200, 120, 180, 200].map((h, i) => (
+        <div
+          key={i}
+          style={{
+            height: `${h}px`,
+            background: 'var(--bg2)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: 'var(--space-5)',
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 export function DashboardView() {
-  const { state, userId } = useAppData()
+  const { state, userId, loading } = useAppData()
   const router = useRouter()
 
   // Cards em risco reais do Supabase (null = carregando, [] = sem dados / usar fallback)
@@ -173,6 +192,8 @@ export function DashboardView() {
     }).length,
   }))
   const maxBar = Math.max(...weekBars.map((b) => b.n), 1)
+
+  if (loading) return <DashboardSkeleton />
 
   return (
     <div

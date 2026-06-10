@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import {
   Brain,
   Book,
@@ -43,7 +43,7 @@ interface SidebarProps {
   onClose?: () => void
 }
 
-export function Sidebar({ open = true, onClose }: SidebarProps) {
+export const Sidebar = memo(function Sidebar({ open = true, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { state, userId } = useAppData()
@@ -289,4 +289,4 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
       `}</style>
     </>
   )
-}
+})

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -50,11 +50,12 @@ function normalize(s: string) {
 }
 
 export function LibraryView() {
-  const { state, dispatch } = useAppData()
+  const { state, dispatch, loading } = useAppData()
   const router = useRouter()
 
   // Estado de busca por título
   const [search, setSearch] = useState('')
+  const [, startTransition] = useTransition()
 
   // Conteúdos filtrados por título, autor e descrição (case-insensitive, sem acento)
   const filtered = useMemo(() => {
@@ -148,6 +149,25 @@ export function LibraryView() {
 
   const orphanContents = useMemo(() => filtered.filter((c) => !c.trailId), [filtered])
 
+  if (loading) {
+    return (
+      <div style={{ padding: '24px', maxWidth: '1100px', margin: '0 auto' }}>
+        {[48, 200, 200, 200].map((h, i) => (
+          <div
+            key={i}
+            style={{
+              height: `${h}px`,
+              background: 'var(--bg2)',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: 'var(--space-5)',
+              animation: 'pulse 1.5s ease-in-out infinite',
+            }}
+          />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="slide-in" style={{ padding: '24px', maxWidth: '1100px', margin: '0 auto' }}>
       <div
@@ -174,7 +194,10 @@ export function LibraryView() {
             aria-label="Buscar conteúdo"
             placeholder="Buscar por título..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              startTransition(() => setSearch(v))
+            }}
             data-testid="library-search"
             style={{
               background: 'var(--card2)',
