@@ -1,7 +1,7 @@
 # NeuroLearn — Progresso do Projeto
 
 > **Última atualização:** 2026-06-10
-> **Status geral:** LIBRARY-UX-REVISION-01 completo. 399 testes unitários. ContentDrawer, DnD (@dnd-kit), collapse de trilhas, ContextSelector, Exercícios (Prática Livre), MemoryView contextual. Branch-per-feature workflow ativo.
+> **Status geral:** QA Global completo. 411 testes unitários. BUG-GLOBAL-001 (LGPD) corrigido. 4 novos specs E2E: focus, active, skills, global-regression (TC-GLB-001..071). 31 arquivos E2E. Production-security-gate: APROVADO COM RESSALVAS (rate limiter in-memory — pendente Upstash Redis).
 
 ---
 
@@ -49,6 +49,7 @@
 | F-080                            | Core Web Vitals: LCP (preconnect+font swap), CLS (skeletons), INP (startTransition+memo), bundle (analyzer+optimizePackageImports), lazy load (dynamic ssr:false) | ✅ Concluída |
 | F-090                            | Gamificação v2: missões diárias/semanais, streak recovery (Streak Shields), MissionsPanel, StreakRecoveryBanner | ✅ Concluída |
 | LIBRARY-UX-REVISION-01           | ContentDrawer lateral, DnD @dnd-kit, collapse de trilhas + localStorage, ContextSelector, aba Exercícios (Prática Livre), MemoryView contextual | ✅ Concluída |
+| QA-GLOBAL-01                     | Análise completa do projeto (qa-estrategico + qa-expert + production-security-gate). BUG-GLOBAL-001 LGPD corrigido. 4 specs E2E novos (focus, active, skills, global-regression — 71+ cenários). | ✅ Concluída |
 | 7                                | Crescimento: ranking entre usuários, blog educacional, landing v2                                                                                              | 🔜 Futura    |
 | 7                                | Crescimento: blog educacional, landing v2, Open Graph                                                                                                          | 🔜 Futura    |
 
