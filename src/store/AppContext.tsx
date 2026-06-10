@@ -7,12 +7,14 @@ import { useToastContext } from '@/store/ToastContext'
 import { listContents, createContent, updateContent, updateContentProgress, removeContent } from '@/services/contentsService'
 import { listAllFlashcards, createFlashcards, updateFlashcardSM2, deleteFlashcard, updateFlashcard } from '@/services/flashcardsService'
 import { recordReviewCycle } from '@/services/reviewService'
-import { createStudySession } from '@/services/sessionsService'
+import { createStudySession, listRecentSessions } from '@/services/sessionsService'
 import { listUserSkills, addUserSkill, gainSkillXP, updateUserTotalXP, updateUserStreak, removeUserSkill } from '@/services/skillsService'
 import { saveRetentionSnapshot } from '@/services/retentionService'
 import { logCognitiveEvent } from '@/services/cognitiveEventsService'
 import { loadState, saveState } from '@/services/localStorageService'
 import { calcRetention } from '@/engine/retention/retentionModel'
+import { calculateStreak } from '@/store/reducers/streakReducer'
+import { calculateLevelUp } from '@/engine/mastery/levelUp'
 
 // ── Estado inicial vazio (antes de carregar do backend) ─────────────────────
 export const EMPTY_STATE: AppState = {
@@ -98,15 +100,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         totalXp: (state.totalXp ?? 0) + amount,
         skills: state.skills.map((s) => {
           if (s.id !== skillId) return s
-          let xp = s.xp + amount
-          let level = s.level
-          let maxXp = s.maxXp
-          if (xp >= maxXp && level < 5) {
-            xp -= maxXp
-            level++
-            maxXp += 100
-          }
-          return { ...s, xp, level, maxXp }
+          return calculateLevelUp({ ...s, xp: s.xp + amount })
         }),
       }
     }
@@ -115,12 +109,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const { session, cards, contentId } = action.payload
       const currentProgress = state.contents.find((c) => c.id === contentId)?.progress ?? 0
       const newProgress = Math.min(100, currentProgress + 10)
-      const today = new Date().toISOString().split('T')[0]
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
-      const isNewDay = state.lastStudyDate !== today
-      const newStreak = isNewDay
-        ? state.lastStudyDate === yesterday ? state.streak + 1 : 1
-        : state.streak
+      const { streak: newStreak, lastStudyDate: newLastStudyDate } = calculateStreak(
+        state.lastStudyDate || null,
+        state.streak,
+      )
       return {
         ...state,
         totalXp: (state.totalXp ?? 0) + 10,
@@ -130,7 +122,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           c.id === contentId ? { ...c, progress: newProgress } : c
         ),
         streak: newStreak,
-        lastStudyDate: today,
+        lastStudyDate: newLastStudyDate,
       }
     }
 
@@ -138,11 +130,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, totalXp: (state.totalXp ?? 0) + action.payload.amount }
 
     case 'UPDATE_STREAK': {
-      const today = new Date().toISOString().split('T')[0]
-      if (state.lastStudyDate === today) return state
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
-      const newStreak = state.lastStudyDate === yesterday ? state.streak + 1 : 1
-      return { ...state, streak: newStreak, lastStudyDate: today }
+      const { streak, lastStudyDate } = calculateStreak(state.lastStudyDate || null, state.streak)
+      if (streak === state.streak && lastStudyDate === state.lastStudyDate) return state
+      return { ...state, streak, lastStudyDate }
     }
 
     default:
@@ -187,11 +177,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       try {
         // Todas as queries em paralelo para minimizar latência
-        const [contents, cards, skills, userResult] = await Promise.all([
+        const [contents, cards, skills, userResult, sessions] = await Promise.all([
           listContents(),
           listAllFlashcards(),
           listUserSkills(user.id),
           supabase.from('users').select('total_xp, streak, last_study_date').eq('id', user.id).single(),
+          listRecentSessions(user.id),
         ])
 
         const userData = userResult.data
@@ -202,7 +193,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             contents,
             cards,
             skills,
-            sessions: [],
+            sessions,
             streak: userData?.streak ?? 0,
             lastStudyDate: userData?.last_study_date ?? '',
             totalXp: userData?.total_xp ?? 0,
@@ -318,11 +309,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         case 'FINISH_SESSION': {
           const { session, cards, contentId } = action.payload
           const today = new Date().toISOString().split('T')[0]
-          const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
           const isNewDay = state.lastStudyDate !== today
-          const newStreak = isNewDay
-            ? state.lastStudyDate === yesterday ? state.streak + 1 : 1
-            : state.streak
+          const { streak: newStreak } = calculateStreak(state.lastStudyDate || null, state.streak)
           await Promise.all([
             createStudySession({
               userId,
