@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -42,6 +42,8 @@ const cardSchema = z.object({
 })
 type CardFormValues = z.infer<typeof cardSchema>
 
+const PAGE_SIZE = 6
+
 // Remove acentos e normaliza para busca sem acento
 function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -54,10 +56,17 @@ export function LibraryView() {
   // Estado de busca por título
   const [search, setSearch] = useState('')
 
-  // Conteúdos filtrados por título (case-insensitive, sem acento)
-  const filtered = search.trim()
-    ? state.contents.filter((c) => normalize(c.title).includes(normalize(search)))
-    : state.contents
+  // Conteúdos filtrados por título, autor e descrição (case-insensitive, sem acento)
+  const filtered = useMemo(() => {
+    if (!search.trim()) return state.contents
+    const term = normalize(search)
+    return state.contents.filter(
+      (c) =>
+        normalize(c.title).includes(term) ||
+        normalize(c.author).includes(term) ||
+        normalize(c.desc).includes(term)
+    )
+  }, [state.contents, search])
 
   // Estado de modais de trilha — null=fechado, 'create'=novo, objeto=editar
   const [trailModal, setTrailModal] = useState<null | 'create' | LearningTrail>(null)
@@ -78,6 +87,9 @@ export function LibraryView() {
 
   // Modal de geração de flashcards por IA
   const [genContent, setGenContent] = useState<Content | null>(null)
+
+  // Paginação por seção — controla quais seções estão expandidas além do PAGE_SIZE
+  const [showAll, setShowAll] = useState<Record<string, boolean>>({})
 
   function handleAdd(content: Content) {
     dispatch({ type: 'ADD_CONTENT', payload: content })
@@ -124,13 +136,17 @@ export function LibraryView() {
     setConfirmDeleteCard(null)
   }
 
-  // Agrupa conteúdos filtrados por trilha
-  const trails = state.trails ?? []
-  const trailGroups = trails.map((trail) => ({
-    trail,
-    contents: filtered.filter((c) => c.trailId === trail.id),
-  }))
-  const orphanContents = filtered.filter((c) => !c.trailId)
+  // Agrupa conteúdos filtrados por trilha (memoizado — evita recálculo em re-renders de modal)
+  const trailGroups = useMemo(
+    () =>
+      (state.trails ?? []).map((trail) => ({
+        trail,
+        contents: filtered.filter((c) => c.trailId === trail.id),
+      })),
+    [state.trails, filtered]
+  )
+
+  const orphanContents = useMemo(() => filtered.filter((c) => !c.trailId), [filtered])
 
   return (
     <div className="slide-in" style={{ padding: '24px', maxWidth: '1100px', margin: '0 auto' }}>
@@ -147,9 +163,9 @@ export function LibraryView() {
             Biblioteca de Conhecimento
           </h1>
           <p style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>
-            {filtered.length}
-            {search.trim() ? ` de ${state.contents.length}` : ''}{' '}
-            {state.contents.length === 1 ? 'item' : 'itens'}
+            {search.trim()
+              ? `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''} de ${state.contents.length} itens`
+              : `${state.contents.length} ${state.contents.length === 1 ? 'item' : 'itens'}`}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -278,6 +294,13 @@ export function LibraryView() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
         {trailGroups.map(({ trail, contents: trailContents }) => {
           if (trailContents.length === 0 && search.trim()) return null
+
+          const isExpanded = showAll[trail.id] ?? false
+          const paginate = !search.trim() && trailContents.length > PAGE_SIZE
+          const visibleContents =
+            paginate && !isExpanded ? trailContents.slice(0, PAGE_SIZE) : trailContents
+          const hiddenCount = trailContents.length - PAGE_SIZE
+
           return (
             <section key={trail.id} data-testid="trail-section" data-trail-id={trail.id}>
               {/* Cabeçalho da trilha */}
@@ -337,7 +360,7 @@ export function LibraryView() {
 
               {/* Grid de conteúdos da trilha */}
               <ContentGrid
-                contents={trailContents}
+                contents={visibleContents}
                 cards={state.cards}
                 expandedId={expandedId}
                 setExpandedId={setExpandedId}
@@ -349,6 +372,33 @@ export function LibraryView() {
                 router={router}
               />
 
+              {/* Botões show-more / show-less */}
+              {paginate && (
+                <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                  {isExpanded ? (
+                    <button
+                      type="button"
+                      data-testid={`btn-show-less-${trail.id}`}
+                      className="btn-secondary"
+                      style={{ fontSize: '12px' }}
+                      onClick={() => setShowAll((prev) => ({ ...prev, [trail.id]: false }))}
+                    >
+                      Menos ↑
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      data-testid={`btn-show-more-${trail.id}`}
+                      className="btn-secondary"
+                      style={{ fontSize: '12px' }}
+                      onClick={() => setShowAll((prev) => ({ ...prev, [trail.id]: true }))}
+                    >
+                      Ver mais {hiddenCount} conteúdo{hiddenCount !== 1 ? 's' : ''}
+                    </button>
+                  )}
+                </div>
+              )}
+
               {trailContents.length === 0 && !search.trim() && (
                 <p style={{ fontSize: '12px', color: 'var(--text3)', padding: '16px 0' }}>
                   Nenhum conteúdo nesta trilha. Adicione um conteúdo e atribua a esta trilha.
@@ -359,59 +409,99 @@ export function LibraryView() {
         })}
 
         {/* Seção "Sem Trilha" — conteúdos órfãos */}
-        {orphanContents.length > 0 && (
-          <section data-testid="trail-section-orphan">
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}
-            >
-              <span
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '8px',
-                  background: 'var(--card2)',
-                  border: '1px solid var(--border2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 18,
-                }}
-              >
-                📎
-              </span>
-              <div style={{ flex: 1 }}>
-                <span style={{ fontWeight: 700, color: 'var(--text2)', fontSize: '15px' }}>
-                  Sem Trilha
-                </span>
-                <span
+        {orphanContents.length > 0 &&
+          (() => {
+            const isOrphanExpanded = showAll['orphan'] ?? false
+            const orphanPaginate = !search.trim() && orphanContents.length > PAGE_SIZE
+            const visibleOrphans =
+              orphanPaginate && !isOrphanExpanded
+                ? orphanContents.slice(0, PAGE_SIZE)
+                : orphanContents
+            const orphanHidden = orphanContents.length - PAGE_SIZE
+            return (
+              <section data-testid="trail-section-orphan">
+                <div
                   style={{
-                    marginLeft: 8,
-                    fontSize: '11px',
-                    background: 'var(--card2)',
-                    color: 'var(--text3)',
-                    border: '1px solid var(--border2)',
-                    borderRadius: '20px',
-                    padding: '1px 8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginBottom: '14px',
                   }}
                 >
-                  {orphanContents.length} conteúdo{orphanContents.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-            </div>
-            <ContentGrid
-              contents={orphanContents}
-              cards={state.cards}
-              expandedId={expandedId}
-              setExpandedId={setExpandedId}
-              setEditContent={setEditContent}
-              setConfirmDelete={setConfirmDelete}
-              setGenContent={setGenContent}
-              setEditCard={setEditCard}
-              setConfirmDeleteCard={setConfirmDeleteCard}
-              router={router}
-            />
-          </section>
-        )}
+                  <span
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '8px',
+                      background: 'var(--card2)',
+                      border: '1px solid var(--border2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 18,
+                    }}
+                  >
+                    📎
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontWeight: 700, color: 'var(--text2)', fontSize: '15px' }}>
+                      Sem Trilha
+                    </span>
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        fontSize: '11px',
+                        background: 'var(--card2)',
+                        color: 'var(--text3)',
+                        border: '1px solid var(--border2)',
+                        borderRadius: '20px',
+                        padding: '1px 8px',
+                      }}
+                    >
+                      {orphanContents.length} conteúdo{orphanContents.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+                <ContentGrid
+                  contents={visibleOrphans}
+                  cards={state.cards}
+                  expandedId={expandedId}
+                  setExpandedId={setExpandedId}
+                  setEditContent={setEditContent}
+                  setConfirmDelete={setConfirmDelete}
+                  setGenContent={setGenContent}
+                  setEditCard={setEditCard}
+                  setConfirmDeleteCard={setConfirmDeleteCard}
+                  router={router}
+                />
+                {orphanPaginate && (
+                  <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                    {isOrphanExpanded ? (
+                      <button
+                        type="button"
+                        data-testid="btn-show-less-orphan"
+                        className="btn-secondary"
+                        style={{ fontSize: '12px' }}
+                        onClick={() => setShowAll((prev) => ({ ...prev, orphan: false }))}
+                      >
+                        Menos ↑
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        data-testid="btn-show-more-orphan"
+                        className="btn-secondary"
+                        style={{ fontSize: '12px' }}
+                        onClick={() => setShowAll((prev) => ({ ...prev, orphan: true }))}
+                      >
+                        Ver mais {orphanHidden} conteúdo{orphanHidden !== 1 ? 's' : ''}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </section>
+            )
+          })()}
       </div>
     </div>
   )
