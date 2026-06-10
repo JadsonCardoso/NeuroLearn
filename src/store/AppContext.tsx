@@ -348,7 +348,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         case 'DELETE_CONTENT': {
           await removeContent(action.payload)
-          addToast('success', 'Conteúdo removido.')
+          // Feedback já foi dado pelo undo toast na LibraryView
           break
         }
 

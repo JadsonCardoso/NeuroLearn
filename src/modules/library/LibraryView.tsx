@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useTransition } from 'react'
+import { useState, useEffect, useMemo, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,6 +10,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useAppData } from '@/hooks/useAppData'
 import { useTrailCollapse } from '@/hooks/useTrailCollapse'
 import { calcRetention } from '@/engine/retention/retentionModel'
+import { useToastContext } from '@/store/ToastContext'
 import type { Content, ContentType, FlashCard } from '@/types'
 import { Plus } from '@/components/icons'
 import { ContentDrawer } from '@/components/ui/ContentDrawer'
@@ -54,11 +55,32 @@ function normalize(s: string) {
 
 export function LibraryView() {
   const { state, dispatch, loading } = useAppData()
+  const { addToast } = useToastContext()
   const router = useRouter()
   const { collapsed, toggle: toggleCollapse, remove: removeCollapse } = useTrailCollapse()
 
   const [search, setSearch] = useState('')
   const [, startTransition] = useTransition()
+
+  // Exclusão com desfazer — conteúdo aguardando confirmação por 5s
+  const [pendingDelete, setPendingDelete] = useState<Content | null>(null)
+  const pendingDeleteRef = useRef<Content | null>(null)
+  const pendingDeleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Mantém ref sincronizada para a limpeza ao desmontar
+  useEffect(() => {
+    pendingDeleteRef.current = pendingDelete
+  }, [pendingDelete])
+
+  // Confirma qualquer exclusão pendente ao desmontar (ex: navegar para outra página)
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteTimerRef.current) clearTimeout(pendingDeleteTimerRef.current)
+      if (pendingDeleteRef.current) {
+        dispatch({ type: 'DELETE_CONTENT', payload: pendingDeleteRef.current.id })
+      }
+    }
+  }, [dispatch])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return state.contents
@@ -71,11 +93,17 @@ export function LibraryView() {
     )
   }, [state.contents, search])
 
+  // Oculta o conteúdo aguardando confirmação de exclusão (atualização otimista)
+  const visibleFiltered = useMemo(
+    () => (pendingDelete ? filtered.filter((c) => c.id !== pendingDelete.id) : filtered),
+    [filtered, pendingDelete]
+  )
+
   const [trailModal, setTrailModal] = useState<null | 'create' | LearningTrail>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [editContent, setEditContent] = useState<Content | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Content | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [deleting] = useState(false)
 
   // ContentDrawer — substitui o expand inline
   const [drawerContent, setDrawerContent] = useState<Content | null>(null)
@@ -131,15 +159,49 @@ export function LibraryView() {
 
   async function handleDeleteContent() {
     if (!confirmDelete) return
-    setDeleting(true)
-    dispatch({ type: 'DELETE_CONTENT', payload: confirmDelete.id })
-    setDeleting(false)
+    const content = confirmDelete
     setConfirmDelete(null)
+    initiateDelete(content)
   }
 
   async function handleDrawerDelete(contentId: string) {
-    dispatch({ type: 'DELETE_CONTENT', payload: contentId })
+    const content = state.contents.find((c) => c.id === contentId)
+    if (!content) return
     setDrawerContent(null)
+    initiateDelete(content)
+  }
+
+  function initiateDelete(content: Content) {
+    // Se já há uma exclusão pendente diferente, confirmar imediatamente antes da nova
+    if (pendingDeleteRef.current && pendingDeleteRef.current.id !== content.id) {
+      if (pendingDeleteTimerRef.current) clearTimeout(pendingDeleteTimerRef.current)
+      dispatch({ type: 'DELETE_CONTENT', payload: pendingDeleteRef.current.id })
+    } else if (pendingDeleteTimerRef.current) {
+      clearTimeout(pendingDeleteTimerRef.current)
+    }
+
+    setPendingDelete(content)
+
+    const timer = setTimeout(() => {
+      dispatch({ type: 'DELETE_CONTENT', payload: content.id })
+      setPendingDelete(null)
+      pendingDeleteTimerRef.current = null
+    }, 5000)
+
+    pendingDeleteTimerRef.current = timer
+
+    addToast('warning', `"${content.title}" será removido.`, 'Conteúdo excluído', {
+      label: 'Desfazer',
+      onClick: undoDelete,
+    })
+  }
+
+  function undoDelete() {
+    if (pendingDeleteTimerRef.current) {
+      clearTimeout(pendingDeleteTimerRef.current)
+      pendingDeleteTimerRef.current = null
+    }
+    setPendingDelete(null)
   }
 
   async function handleDeleteCard() {
@@ -150,7 +212,7 @@ export function LibraryView() {
     setConfirmDeleteCard(null)
   }
 
-  // DnD: move conteúdo para outra trilha (optimistic update)
+  // DnD: move conteúdo para outra trilha (atualização otimista)
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over) return
@@ -169,12 +231,12 @@ export function LibraryView() {
     () =>
       (state.trails ?? []).map((trail) => ({
         trail,
-        contents: filtered.filter((c) => c.trailId === trail.id),
+        contents: visibleFiltered.filter((c) => c.trailId === trail.id),
       })),
-    [state.trails, filtered]
+    [state.trails, visibleFiltered]
   )
 
-  const orphanContents = useMemo(() => filtered.filter((c) => !c.trailId), [filtered])
+  const orphanContents = useMemo(() => visibleFiltered.filter((c) => !c.trailId), [visibleFiltered])
 
   if (loading) {
     return (

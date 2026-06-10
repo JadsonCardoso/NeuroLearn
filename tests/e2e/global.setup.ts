@@ -2,7 +2,7 @@ import { chromium, type FullConfig } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 
 /**
- * Global setup: autentica um usuário de teste via Supabase Admin API.
+ * Global setup: autentica usuários de teste via Supabase Admin API.
  *
  * O admin.generateLink() retorna um link de fluxo implícito (hash fragment),
  * não PKCE. Por isso, após navegar ao action_link, os tokens chegam como:
@@ -14,7 +14,8 @@ import { createClient } from '@supabase/supabase-js'
  * Variáveis necessárias em .env.local:
  *   NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY  ← apenas Node/setup; nunca exposta ao browser
- *   TEST_USER_EMAIL            ← email de um usuário cadastrado no Supabase
+ *   TEST_USER_EMAIL            ← usuário A (principal)
+ *   TEST_USER_EMAIL_B          ← usuário B (segurança/isolamento) = test-user-b@neurolearn.tech
  */
 
 const MAX_CHUNK_SIZE = 3180
@@ -54,35 +55,22 @@ function createChunks(key: string, value: string): Array<{ name: string; value: 
   return chunks.map((chunkValue, i) => ({ name: `${key}.${i}`, value: chunkValue }))
 }
 
-async function globalSetup(_config: FullConfig) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const testEmail = process.env.TEST_USER_EMAIL
-
-  if (!supabaseUrl || !serviceRoleKey || !testEmail) {
-    console.warn(
-      '[global.setup] Variáveis NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ou TEST_USER_EMAIL não definidas. ' +
-        'Testes autenticados serão pulados.',
-    )
-    return
-  }
-
-  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3003'
-  const projectRef = new URL(supabaseUrl).hostname.split('.')[0]
-  const cookieName = `sb-${projectRef}-auth-token`
-
+async function authenticateUser(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  adminClient: any,
+  email: string,
+  authFile: string,
+  baseURL: string,
+  cookieName: string
+) {
   const { data, error } = await adminClient.auth.admin.generateLink({
     type: 'magiclink',
-    email: testEmail,
+    email,
     options: { redirectTo: `${baseURL}/auth/callback` },
   })
 
   if (error || !data.properties?.action_link) {
-    console.error('[global.setup] Erro ao gerar magic link:', error?.message)
+    console.error(`[global.setup] Erro ao gerar magic link para ${email}:`, error?.message)
     return
   }
 
@@ -92,19 +80,16 @@ async function globalSetup(_config: FullConfig) {
 
   try {
     await page.goto(data.properties.action_link)
-    // Aguarda qualquer redirect — PKCE vai para /dashboard, implícito vai para /auth/*
     await page.waitForURL(/\/(dashboard|auth\/)/, { timeout: 30_000 })
 
     const currentUrl = page.url()
 
     if (currentUrl.includes('/dashboard')) {
-      // PKCE funcionou — raro com admin API, mas tratamos o caso
-      await context.storageState({ path: 'tests/e2e/.auth/user.json' })
-      console.log('[global.setup] Auth state salvo (PKCE flow) ✓')
+      await context.storageState({ path: authFile })
+      console.log(`[global.setup] Auth state salvo (PKCE) → ${authFile} ✓`)
       return
     }
 
-    // Fluxo implícito: tokens chegam no hash fragment
     const urlHash = new URL(currentUrl).hash.slice(1)
     const hashParams = new URLSearchParams(urlHash)
     const accessToken = hashParams.get('access_token')
@@ -112,26 +97,23 @@ async function globalSetup(_config: FullConfig) {
     const expiresIn = parseInt(hashParams.get('expires_in') ?? '3600', 10)
     const expiresAt = parseInt(
       hashParams.get('expires_at') ?? String(Math.floor(Date.now() / 1000) + 3600),
-      10,
+      10
     )
 
     if (!accessToken || !refreshToken) {
       throw new Error(`Tokens ausentes no hash. URL: ${currentUrl}`)
     }
 
-    // Decodifica o JWT para obter o user ID (sub)
     const jwtPayload = JSON.parse(
-      Buffer.from(accessToken.split('.')[1], 'base64url').toString('utf8'),
+      Buffer.from(accessToken.split('.')[1], 'base64url').toString('utf8')
     )
     const userId: string = jwtPayload.sub
 
-    // Busca o perfil completo do usuário via Admin API
     const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId)
     if (userError || !userData.user) {
       throw new Error(`Falha ao buscar usuário: ${userError?.message}`)
     }
 
-    // Constrói o objeto de sessão no formato exato que @supabase/ssr armazena
     const sessionObject = {
       access_token: accessToken,
       token_type: 'bearer',
@@ -141,9 +123,7 @@ async function globalSetup(_config: FullConfig) {
       user: userData.user,
     }
 
-    const sessionJson = JSON.stringify(sessionObject)
-    const chunks = createChunks(cookieName, sessionJson)
-
+    const chunks = createChunks(cookieName, JSON.stringify(sessionObject))
     const cookieExpires = Math.floor(Date.now() / 1000) + 400 * 24 * 60 * 60
 
     await context.addCookies(
@@ -156,19 +136,59 @@ async function globalSetup(_config: FullConfig) {
         secure: false,
         sameSite: 'Lax' as const,
         expires: cookieExpires,
-      })),
+      }))
     )
 
-    // Verifica que a sessão é reconhecida pelo servidor
     await page.goto(`${baseURL}/dashboard`)
     await page.waitForURL('**/dashboard', { timeout: 15_000 })
 
-    await context.storageState({ path: 'tests/e2e/.auth/user.json' })
-    console.log('[global.setup] Auth state salvo em tests/e2e/.auth/user.json ✓')
+    await context.storageState({ path: authFile })
+    console.log(`[global.setup] Auth state salvo → ${authFile} ✓`)
   } catch (err) {
-    console.error('[global.setup] Falha:', err)
+    console.error(`[global.setup] Falha ao autenticar ${email}:`, err)
   } finally {
     await browser.close()
+  }
+}
+
+async function globalSetup(_config: FullConfig) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const testEmail = process.env.TEST_USER_EMAIL
+  const testEmailB = process.env.TEST_USER_EMAIL_B
+
+  if (!supabaseUrl || !serviceRoleKey || !testEmail) {
+    console.warn(
+      '[global.setup] Variáveis NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ou TEST_USER_EMAIL não definidas. ' +
+        'Testes autenticados serão pulados.'
+    )
+    return
+  }
+
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3003'
+  const projectRef = new URL(supabaseUrl).hostname.split('.')[0]
+  const cookieName = `sb-${projectRef}-auth-token`
+
+  // Autentica usuário A (principal)
+  await authenticateUser(adminClient, testEmail, 'tests/e2e/.auth/user.json', baseURL, cookieName)
+
+  // Autentica usuário B (testes de segurança/isolamento) — opcional
+  if (testEmailB) {
+    await authenticateUser(
+      adminClient,
+      testEmailB,
+      'tests/e2e/.auth/user-b.json',
+      baseURL,
+      cookieName
+    )
+  } else {
+    console.warn(
+      '[global.setup] TEST_USER_EMAIL_B não definido — testes TC-SEC-008..010 serão pulados.'
+    )
   }
 }
 

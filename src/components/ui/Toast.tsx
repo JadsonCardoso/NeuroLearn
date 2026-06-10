@@ -4,9 +4,9 @@ import { useToastContext, type ToastItem, type ToastType } from '@/store/ToastCo
 
 const CONFIG: Record<ToastType, { icon: string; color: string }> = {
   success: { icon: '✓', color: 'var(--color-success)' },
-  error:   { icon: '✕', color: 'var(--color-danger)'  },
-  warning: { icon: '!', color: 'var(--color-warning)'  },
-  info:    { icon: 'i', color: 'var(--color-info)'     },
+  error: { icon: '✕', color: 'var(--color-danger)' },
+  warning: { icon: '!', color: 'var(--color-warning)' },
+  info: { icon: 'i', color: 'var(--color-info)' },
 }
 
 function ToastItem({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: string) => void }) {
@@ -57,43 +57,70 @@ function ToastItem({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: str
       {/* Conteúdo */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {toast.title && (
-          <p style={{
-            fontSize: 'var(--text-md)',
-            fontWeight: '700',
-            color: 'var(--text)',
-            margin: '0 0 2px',
-            lineHeight: '1.3',
-          }}>
+          <p
+            style={{
+              fontSize: 'var(--text-md)',
+              fontWeight: '700',
+              color: 'var(--text)',
+              margin: '0 0 2px',
+              lineHeight: '1.3',
+            }}
+          >
             {toast.title}
           </p>
         )}
-        <p style={{
-          fontSize: 'var(--text-base)',
-          color: toast.title ? 'var(--text3)' : 'var(--text)',
-          lineHeight: '1.5',
-          margin: 0,
-        }}>
+        <p
+          style={{
+            fontSize: 'var(--text-base)',
+            color: toast.title ? 'var(--text3)' : 'var(--text)',
+            lineHeight: '1.5',
+            margin: 0,
+          }}
+        >
           {toast.message}
         </p>
       </div>
 
-      {/* Dismiss */}
-      <button
-        onClick={() => onDismiss(toast.id)}
-        aria-label="Fechar notificação"
-        style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--text3)',
-          cursor: 'pointer',
-          fontSize: 'var(--text-md)',
-          lineHeight: 1,
-          padding: '0 2px',
-          flexShrink: 0,
-        }}
-      >
-        ×
-      </button>
+      {/* Ação opcional + Dismiss */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        {toast.action && (
+          <button
+            onClick={() => {
+              toast.action!.onClick()
+              onDismiss(toast.id)
+            }}
+            style={{
+              background: 'none',
+              border: `1px solid ${cfg.color}`,
+              borderRadius: '4px',
+              color: cfg.color,
+              cursor: 'pointer',
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '2px 8px',
+              whiteSpace: 'nowrap',
+              lineHeight: 1.5,
+            }}
+          >
+            {toast.action.label}
+          </button>
+        )}
+        <button
+          onClick={() => onDismiss(toast.id)}
+          aria-label="Fechar notificação"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text3)',
+            cursor: 'pointer',
+            fontSize: 'var(--text-md)',
+            lineHeight: 1,
+            padding: '0 2px',
+          }}
+        >
+          ×
+        </button>
+      </div>
 
       {/* Barra de progresso */}
       <div

@@ -3,6 +3,10 @@ import type { DbContent } from '@/types/database.types'
 
 // ── Mock do Supabase ──────────────────────────────────────────────────────────
 
+const mockAuth = {
+  getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+}
+
 const mockChain = {
   from: vi.fn(),
   select: vi.fn(),
@@ -12,10 +16,13 @@ const mockChain = {
   eq: vi.fn(),
   order: vi.fn(),
   single: vi.fn(),
+  auth: mockAuth,
 }
 
-// Cada chamada retorna a própria chain (builder pattern)
-Object.values(mockChain).forEach((fn) => fn.mockReturnValue(mockChain))
+// Cada chamada retorna a própria chain (builder pattern) — exceto auth
+Object.entries(mockChain).forEach(([key, fn]) => {
+  if (key !== 'auth') (fn as ReturnType<typeof vi.fn>).mockReturnValue(mockChain)
+})
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => mockChain,
@@ -43,9 +50,10 @@ const dbRow: DbContent = {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  Object.values(mockChain).forEach((fn) =>
-    (fn as ReturnType<typeof vi.fn>).mockReturnValue(mockChain)
-  )
+  Object.entries(mockChain).forEach(([key, fn]) => {
+    if (key !== 'auth') (fn as ReturnType<typeof vi.fn>).mockReturnValue(mockChain)
+  })
+  mockAuth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
 })
 
 // ── listContents ──────────────────────────────────────────────────────────────
@@ -132,12 +140,15 @@ describe('updateContentProgress', () => {
 
 describe('removeContent', () => {
   it('resolve sem erro em deleção bem-sucedida', async () => {
-    mockChain.eq.mockResolvedValueOnce({ error: null })
+    // removeContent encadeia .eq('id').eq('user_id') — primeiro retorna chain, segundo resolve
+    mockChain.eq.mockReturnValueOnce(mockChain).mockResolvedValueOnce({ error: null })
     await expect(removeContent('uuid-1')).resolves.toBeUndefined()
   })
 
   it('lança erro quando Supabase retorna error', async () => {
-    mockChain.eq.mockResolvedValueOnce({ error: new Error('Delete failed') })
+    mockChain.eq
+      .mockReturnValueOnce(mockChain)
+      .mockResolvedValueOnce({ error: new Error('Delete failed') })
     await expect(removeContent('uuid-1')).rejects.toThrow('Delete failed')
   })
 })

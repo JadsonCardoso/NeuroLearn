@@ -4,6 +4,11 @@ import { createContext, useCallback, useContext, useRef, useState } from 'react'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
 export interface ToastItem {
   id: string
   type: ToastType
@@ -11,11 +16,12 @@ export interface ToastItem {
   title?: string
   duration: number
   leaving?: boolean
+  action?: ToastAction
 }
 
 interface ToastContextValue {
   toasts: ToastItem[]
-  addToast: (type: ToastType, message: string, title?: string) => void
+  addToast: (type: ToastType, message: string, title?: string, action?: ToastAction) => void
   removeToast: (id: string) => void
 }
 
@@ -26,9 +32,9 @@ const LEAVE_ANIMATION_MS = 150
 
 const DURATIONS: Record<ToastType, number> = {
   success: 4000,
-  info:    4000,
+  info: 4000,
   warning: 6000,
-  error:   6000,
+  error: 6000,
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -49,12 +55,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const addToast = useCallback(
-    (type: ToastType, message: string, title?: string) => {
+    (type: ToastType, message: string, title?: string, action?: ToastAction) => {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
       const duration = DURATIONS[type]
 
       setToasts((prev) => {
-        const next = [{ id, type, message, title, duration }, ...prev]
+        const next = [{ id, type, message, title, duration, action }, ...prev]
         // FIX BUG-01: cancelar timers dos toasts que serão removidos por MAX_TOASTS
         if (next.length > MAX_TOASTS) {
           next.slice(MAX_TOASTS).forEach((t) => {
@@ -71,7 +77,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       const timer = setTimeout(() => removeToast(id), duration)
       timers.current.set(id, timer)
     },
-    [removeToast],
+    [removeToast]
   )
 
   return (

@@ -36,3 +36,4 @@ dev-server-err.log
 # Resultados de testes gerados
 test-results/
 tests/reports/playwright/
+.vercel
