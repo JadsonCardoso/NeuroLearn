@@ -4,11 +4,31 @@ import React, { createContext, useContext, useReducer, useEffect, useState } fro
 import type { AppState, AppAction } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { useToastContext } from '@/store/ToastContext'
-import { listContents, createContent, updateContent, updateContentProgress, removeContent } from '@/services/contentsService'
-import { listAllFlashcards, createFlashcards, updateFlashcardSM2, deleteFlashcard, updateFlashcard } from '@/services/flashcardsService'
+import {
+  listContents,
+  createContent,
+  updateContent,
+  updateContentProgress,
+  removeContent,
+} from '@/services/contentsService'
+import {
+  listAllFlashcards,
+  createFlashcards,
+  updateFlashcardSM2,
+  deleteFlashcard,
+  updateFlashcard,
+} from '@/services/flashcardsService'
 import { recordReviewCycle } from '@/services/reviewService'
 import { createStudySession, listRecentSessions } from '@/services/sessionsService'
-import { listUserSkills, addUserSkill, gainSkillXP, updateUserTotalXP, updateUserStreak, removeUserSkill } from '@/services/skillsService'
+import { deleteDraft } from '@/services/sessionDraftsService'
+import {
+  listUserSkills,
+  addUserSkill,
+  gainSkillXP,
+  updateUserTotalXP,
+  updateUserStreak,
+  removeUserSkill,
+} from '@/services/skillsService'
 import { saveRetentionSnapshot } from '@/services/retentionService'
 import { logCognitiveEvent } from '@/services/cognitiveEventsService'
 import { loadState, saveState } from '@/services/localStorageService'
@@ -111,7 +131,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const newProgress = Math.min(100, currentProgress + 10)
       const { streak: newStreak, lastStudyDate: newLastStudyDate } = calculateStreak(
         state.lastStudyDate || null,
-        state.streak,
+        state.streak
       )
       return {
         ...state,
@@ -163,7 +183,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function loadFromSupabase() {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
       if (!user) {
         // Sem usuário — carrega localStorage como fallback (modo offline/dev)
@@ -181,7 +203,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           listContents(),
           listAllFlashcards(),
           listUserSkills(user.id),
-          supabase.from('users').select('total_xp, streak, last_study_date').eq('id', user.id).single(),
+          supabase
+            .from('users')
+            .select('total_xp, streak, last_study_date')
+            .eq('id', user.id)
+            .single(),
           listRecentSessions(user.id),
         ])
 
@@ -258,7 +284,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         case 'UPDATE_CARD': {
-          await updateFlashcard(action.payload.id, { front: action.payload.front, back: action.payload.back })
+          await updateFlashcard(action.payload.id, {
+            front: action.payload.front,
+            back: action.payload.back,
+          })
           addToast('success', 'Flashcard atualizado.')
           break
         }
@@ -287,7 +316,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const card = state.cards.find((c) => c.id === cardId)
           if (card) {
             await Promise.all([
-              updateFlashcardSM2(cardId, { ef, interval, reps: repetitions, nextReview, lastReview, mastery }),
+              updateFlashcardSM2(cardId, {
+                ef,
+                interval,
+                reps: repetitions,
+                nextReview,
+                lastReview,
+                mastery,
+              }),
               recordReviewCycle({
                 userId,
                 flashcardId: cardId,
@@ -298,9 +334,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 intervalAfter: interval,
                 xpEarned,
               }),
-              saveRetentionSnapshot(userId, cardId, calcRetention({ ...card, ef, interval, reps: repetitions, nextReview, lastReview, mastery })),
+              saveRetentionSnapshot(
+                userId,
+                cardId,
+                calcRetention({
+                  ...card,
+                  ef,
+                  interval,
+                  reps: repetitions,
+                  nextReview,
+                  lastReview,
+                  mastery,
+                })
+              ),
               updateUserTotalXP(userId, xpEarned),
-              logCognitiveEvent(userId, 'card_reviewed', { card_id: cardId, quality: action.payload.quality ?? 3, xp_earned: xpEarned }),
+              logCognitiveEvent(userId, 'card_reviewed', {
+                card_id: cardId,
+                quality: action.payload.quality ?? 3,
+                xp_earned: xpEarned,
+              }),
             ])
           }
           break
@@ -318,17 +370,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               duration: session.duration ?? 0,
               cardsCreated: cards.length,
               xpEarned: 10,
+              notes: session.notes,
+              highlights: session.highlights,
+              teachText: session.teach,
             }),
-            cards.length > 0
-              ? createFlashcards(userId, contentId, cards)
-              : Promise.resolve(),
-            updateContentProgress(contentId, Math.min(100, (state.contents.find(c => c.id === contentId)?.progress ?? 0) + 10)),
+            cards.length > 0 ? createFlashcards(userId, contentId, cards) : Promise.resolve(),
+            updateContentProgress(
+              contentId,
+              Math.min(100, (state.contents.find((c) => c.id === contentId)?.progress ?? 0) + 10)
+            ),
             updateUserTotalXP(userId, 10),
             isNewDay
               ? updateUserStreak(userId, newStreak, new Date().toISOString().split('T')[0])
               : Promise.resolve(),
-            logCognitiveEvent(userId, 'session_end', { content_id: contentId, cards_created: cards.length }),
+            logCognitiveEvent(userId, 'session_end', {
+              content_id: contentId,
+              cards_created: cards.length,
+            }),
           ])
+          await deleteDraft(userId, contentId).catch(() => {}) // silencia erro de delete
           addToast('success', 'Sessão concluída! +10 XP')
           break
         }
