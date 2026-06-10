@@ -1,7 +1,7 @@
 # NeuroLearn — Progresso do Projeto
 
 > **Última atualização:** 2026-06-10
-> **Status geral:** PROFILE-UPGRADE completo. 373 testes unitários + E2E profile-upgrade.spec.ts TC-PROF-001..012. Metas de estudo configuráveis (Supabase JSONB), histórico de atividade e stats no perfil. Dashboard com progress bars de metas. Branch-per-feature workflow ativo.
+> **Status geral:** F-080 Core Web Vitals completo. 373 testes unitários. Otimizações LCP (preconnect, font display:swap), CLS (skeletons com altura reservada), INP (startTransition + React.memo Sidebar/BottomNav), bundle (bundle-analyzer, optimizePackageImports), lazy load (dynamic ssr:false). Branch-per-feature workflow ativo.
 
 ---
 
@@ -46,11 +46,10 @@
 | LEARNING-STRUCTURE-01 (LS-01-B)  | Paginação por trilha (PAGE_SIZE=6), busca estendida (título+autor+desc), useMemo, botões "Ver mais/Menos", 8 testes E2E                                       | ✅ Concluída |
 | HELP-UX-01                       | Busca em tempo real na Central de Ajuda (title+tagline+steps), deep-link ?section=id, Suspense Next.js 15, TC-HELP-001..013                                   | ✅ Concluída |
 | PROFILE-UPGRADE                  | Metas de estudo (JSONB), histórico de atividade (7 sessões), stats de resumo; Dashboard com 4 progress bars de metas; TC-PROF-001..012                        | ✅ Concluída |
-| 5                                | Fase 5: Core Web Vitals, otimizações de performance                                                                                                            | 🔜 Próxima   |
+| F-080                            | Core Web Vitals: LCP (preconnect+font swap), CLS (skeletons), INP (startTransition+memo), bundle (analyzer+optimizePackageImports), lazy load (dynamic ssr:false) | ✅ Concluída |
+| 6                                | Gamificação v2: missões diárias, ranking, streak recovery                                                                                                      | 🔜 Futura    |
 | 6                                | Gamificação v2: missões diárias, ranking, streak recovery                                                                                                      | 🔜 Futura    |
 | 7                                | Crescimento: blog educacional, landing v2, Open Graph                                                                                                          | 🔜 Futura    |
-| 6                                | Gamificação avançada (ranking, missões diárias)                                                                                                                | 🔜 Futura    |
-| 7                                | Painel admin + configurações de usuário                                                                                                                        | 🔜 Futura    |
 
 ---
 
@@ -317,6 +316,7 @@ Executado com skill `qa-estrategico` (heurísticas CREA + ALTER FACE). **17 bugs
 | 2026-06-10 | HELP-UX-01: busca em tempo real na Central de Ajuda (title+tagline+steps.t+steps.d, normalize NFD); botão × para limpar; contador; deep-link /help?section=id via useSearchParams; Suspense boundary em page.tsx; TC-HELP-001..013. Gate: 373/373 ✅. |
 | 2026-06-10 | LEARNING-STRUCTURE-01 (LS-01-B): Paginação por trilha (PAGE_SIZE=6) + busca estendida (título+autor+desc). useMemo para filtered, trailGroups e orphanContents. Botões "Ver mais N conteúdos" / "Menos ↑" por seção. Paginação desativa durante busca ativa. data-testid: btn-show-more-{id}, btn-show-less-{id}, -orphan. ls01b.spec.ts TC-LS01B-001..008. Gate: 373/373 ✅ lint ✅ type-check ✅ build ✅. |
 | 2026-06-10 | LEARNING-STRUCTURE-01 (LS-01-A): Hierarquia Trilhas→Conteúdos. T-01: migration SQL (`learning_trails` + `trail_id` em contents, RLS `users_own_trails`) aplicada em produção via MCP Supabase. T-02: tipos TypeScript (`LearningTrail`, `TrailType`, `Content.trailId`, 4 AppActions). T-03: `trailsService.ts` (CRUD completo + `createDefaultTrail`) + `contentsService.ts` (`trailId` em create/update). T-04: AppContext — `trails[]` no estado, reducer (ADD/UPDATE/DELETE_TRAIL + ASSIGN_CONTENT_TRAIL), loadData paralelo + auto-criação "Meus Estudos". T-05: `TrailFormModal.tsx` (RHF+Zod, 8 cores, 8 emojis, preview live, ConfirmDialog exclusão). T-06: `LibraryView.tsx` — agrupamento por trilha, seção "Sem Trilha", botão "+ Trilha". T-08: RLS audit — 9 tabelas verificadas, todas com RLS ativo. T-09: `trails.spec.ts` (TC-TRL-001..010) + playwright.config.ts atualizado. Gate: 373/373 ✅, lint ✅, type-check ✅, build ✅. |
+| 2026-06-10 | F-080 Core Web Vitals: LCP — `Inter({ display: 'swap' })` + `<link rel="preconnect">` Supabase + `dns-prefetch` PostHog/Sentry; CLS — `DashboardSkeleton` (5 blocos) + `LibraryView` skeleton (4 blocos) com alturas reservadas; INP — `startTransition` em busca (Library+Help) + `React.memo` em Sidebar+BottomNav; Bundle — `@next/bundle-analyzer` + `cross-env` + script `analyze` + `optimizePackageImports`; Lazy — `AnalyticsIdentifier`/`ServiceWorkerRegistrar`/`PushNotificationPrompt` → `next/dynamic ssr:false`. Gate: type-check ✅ lint ✅ 373/373 ✅ build ✅. |
 | 2026-06-10 | PROFILE-UPGRADE: STUDY-GOALS-01 — metas configuráveis (cardsPerDay/minutesPerDay/daysPerWeek/streakGoal) persistidas em `users.study_goals` JSONB (migration MCP + database.types.ts atualizado); formulário RHF+Zod com `zodResolver` explicitamente tipado. ACTIVITY-HISTORY-01 — timeline compacta das últimas 7 sessões (conteúdo, fmtDuration, cardsCreated, relativeDate). STATS-PROFILE-01 — 3 chips no topo (flashcards, streak, dias ativos). DashboardView — card "Metas de Hoje" com 4 progress bars (cardsReviewedToday/minutesToday/activeWeekDays/streak). FocusView + SettingsView — `cardsCreated` adicionado ao `StudySession`. `profile-upgrade.spec.ts` TC-PROF-001..012. Gate: type-check ✅ lint ✅ 373/373 ✅ build ✅. |
 
 ---
@@ -1406,6 +1406,47 @@ Implementação de 2 das 5 melhorias solicitadas (IMP-01 e IMP-04). IMP-02 (conf
 ### QA — Casos testados (qa-expert)
 
 12 test cases TC-REV-001 a TC-REV-012 cobrindo: tab switcher em todos os estados, preservação de estado da revisão ao trocar tabs, desativação de atalhos no tab errado, highlights âmbar + aria-label dinâmico, sidebar label, reset de estado do MemoryView.
+
+---
+
+## F-080 — Core Web Vitals ✅
+
+**Data:** 2026-06-10 | **Branch:** `feature/f-080-cwv`
+
+### Objetivo
+
+Medir e corrigir os gargalos reais de LCP, CLS e INP no NeuroLearn com base em análise de código real (não heurísticas genéricas).
+
+### Arquivos modificados
+
+| Arquivo | O que mudou |
+|---------|-------------|
+| `next.config.ts` | `@next/bundle-analyzer` (conditional wrap), `experimental.optimizePackageImports` para supabase-js/zod/react-hook-form/@hookform/resolvers |
+| `package.json` | `cross-env` + `@next/bundle-analyzer` devDependencies; script `"analyze"` |
+| `src/app/layout.tsx` | `Inter({ display: 'swap' })` para LCP; `<link rel="preconnect">` Supabase + `dns-prefetch` PostHog/Sentry |
+| `src/app/(app)/AppShell.tsx` | `AnalyticsIdentifier`, `ServiceWorkerRegistrar`, `PushNotificationPrompt` → `next/dynamic` com `ssr: false` |
+| `src/modules/library/LibraryView.tsx` | `useTransition` + `startTransition` no onChange de busca; skeleton CLS com alturas reservadas (48+200+200+200px) |
+| `src/modules/help/HelpView.tsx` | `useTransition` + `startTransition` no onChange de busca |
+| `src/modules/dashboard/DashboardView.tsx` | `DashboardSkeleton` com 5 blocos de altura reservada (80+200+120+180+200px); early-return se `loading` |
+| `src/components/layout/Sidebar.tsx` | `React.memo` → evita re-render a cada dispatch AppContext |
+| `src/components/layout/BottomNav.tsx` | `React.memo` → evita re-render a cada dispatch AppContext |
+| `.specs/features/f-080-core-web-vitals/spec.md` | Spec LCP-01..03, CLS-01..02, INP-01..05, BUN-01..02 |
+| `.specs/features/f-080-core-web-vitals/tasks.md` | T-01..T-07 com critérios done-when e gate checks |
+
+### Decisões técnicas
+
+- **`React.memo` pattern:** `export const X = memo(function X(...) { ... })` — preserva displayName para DevTools.
+- **`startTransition` para busca:** marca setSearch como não-urgente, liberando o thread principal para interações INP-críticas.
+- **Skeleton CLS:** pattern `if (loading) return <Skeleton />` (early-return) alinha com ProfileView; alturas explícitas reservam espaço antes da hidratação.
+- **`ssr: false` para não-críticos:** `AnalyticsIdentifier`, `ServiceWorkerRegistrar`, `PushNotificationPrompt` não impactam o render inicial — lazy carregados após hydration.
+- **`optimizePackageImports`:** reduz side-effect imports de supabase-js e zod sem mudança de código nos imports.
+
+### Resultado do gate
+
+- `npm run type-check` — ✅ zero erros
+- `npm run lint` — ✅ zero warnings
+- `npm run test:unit` — ✅ 373/373
+- `npm run build` — ✅ build limpo
 
 ---
 
