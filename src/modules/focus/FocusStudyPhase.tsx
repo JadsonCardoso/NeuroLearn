@@ -1,0 +1,121 @@
+'use client'
+
+interface Props {
+  running: boolean
+  notes: string
+  highlights: string[]
+  hiInput: string
+  mm: string
+  ss: string
+  r: number
+  circumference: number
+  offset: number
+  onToggleRunning: () => void
+  onResetTimer: () => void
+  onNotesChange: (v: string) => void
+  onHiInputChange: (v: string) => void
+  onAddHighlight: () => void
+  onRemoveHighlight: (i: number) => void
+  onNext: () => void
+}
+
+export function FocusStudyPhase({
+  running, notes, highlights, hiInput,
+  mm, ss, r, circumference, offset,
+  onToggleRunning, onResetTimer, onNotesChange,
+  onHiInputChange, onAddHighlight, onRemoveHighlight, onNext,
+}: Props) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '22px' }}>
+      <div
+        className="card"
+        style={{
+          padding: '22px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '14px',
+          minWidth: '190px',
+        }}
+      >
+        <div style={{ position: 'relative' }}>
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r={r} fill="none" stroke="var(--border)" strokeWidth="8" />
+            <circle
+              cx="55" cy="55" r={r} fill="none" stroke="#7c3aed" strokeWidth="8"
+              strokeDasharray={circumference} strokeDashoffset={offset}
+              strokeLinecap="round" transform="rotate(-90 55 55)"
+              style={{ transition: 'stroke-dashoffset 1s linear' }}
+            />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text)', fontFamily: 'monospace' }}>
+              {mm}:{ss}
+            </span>
+          </div>
+        </div>
+        <div style={{ fontSize: '11px', color: 'var(--text3)' }}>Pomodoro · 25 min</div>
+        <button data-testid="btn-timer-toggle" className="btn-primary" style={{ width: '100%' }} onClick={onToggleRunning}>
+          {running ? '⏸ Pausar' : '▶ Iniciar'}
+        </button>
+        <button className="btn-secondary" style={{ width: '100%', fontSize: '12px' }} onClick={onResetTimer}>
+          ↺ Resetar
+        </button>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px', width: '100%' }}>
+          <p style={{ fontSize: '10px', color: 'var(--text3)', textAlign: 'center', lineHeight: '1.5' }}>
+            💡 Foque em 1 coisa.<br />Sem celular. Sem abas.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div className="card" style={{ padding: '18px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)', marginBottom: '10px' }}>
+            ✏️ Anotações
+          </h3>
+          <textarea
+            className="textarea"
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            placeholder="Escreva pontos principais, insights, dúvidas..."
+            style={{ minHeight: '130px' }}
+          />
+        </div>
+        <div className="card" style={{ padding: '18px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)', marginBottom: '10px' }}>
+            🔖 Highlights
+          </h3>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            <input
+              className="input"
+              value={hiInput}
+              onChange={(e) => onHiInputChange(e.target.value)}
+              placeholder="Conceito importante..."
+              style={{ flex: 1 }}
+              onKeyDown={(e) => e.key === 'Enter' && onAddHighlight()}
+            />
+            <button className="btn-primary" onClick={onAddHighlight}>+</button>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+            {highlights.map((h, i) => (
+              <span
+                key={i} className="badge"
+                style={{ background: 'rgba(124,58,237,.15)', color: '#a78bfa', cursor: 'pointer' }}
+                onClick={() => onRemoveHighlight(i)}
+              >
+                {h} ×
+              </span>
+            ))}
+          </div>
+        </div>
+        <button
+          className="btn-primary"
+          style={{ alignSelf: 'flex-end', paddingLeft: '24px', paddingRight: '24px' }}
+          onClick={onNext}
+        >
+          Finalizar Sessão →
+        </button>
+      </div>
+    </div>
+  )
+}

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client'
 import type { DbSkill, DbUserSkill } from '@/types/database.types'
 import type { Skill, SkillCategory } from '@/types'
+import { calculateLevelUp } from '@/engine/mastery/levelUp'
 
 function toSkill(row: DbUserSkill & { skill: DbSkill }): Skill {
   return {
@@ -53,15 +54,11 @@ export async function gainSkillXP(
   currentMaxXp: number
 ): Promise<void> {
   const supabase = createClient()
-  let xp = currentXp + amount
-  let level = currentLevel
-  let maxXp = currentMaxXp
-
-  if (xp >= maxXp && level < 5) {
-    xp -= maxXp
-    level++
-    maxXp += 100
-  }
+  const { xp, level, maxXp } = calculateLevelUp({
+    xp: currentXp + amount,
+    level: currentLevel,
+    maxXp: currentMaxXp,
+  })
 
   const { error } = await supabase
     .from('user_skills')
