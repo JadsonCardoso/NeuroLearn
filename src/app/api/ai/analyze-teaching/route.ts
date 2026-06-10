@@ -16,11 +16,14 @@ const AI_RATE_WINDOW_MS = 15 * 60 * 1000
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Auth
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) {
     return NextResponse.json<AIErrorResponse>(
       { error: 'Não autenticado', code: 'UNAUTHORIZED' },
-      { status: 401 },
+      { status: 401 }
     )
   }
 
@@ -29,8 +32,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!rl.allowed) {
     logSecurityEvent('rate_limit.exceeded', { userId: user.id, endpoint: 'analyze-teaching' })
     return NextResponse.json<AIErrorResponse>(
-      { error: 'Limite de chamadas atingido. Tente novamente em instantes.', code: 'RATE_LIMITED', retryAfter: Math.ceil(rl.retryAfterMs / 1000) },
-      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } },
+      {
+        error: 'Limite de chamadas atingido. Tente novamente em instantes.',
+        code: 'RATE_LIMITED',
+        retryAfter: Math.ceil(rl.retryAfterMs / 1000),
+      },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } }
     )
   }
 
@@ -41,7 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch {
     return NextResponse.json<AIErrorResponse>(
       { error: 'Body inválido', code: 'INVALID_INPUT' },
-      { status: 422 },
+      { status: 422 }
     )
   }
 
@@ -49,7 +56,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!parsed.success) {
     return NextResponse.json<AIErrorResponse>(
       { error: parsed.error.issues[0]?.message ?? 'Input inválido', code: 'INVALID_INPUT' },
-      { status: 422 },
+      { status: 422 }
     )
   }
 
@@ -64,10 +71,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       maxTokens: 1024,
       jsonMode: true,
     })
-  } catch {
+  } catch (err) {
+    console.error('[ai/analyze-teaching] callAI failed:', err instanceof Error ? err.message : err)
     return NextResponse.json<AIErrorResponse>(
       { error: 'Erro ao processar com IA. Tente novamente.', code: 'AI_ERROR' },
-      { status: 500 },
+      { status: 500 }
     )
   }
 
@@ -75,20 +83,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let analysis: TeachAnalysis
   try {
     const text = result.text.trim()
-    const jsonText = text.startsWith('```') ? text.replace(/```json?\n?/g, '').replace(/```$/g, '').trim() : text
+    const jsonText = text.startsWith('```')
+      ? text
+          .replace(/```json?\n?/g, '')
+          .replace(/```$/g, '')
+          .trim()
+      : text
     const rawParsed = JSON.parse(jsonText)
     const output = analyzeTeachingOutputSchema.safeParse(rawParsed)
     if (!output.success) {
       return NextResponse.json<AIErrorResponse>(
         { error: 'IA retornou resposta inválida', code: 'AI_INVALID_OUTPUT' },
-        { status: 422 },
+        { status: 422 }
       )
     }
     analysis = output.data
   } catch {
     return NextResponse.json<AIErrorResponse>(
       { error: 'Resposta da IA em formato inesperado. Tente novamente.', code: 'AI_ERROR' },
-      { status: 500 },
+      { status: 500 }
     )
   }
 
