@@ -53,6 +53,7 @@ export default defineConfig({
         '**/capture-screenshots.spec.ts',
         '**/profile.spec.ts',
         '**/ai-validation.spec.ts',
+        '**/help.spec.ts',
       ],
     },
 
@@ -76,6 +77,7 @@ export default defineConfig({
         '**/capture-screenshots.spec.ts',
         '**/profile.spec.ts',
         '**/ai-validation.spec.ts',
+        '**/help.spec.ts',
       ],
     },
   ],
