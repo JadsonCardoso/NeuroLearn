@@ -12,12 +12,19 @@ export async function GET(request: Request) {
   // Usa env var para evitar origin interno do servidor (ex: 0.0.0.0:3000 em proxies)
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? ''
   const proto = request.headers.get('x-forwarded-proto') ?? 'https'
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? (host ? `${proto}://${host}` : 'https://neurolearn.tech')
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? (host ? `${proto}://${host}` : 'https://neurolearn.tech')
+
+  const type = searchParams.get('type')
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // Redireciona para tela de redefinição de senha quando type=recovery
+      if (type === 'recovery') {
+        return NextResponse.redirect(`${siteUrl}/auth/update-password`)
+      }
       return NextResponse.redirect(`${siteUrl}${next}`)
     }
   }
