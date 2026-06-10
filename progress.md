@@ -1,7 +1,7 @@
 # NeuroLearn — Progresso do Projeto
 
 > **Última atualização:** 2026-06-10
-> **Status geral:** HELP-UX-01 completo. 373 testes unitários + E2E help.spec.ts TC-HELP-001..013. Central de Ajuda com busca em tempo real (title+tagline+steps) e deep-link /help?section=id. Branch-per-feature workflow ativo.
+> **Status geral:** PROFILE-UPGRADE completo. 373 testes unitários + E2E profile-upgrade.spec.ts TC-PROF-001..012. Metas de estudo configuráveis (Supabase JSONB), histórico de atividade e stats no perfil. Dashboard com progress bars de metas. Branch-per-feature workflow ativo.
 
 ---
 
@@ -45,6 +45,7 @@
 | HELP-UPDATE-01                   | Central de Ajuda: 12 módulos (5 novos + 2 atualizados), `<button>` nativo WCAG, data-testid, help.spec.ts TC-HELP-001..007                                    | ✅ Concluída |
 | LEARNING-STRUCTURE-01 (LS-01-B)  | Paginação por trilha (PAGE_SIZE=6), busca estendida (título+autor+desc), useMemo, botões "Ver mais/Menos", 8 testes E2E                                       | ✅ Concluída |
 | HELP-UX-01                       | Busca em tempo real na Central de Ajuda (title+tagline+steps), deep-link ?section=id, Suspense Next.js 15, TC-HELP-001..013                                   | ✅ Concluída |
+| PROFILE-UPGRADE                  | Metas de estudo (JSONB), histórico de atividade (7 sessões), stats de resumo; Dashboard com 4 progress bars de metas; TC-PROF-001..012                        | ✅ Concluída |
 | 5                                | Fase 5: Core Web Vitals, otimizações de performance                                                                                                            | 🔜 Próxima   |
 | 6                                | Gamificação v2: missões diárias, ranking, streak recovery                                                                                                      | 🔜 Futura    |
 | 7                                | Crescimento: blog educacional, landing v2, Open Graph                                                                                                          | 🔜 Futura    |
@@ -316,6 +317,7 @@ Executado com skill `qa-estrategico` (heurísticas CREA + ALTER FACE). **17 bugs
 | 2026-06-10 | HELP-UX-01: busca em tempo real na Central de Ajuda (title+tagline+steps.t+steps.d, normalize NFD); botão × para limpar; contador; deep-link /help?section=id via useSearchParams; Suspense boundary em page.tsx; TC-HELP-001..013. Gate: 373/373 ✅. |
 | 2026-06-10 | LEARNING-STRUCTURE-01 (LS-01-B): Paginação por trilha (PAGE_SIZE=6) + busca estendida (título+autor+desc). useMemo para filtered, trailGroups e orphanContents. Botões "Ver mais N conteúdos" / "Menos ↑" por seção. Paginação desativa durante busca ativa. data-testid: btn-show-more-{id}, btn-show-less-{id}, -orphan. ls01b.spec.ts TC-LS01B-001..008. Gate: 373/373 ✅ lint ✅ type-check ✅ build ✅. |
 | 2026-06-10 | LEARNING-STRUCTURE-01 (LS-01-A): Hierarquia Trilhas→Conteúdos. T-01: migration SQL (`learning_trails` + `trail_id` em contents, RLS `users_own_trails`) aplicada em produção via MCP Supabase. T-02: tipos TypeScript (`LearningTrail`, `TrailType`, `Content.trailId`, 4 AppActions). T-03: `trailsService.ts` (CRUD completo + `createDefaultTrail`) + `contentsService.ts` (`trailId` em create/update). T-04: AppContext — `trails[]` no estado, reducer (ADD/UPDATE/DELETE_TRAIL + ASSIGN_CONTENT_TRAIL), loadData paralelo + auto-criação "Meus Estudos". T-05: `TrailFormModal.tsx` (RHF+Zod, 8 cores, 8 emojis, preview live, ConfirmDialog exclusão). T-06: `LibraryView.tsx` — agrupamento por trilha, seção "Sem Trilha", botão "+ Trilha". T-08: RLS audit — 9 tabelas verificadas, todas com RLS ativo. T-09: `trails.spec.ts` (TC-TRL-001..010) + playwright.config.ts atualizado. Gate: 373/373 ✅, lint ✅, type-check ✅, build ✅. |
+| 2026-06-10 | PROFILE-UPGRADE: STUDY-GOALS-01 — metas configuráveis (cardsPerDay/minutesPerDay/daysPerWeek/streakGoal) persistidas em `users.study_goals` JSONB (migration MCP + database.types.ts atualizado); formulário RHF+Zod com `zodResolver` explicitamente tipado. ACTIVITY-HISTORY-01 — timeline compacta das últimas 7 sessões (conteúdo, fmtDuration, cardsCreated, relativeDate). STATS-PROFILE-01 — 3 chips no topo (flashcards, streak, dias ativos). DashboardView — card "Metas de Hoje" com 4 progress bars (cardsReviewedToday/minutesToday/activeWeekDays/streak). FocusView + SettingsView — `cardsCreated` adicionado ao `StudySession`. `profile-upgrade.spec.ts` TC-PROF-001..012. Gate: type-check ✅ lint ✅ 373/373 ✅ build ✅. |
 
 ---
 
