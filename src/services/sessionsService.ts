@@ -8,6 +8,9 @@ interface StudySessionInput {
   cardsCreated: number
   xpEarned: number
   mode?: string
+  notes?: string
+  highlights?: string[]
+  teachText?: string
 }
 
 export async function createStudySession(input: StudySessionInput): Promise<void> {
@@ -20,19 +23,19 @@ export async function createStudySession(input: StudySessionInput): Promise<void
     xp_earned: input.xpEarned,
     mode: input.mode ?? null,
     ended_at: new Date().toISOString(),
+    notes: input.notes ?? '',
+    highlights: input.highlights ?? [],
+    teach_text: input.teachText ?? '',
   })
 
   if (error) throw error
 }
 
-export async function listRecentSessions(
-  userId: string,
-  limit = 30,
-): Promise<StudySession[]> {
+export async function listRecentSessions(userId: string, limit = 30): Promise<StudySession[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('study_sessions')
-    .select('id, content_id, started_at, duration, cards_created')
+    .select('id, content_id, started_at, duration, cards_created, notes, highlights, teach_text')
     .eq('user_id', userId)
     .order('started_at', { ascending: false })
     .limit(limit)
@@ -47,8 +50,8 @@ export async function listRecentSessions(
     cid: row.content_id,
     date: row.started_at ?? new Date().toISOString(),
     duration: row.duration ?? 0,
-    highlights: [],
-    notes: '',
-    teach: '',
+    notes: row.notes ?? '',
+    highlights: Array.isArray(row.highlights) ? (row.highlights as string[]) : [],
+    teach: row.teach_text ?? '',
   }))
 }

@@ -3,21 +3,39 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Brain, Book, Timer, Refresh, Zap, Tree, Help, Settings, User } from '@/components/icons'
+import {
+  Brain,
+  Book,
+  Timer,
+  Refresh,
+  Zap,
+  Tree,
+  Help,
+  Settings,
+  User,
+  Notebook,
+} from '@/components/icons'
 import { ThemeToggle } from './ThemeToggle'
 import { useAppData } from '@/hooks/useAppData'
 import { createClient } from '@/lib/supabase/client'
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard',         icon: Brain,   href: '/dashboard' },
-  { id: 'library',   label: 'Biblioteca',         icon: Book,    href: '/library'   },
-  { id: 'focus',     label: 'Foco',               icon: Timer,   href: '/focus'     },
-  { id: 'review',    label: 'Revisão',             icon: Refresh, href: '/review'    },
-  { id: 'active',    label: 'Aprendizado Ativo',   icon: Zap,     href: '/active'    },
-  { id: 'skills',    label: 'Habilidades',         icon: Tree,    href: '/skills'    },
-  { id: 'help',      label: 'Ajuda',               icon: Help,    href: '/help'      },
-  { id: 'settings',  label: 'Configurações',       icon: Settings, href: '/settings' },
-  { id: 'profile',   label: 'Perfil',              icon: User,    href: '/profile'   },
+  { id: 'dashboard', label: 'Dashboard', icon: Brain, href: '/dashboard', testId: undefined },
+  { id: 'library', label: 'Biblioteca', icon: Book, href: '/library', testId: undefined },
+  { id: 'focus', label: 'Foco', icon: Timer, href: '/focus', testId: undefined },
+  { id: 'review', label: 'Revisão', icon: Refresh, href: '/review', testId: undefined },
+  {
+    id: 'memory',
+    label: 'Caderno',
+    icon: Notebook,
+    href: '/memory',
+    testId: 'sidebar-memory-link',
+  },
+  { id: 'active', label: 'Aprendizado Ativo', icon: Zap, href: '/active', testId: undefined },
+  { id: 'skills', label: 'Habilidades', icon: Tree, href: '/skills', testId: undefined },
+  { id: 'help', label: 'Ajuda', icon: Help, href: '/help', testId: undefined },
+  { id: 'settings', label: 'Configurações', icon: Settings, href: '/settings', testId: undefined },
+  { id: 'profile', label: 'Perfil', icon: User, href: '/profile', testId: undefined },
 ]
 
 interface SidebarProps {
@@ -122,10 +140,8 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
         </div>
 
         {/* Nav */}
-        <nav
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}
-        >
-          {NAV_ITEMS.map(({ id, label, icon: Icon, href }) => {
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          {NAV_ITEMS.map(({ id, label, icon: Icon, href, testId }) => {
             const active = pathname === href || pathname.startsWith(href + '/')
             return (
               <Link
@@ -134,6 +150,7 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
                 className={`nav-item${active ? ' active' : ''}`}
                 onClick={onClose}
                 style={{ position: 'relative', textDecoration: 'none' }}
+                {...(testId ? { 'data-testid': testId } : {})}
               >
                 {active && (
                   <div
@@ -197,7 +214,12 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
                   flexShrink: 0,
                 }}
               >
-                {userName.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')}
+                {userName
+                  .split(' ')
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((w) => w[0].toUpperCase())
+                  .join('')}
               </div>
               <span
                 style={{
@@ -213,7 +235,14 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
               </span>
             </Link>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 var(--space-1)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0 var(--space-1)',
+            }}
+          >
             <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)' }}>Tema</span>
             <ThemeToggle />
           </div>
