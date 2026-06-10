@@ -85,74 +85,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'contents_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
-          },
-          {
             foreignKeyName: 'contents_trail_id_fkey'
             columns: ['trail_id']
             isOneToOne: false
             referencedRelation: 'learning_trails'
             referencedColumns: ['id']
           },
-        ]
-      }
-      learning_trails: {
-        Row: {
-          color: string
-          created_at: string
-          description: string | null
-          goal: string | null
-          icon_emoji: string
-          id: string
-          skill_id: string | null
-          title: string
-          type: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          color?: string
-          created_at?: string
-          description?: string | null
-          goal?: string | null
-          icon_emoji?: string
-          id?: string
-          skill_id?: string | null
-          title: string
-          type?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          color?: string
-          created_at?: string
-          description?: string | null
-          goal?: string | null
-          icon_emoji?: string
-          id?: string
-          skill_id?: string | null
-          title?: string
-          type?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: 'learning_trails_user_id_fkey'
+            foreignKeyName: 'contents_user_id_fkey'
             columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'users'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'learning_trails_skill_id_fkey'
-            columns: ['skill_id']
-            isOneToOne: false
-            referencedRelation: 'skills'
             referencedColumns: ['id']
           },
         ]
@@ -216,6 +159,56 @@ export type Database = {
             columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      learning_trails: {
+        Row: {
+          color: string
+          created_at: string | null
+          description: string | null
+          goal: string | null
+          icon_emoji: string
+          id: string
+          skill_id: string | null
+          title: string
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          description?: string | null
+          goal?: string | null
+          icon_emoji?: string
+          id?: string
+          skill_id?: string | null
+          title: string
+          type?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          description?: string | null
+          goal?: string | null
+          icon_emoji?: string
+          id?: string
+          skill_id?: string | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'learning_trails_skill_id_fkey'
+            columns: ['skill_id']
+            isOneToOne: false
+            referencedRelation: 'skills'
             referencedColumns: ['id']
           },
         ]
@@ -409,6 +402,30 @@ export type Database = {
         }
         Relationships: []
       }
+      streak_shield_uses: {
+        Row: {
+          created_at: string | null
+          id: string
+          streak_preserved: number
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          streak_preserved: number
+          used_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          streak_preserved?: number
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       study_sessions: {
         Row: {
           cards_created: number
@@ -469,6 +486,48 @@ export type Database = {
           },
         ]
       }
+      user_missions: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string | null
+          goal: number
+          id: string
+          mission_id: string
+          period_start: string
+          period_type: string
+          progress: number
+          user_id: string
+          xp_reward: number
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string | null
+          goal: number
+          id?: string
+          mission_id: string
+          period_start: string
+          period_type: string
+          progress?: number
+          user_id: string
+          xp_reward: number
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string | null
+          goal?: number
+          id?: string
+          mission_id?: string
+          period_start?: string
+          period_type?: string
+          progress?: number
+          user_id?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       user_skills: {
         Row: {
           acquired_at: string
@@ -524,6 +583,7 @@ export type Database = {
           name: string | null
           role: string
           streak: number
+          streak_shields: number
           study_goals: Json | null
           total_xp: number
           updated_at: string
@@ -537,6 +597,7 @@ export type Database = {
           name?: string | null
           role?: string
           streak?: number
+          streak_shields?: number
           study_goals?: Json | null
           total_xp?: number
           updated_at?: string
@@ -550,6 +611,7 @@ export type Database = {
           name?: string | null
           role?: string
           streak?: number
+          streak_shields?: number
           study_goals?: Json | null
           total_xp?: number
           updated_at?: string
@@ -722,3 +784,5 @@ export type DbUserSkill = Database['public']['Tables']['user_skills']['Row']
 export type DbSession = Database['public']['Tables']['study_sessions']['Row']
 export type DbDraft = Database['public']['Tables']['session_drafts']['Row']
 export type DbTrail = Database['public']['Tables']['learning_trails']['Row']
+export type DbUserMission = Database['public']['Tables']['user_missions']['Row']
+export type DbStreakShieldUse = Database['public']['Tables']['streak_shield_uses']['Row']

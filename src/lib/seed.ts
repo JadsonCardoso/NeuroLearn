@@ -172,4 +172,5 @@ export const SEED: AppState = {
   streak: 5,
   lastStudyDate: new Date().toDateString(),
   totalXp: 1040,
+  streakShields: 1,
 }

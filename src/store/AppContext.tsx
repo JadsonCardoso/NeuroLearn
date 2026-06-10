@@ -32,6 +32,11 @@ import {
 import { saveRetentionSnapshot } from '@/services/retentionService'
 import { logCognitiveEvent } from '@/services/cognitiveEventsService'
 import { loadState, saveState } from '@/services/localStorageService'
+import {
+  trackEvent as trackMissionEvent,
+  consumeStreakShield,
+  getStreakShields,
+} from '@/services/missionsService'
 import { calcRetention } from '@/engine/retention/retentionModel'
 import { calculateStreak } from '@/store/reducers/streakReducer'
 import { calculateLevelUp } from '@/engine/mastery/levelUp'
@@ -55,6 +60,7 @@ export const EMPTY_STATE: AppState = {
   streak: 0,
   lastStudyDate: '',
   totalXp: 0,
+  streakShields: 0,
 }
 
 // ── Reducer (mantido igual à Fase 1) ────────────────────────────────────────
@@ -193,6 +199,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       }
     }
 
+    case 'LOAD_SHIELDS':
+      return { ...state, streakShields: action.payload }
+
+    case 'USE_SHIELD':
+      return { ...state, streakShields: Math.max(0, (state.streakShields ?? 1) - 1) }
+
     default:
       return state
   }
@@ -205,6 +217,9 @@ interface AppContextValue {
   dispatch: React.Dispatch<AppAction>
   userId: string | null
   loading: boolean
+  streakRecoverable: boolean
+  setStreakRecoverable: (v: boolean) => void
+  useShield: () => Promise<void>
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -215,6 +230,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, EMPTY_STATE)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [streakRecoverable, setStreakRecoverable] = useState(false)
   const { addToast } = useToastContext()
 
   // Carrega estado do Supabase ao inicializar
@@ -243,7 +259,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           listUserSkills(user.id),
           supabase
             .from('users')
-            .select('total_xp, streak, last_study_date')
+            .select('total_xp, streak, last_study_date, streak_shields')
             .eq('id', user.id)
             .single(),
           listRecentSessions(user.id),
@@ -264,6 +280,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           })
         }
 
+        const currentStreak = userData?.streak ?? 0
+        const lastStudyDate = userData?.last_study_date ?? ''
+        const shields = userData?.streak_shields ?? 1
+
         dispatch({
           type: 'LOAD_STATE',
           payload: {
@@ -272,11 +292,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             skills,
             sessions,
             trails: finalTrails,
-            streak: userData?.streak ?? 0,
-            lastStudyDate: userData?.last_study_date ?? '',
+            streak: currentStreak,
+            lastStudyDate,
             totalXp: userData?.total_xp ?? 0,
+            streakShields: shields,
           },
         })
+
+        // Detecta streak quebrado: último estudo < ontem, streak > 1, shields > 0
+        if (currentStreak > 1 && shields > 0 && lastStudyDate) {
+          const today = new Date().toISOString().split('T')[0]
+          const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+          if (lastStudyDate < yesterday && lastStudyDate !== today) {
+            setStreakRecoverable(true)
+          }
+        }
       } catch (err) {
         console.error('[AppContext] Erro ao carregar estado do Supabase:', err)
         // Fallback para localStorage se Supabase falhar
@@ -357,6 +387,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               count: action.payload.length,
               content_id: contentId,
             })
+          }
+          // Rastreia progresso de missões de criação de cards — fire-and-forget
+          if (contentId && action.payload.length > 0) {
+            trackMissionEvent(userId, 'cards_created', { cardCount: action.payload.length })
+              .then((completions) => {
+                completions.forEach((c) => {
+                  dispatch({ type: 'EARN_XP', payload: { amount: c.xpReward } })
+                  addToast('success', `✅ Missão concluída! +${c.xpReward} XP`)
+                })
+              })
+              .catch(() => {})
           }
           addToast('success', `Flashcards criados! (${action.payload.length} cards)`)
           break
@@ -440,7 +481,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               cards_created: cards.length,
             }),
           ])
-          await deleteDraft(userId, contentId).catch(() => {}) // silencia erro de delete
+          await deleteDraft(userId, contentId).catch(() => {})
+          // Rastreia progresso de missões — fire-and-forget
+          trackMissionEvent(userId, 'focus_session_end', {
+            duration: session.duration ?? 0,
+            contentId,
+            currentStreak: isNewDay ? newStreak : state.streak,
+          })
+            .then((completions) => {
+              completions.forEach((c) => {
+                dispatch({ type: 'EARN_XP', payload: { amount: c.xpReward } })
+                addToast('success', `✅ Missão concluída! +${c.xpReward} XP`)
+                if (c.grantsShield)
+                  dispatch({ type: 'LOAD_SHIELDS', payload: state.streakShields + 1 })
+              })
+            })
+            .catch(() => {})
           addToast('success', 'Sessão concluída! +10 XP')
           break
         }
@@ -549,8 +605,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function handleUseShield() {
+    if (!userId || state.streakShields <= 0) return
+    try {
+      const remaining = await consumeStreakShield(userId, state.streak)
+      dispatch({ type: 'USE_SHIELD' })
+      setStreakRecoverable(false)
+      addToast('success', `🛡️ Streak Shield usado! Sequência de ${state.streak} dias preservada.`)
+      // Recarrega shields do banco para garantir consistência
+      const fresh = await getStreakShields(userId)
+      dispatch({ type: 'LOAD_SHIELDS', payload: remaining ?? fresh })
+    } catch (err) {
+      console.error('[AppContext] Erro ao usar shield:', err)
+      addToast('error', 'Não foi possível usar o Streak Shield.')
+    }
+  }
+
   return (
-    <AppContext.Provider value={{ state, dispatch: originalDispatch, userId, loading }}>
+    <AppContext.Provider
+      value={{
+        state,
+        dispatch: originalDispatch,
+        userId,
+        loading,
+        streakRecoverable,
+        setStreakRecoverable,
+        useShield: handleUseShield,
+      }}
+    >
       {children}
     </AppContext.Provider>
   )

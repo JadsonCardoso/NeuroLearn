@@ -19,6 +19,10 @@ import { getAtRiskCards, getRetentionHistory } from '@/services/analyticsService
 import type { AtRiskCard, RetentionHistoryPoint } from '@/services/analyticsService'
 import { getUserProfile, DEFAULT_STUDY_GOALS } from '@/services/profileService'
 import type { StudyGoals } from '@/services/profileService'
+import { useMissions } from '@/hooks/useMissions'
+import { MissionsPanel } from '@/components/ui/MissionsPanel'
+import { StreakRecoveryBanner } from '@/components/ui/StreakRecoveryBanner'
+import { useAppContext } from '@/store/AppContext'
 
 // Saudação contextual baseada no horário
 function getGreeting(): string {
@@ -49,6 +53,8 @@ function DashboardSkeleton() {
 
 export function DashboardView() {
   const { state, userId, loading } = useAppData()
+  const { streakRecoverable, setStreakRecoverable, useShield } = useAppContext()
+  const { dailyMissions, weeklyMissions, loading: missionsLoading } = useMissions(userId)
   const router = useRouter()
 
   // Cards em risco reais do Supabase (null = carregando, [] = sem dados / usar fallback)
@@ -212,6 +218,27 @@ export function DashboardView() {
         title={greeting ? `${greeting}! 👋` : 'NeuroLearn'}
         subtitle={dateLabel}
       />
+
+      {/* Banner de recuperação de streak */}
+      {streakRecoverable && state.streakShields > 0 && (
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <StreakRecoveryBanner
+            streak={state.streak}
+            shields={state.streakShields}
+            onUseShield={useShield}
+            onDismiss={() => setStreakRecoverable(false)}
+          />
+        </div>
+      )}
+
+      {/* Painel de missões */}
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <MissionsPanel
+          dailyMissions={dailyMissions}
+          weeklyMissions={weeklyMissions}
+          loading={missionsLoading}
+        />
+      </div>
 
       {/* CTA Principal — destaque máximo quando há cards pendentes */}
       {due.length > 0 && (
