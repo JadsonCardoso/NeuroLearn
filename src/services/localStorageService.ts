@@ -23,6 +23,7 @@ export function loadState(): AppState {
       cards: parsed.cards,
       skills: parsed.skills,
       sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
+      trails: Array.isArray(parsed.trails) ? parsed.trails : [],
       streak: typeof parsed.streak === 'number' ? parsed.streak : 0,
       lastStudyDate: parsed.lastStudyDate ?? '',
       totalXp: typeof parsed.totalXp === 'number' ? parsed.totalXp : 0,

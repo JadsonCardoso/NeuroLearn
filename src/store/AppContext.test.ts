@@ -13,6 +13,7 @@ const makeContent = (id = 'c1'): Content => ({
   progress: 0,
   color: '#7c3aed',
   addedAt: '2026-01-01T00:00:00.000Z',
+  trailId: null,
 })
 
 const makeCard = (id = 'card1', cid = 'c1'): FlashCard => ({
@@ -111,13 +112,19 @@ describe('appReducer — DELETE_CONTENT', () => {
 describe('appReducer — UPDATE_CONTENT_PROGRESS', () => {
   it('atualiza o progresso do conteúdo correto', () => {
     const state: AppState = { ...EMPTY_STATE, contents: [makeContent('c1')] }
-    const next = appReducer(state, { type: 'UPDATE_CONTENT_PROGRESS', payload: { id: 'c1', progress: 75 } })
+    const next = appReducer(state, {
+      type: 'UPDATE_CONTENT_PROGRESS',
+      payload: { id: 'c1', progress: 75 },
+    })
     expect(next.contents[0].progress).toBe(75)
   })
 
   it('não altera outros conteúdos', () => {
     const state: AppState = { ...EMPTY_STATE, contents: [makeContent('c1'), makeContent('c2')] }
-    const next = appReducer(state, { type: 'UPDATE_CONTENT_PROGRESS', payload: { id: 'c1', progress: 50 } })
+    const next = appReducer(state, {
+      type: 'UPDATE_CONTENT_PROGRESS',
+      payload: { id: 'c1', progress: 50 },
+    })
     expect(next.contents[1].progress).toBe(0)
   })
 })
@@ -127,7 +134,10 @@ describe('appReducer — UPDATE_CONTENT_PROGRESS', () => {
 describe('appReducer — ADD_CARDS', () => {
   it('adiciona cards ao array', () => {
     const state: AppState = { ...EMPTY_STATE, cards: [makeCard('card1')] }
-    const next = appReducer(state, { type: 'ADD_CARDS', payload: [makeCard('card2'), makeCard('card3')] })
+    const next = appReducer(state, {
+      type: 'ADD_CARDS',
+      payload: [makeCard('card2'), makeCard('card3')],
+    })
     expect(next.cards).toHaveLength(3)
   })
 
@@ -167,7 +177,17 @@ describe('appReducer — RATE_CARD', () => {
     const state: AppState = { ...EMPTY_STATE, totalXp: 50, cards: [makeCard('card1')] }
     const next = appReducer(state, {
       type: 'RATE_CARD',
-      payload: { cardId: 'card1', ef: 2.5, interval: 1, repetitions: 0, nextReview: '2026-01-03', lastReview: '2026-01-02', mastery: 'learning', xpEarned: 15, quality: 3 },
+      payload: {
+        cardId: 'card1',
+        ef: 2.5,
+        interval: 1,
+        repetitions: 0,
+        nextReview: '2026-01-03',
+        lastReview: '2026-01-02',
+        mastery: 'learning',
+        xpEarned: 15,
+        quality: 3,
+      },
     })
     expect(next.totalXp).toBe(65)
   })
@@ -176,7 +196,17 @@ describe('appReducer — RATE_CARD', () => {
     const state: AppState = { ...EMPTY_STATE, cards: [makeCard('card1'), makeCard('card2')] }
     const next = appReducer(state, {
       type: 'RATE_CARD',
-      payload: { cardId: 'card1', ef: 3, interval: 6, repetitions: 2, nextReview: '2026-01-10', lastReview: '2026-01-04', mastery: 'strong', xpEarned: 20, quality: 4 },
+      payload: {
+        cardId: 'card1',
+        ef: 3,
+        interval: 6,
+        repetitions: 2,
+        nextReview: '2026-01-10',
+        lastReview: '2026-01-04',
+        mastery: 'strong',
+        xpEarned: 20,
+        quality: 4,
+      },
     })
     expect(next.cards[1].ef).toBe(2.5)
   })

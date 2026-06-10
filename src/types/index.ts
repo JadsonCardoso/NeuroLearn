@@ -4,6 +4,27 @@ export type UserRole = 'user' | 'admin' | 'super_admin'
 
 export type ContentType = 'book' | 'course' | 'video' | 'article' | 'note'
 
+export type TrailType =
+  | 'course'
+  | 'book'
+  | 'article'
+  | 'free'
+  | 'certification'
+  | 'research'
+  | 'tech'
+
+export interface LearningTrail {
+  id: string
+  title: string
+  type: TrailType
+  description: string
+  color: string
+  iconEmoji: string
+  goal: string
+  skillId: string | null
+  createdAt: string
+}
+
 export interface Content {
   id: string
   title: string
@@ -13,6 +34,7 @@ export interface Content {
   progress: number
   color: string
   addedAt: string
+  trailId: string | null
 }
 
 export type CardMastery = 'new' | 'learning' | 'review' | 'strong'
@@ -30,7 +52,17 @@ export interface FlashCard {
   mastery: CardMastery
 }
 
-export type SkillCategory = 'product' | 'tech' | 'soft' | 'data' | 'business' | 'leadership' | 'design' | 'languages' | 'methods' | 'science'
+export type SkillCategory =
+  | 'product'
+  | 'tech'
+  | 'soft'
+  | 'data'
+  | 'business'
+  | 'leadership'
+  | 'design'
+  | 'languages'
+  | 'methods'
+  | 'science'
 
 export interface Skill {
   id: string
@@ -59,6 +91,7 @@ export interface AppState {
   cards: FlashCard[]
   skills: Skill[]
   sessions: StudySession[]
+  trails: LearningTrail[]
   streak: number
   lastStudyDate: string
   totalXp: number
@@ -82,6 +115,10 @@ export type AppAction =
   | { type: 'FINISH_SESSION'; payload: FinishSessionPayload }
   | { type: 'EARN_XP'; payload: { amount: number } }
   | { type: 'UPDATE_STREAK' }
+  | { type: 'ADD_TRAIL'; payload: LearningTrail }
+  | { type: 'UPDATE_TRAIL'; payload: Partial<LearningTrail> & { id: string } }
+  | { type: 'DELETE_TRAIL'; payload: string }
+  | { type: 'ASSIGN_CONTENT_TRAIL'; payload: { contentId: string; trailId: string | null } }
 
 export interface RateCardPayload {
   cardId: string

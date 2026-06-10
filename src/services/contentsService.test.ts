@@ -4,13 +4,13 @@ import type { DbContent } from '@/types/database.types'
 // ── Mock do Supabase ──────────────────────────────────────────────────────────
 
 const mockChain = {
-  from:   vi.fn(),
+  from: vi.fn(),
   select: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
-  eq:     vi.fn(),
-  order:  vi.fn(),
+  eq: vi.fn(),
+  order: vi.fn(),
   single: vi.fn(),
 }
 
@@ -38,11 +38,14 @@ const dbRow: DbContent = {
   color: '#7c3aed',
   added_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
+  trail_id: null,
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  Object.values(mockChain).forEach((fn) => (fn as ReturnType<typeof vi.fn>).mockReturnValue(mockChain))
+  Object.values(mockChain).forEach((fn) =>
+    (fn as ReturnType<typeof vi.fn>).mockReturnValue(mockChain)
+  )
 })
 
 // ── listContents ──────────────────────────────────────────────────────────────

@@ -35,6 +35,15 @@ import { loadState, saveState } from '@/services/localStorageService'
 import { calcRetention } from '@/engine/retention/retentionModel'
 import { calculateStreak } from '@/store/reducers/streakReducer'
 import { calculateLevelUp } from '@/engine/mastery/levelUp'
+import {
+  listTrails,
+  createTrail,
+  updateTrail,
+  deleteTrail,
+  assignContentToTrail,
+  createDefaultTrail,
+} from '@/services/trailsService'
+import type { TrailInput } from '@/services/trailsService'
 
 // ── Estado inicial vazio (antes de carregar do backend) ─────────────────────
 export const EMPTY_STATE: AppState = {
@@ -42,6 +51,7 @@ export const EMPTY_STATE: AppState = {
   cards: [],
   skills: [],
   sessions: [],
+  trails: [],
   streak: 0,
   lastStudyDate: '',
   totalXp: 0,
@@ -155,6 +165,34 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, streak, lastStudyDate }
     }
 
+    case 'ADD_TRAIL':
+      return { ...state, trails: [...(state.trails ?? []), action.payload] }
+
+    case 'UPDATE_TRAIL': {
+      const { id, ...updates } = action.payload
+      return {
+        ...state,
+        trails: (state.trails ?? []).map((t) => (t.id === id ? { ...t, ...updates } : t)),
+      }
+    }
+
+    case 'DELETE_TRAIL':
+      return {
+        ...state,
+        trails: (state.trails ?? []).filter((t) => t.id !== action.payload),
+        contents: state.contents.map((c) =>
+          c.trailId === action.payload ? { ...c, trailId: null } : c
+        ),
+      }
+
+    case 'ASSIGN_CONTENT_TRAIL': {
+      const { contentId, trailId } = action.payload
+      return {
+        ...state,
+        contents: state.contents.map((c) => (c.id === contentId ? { ...c, trailId } : c)),
+      }
+    }
+
     default:
       return state
   }
@@ -199,7 +237,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       try {
         // Todas as queries em paralelo para minimizar latência
-        const [contents, cards, skills, userResult, sessions] = await Promise.all([
+        const [contents, cards, skills, userResult, sessions, trails] = await Promise.all([
           listContents(),
           listAllFlashcards(),
           listUserSkills(user.id),
@@ -209,9 +247,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .eq('id', user.id)
             .single(),
           listRecentSessions(user.id),
+          listTrails(),
         ])
 
         const userData = userResult.data
+
+        // Auto-cria trilha padrão para usuários com conteúdos mas sem trilhas
+        let finalTrails = trails
+        if (trails.length === 0 && contents.length > 0) {
+          const orphanIds = contents.map((c) => c.id)
+          const defaultTrail = await createDefaultTrail(user.id, orphanIds)
+          finalTrails = [defaultTrail]
+          // Reflete a atribuição no array de contents
+          contents.forEach((c) => {
+            c.trailId = defaultTrail.id
+          })
+        }
 
         dispatch({
           type: 'LOAD_STATE',
@@ -220,6 +271,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             cards,
             skills,
             sessions,
+            trails: finalTrails,
             streak: userData?.streak ?? 0,
             lastStudyDate: userData?.last_study_date ?? '',
             totalXp: userData?.total_xp ?? 0,
@@ -455,6 +507,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
           const newStreak = state.lastStudyDate === yesterday ? state.streak + 1 : 1
           await updateUserStreak(userId, newStreak, today)
+          break
+        }
+
+        case 'ADD_TRAIL': {
+          const t = action.payload
+          await createTrail(userId, {
+            title: t.title,
+            type: t.type,
+            description: t.description,
+            color: t.color,
+            iconEmoji: t.iconEmoji,
+            goal: t.goal,
+            skillId: t.skillId,
+          } as TrailInput)
+          addToast('success', 'Trilha criada com sucesso.')
+          break
+        }
+
+        case 'UPDATE_TRAIL': {
+          const { id, ...fields } = action.payload
+          await updateTrail(id, fields as Partial<TrailInput>)
+          addToast('success', 'Trilha atualizada.')
+          break
+        }
+
+        case 'DELETE_TRAIL': {
+          await deleteTrail(action.payload)
+          addToast('success', 'Trilha removida.')
+          break
+        }
+
+        case 'ASSIGN_CONTENT_TRAIL': {
+          await assignContentToTrail(action.payload.contentId, action.payload.trailId)
           break
         }
       }

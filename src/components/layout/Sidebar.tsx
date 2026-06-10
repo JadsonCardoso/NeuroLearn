@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   { id: 'review', label: 'Revisão', icon: Refresh, href: '/review', testId: undefined },
   {
     id: 'memory',
-    label: 'Caderno',
+    label: 'Material',
     icon: Notebook,
     href: '/memory',
     testId: 'sidebar-memory-link',

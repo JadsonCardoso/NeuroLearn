@@ -98,10 +98,10 @@ export function MemoryView() {
             margin: '0 0 6px',
           }}
         >
-          📔 Caderno Cognitivo
+          📔 Meu Material de Estudo
         </h1>
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', margin: 0 }}>
-          Todo conhecimento que você construiu, organizado e acessível.
+          Anotações, highlights e reflexões de todas as suas sessões de estudo.
         </p>
       </div>
 
@@ -410,11 +410,13 @@ export function MemoryView() {
                                 <span
                                   key={i}
                                   style={{
-                                    background: 'rgba(124,58,237,.1)',
-                                    color: '#a78bfa',
+                                    background: 'rgba(245,158,11,.12)',
+                                    color: '#d97706',
+                                    border: '1px solid rgba(245,158,11,.25)',
                                     borderRadius: '20px',
                                     padding: '2px 9px',
                                     fontSize: '11px',
+                                    fontWeight: 500,
                                   }}
                                 >
                                   {h}

@@ -8,7 +8,10 @@ export const emailSchema = z
   .string()
   .trim()
   .min(1, 'O email é obrigatório.')
-  .refine((val) => EMAIL_REGEX.test(val), 'O email informado não é válido. Use o formato nome@dominio.com')
+  .refine(
+    (val) => EMAIL_REGEX.test(val),
+    'O email informado não é válido. Use o formato nome@dominio.com'
+  )
 
 export const nameSchema = z
   .string()
@@ -44,6 +47,24 @@ export const contentSchema = z.object({
   desc: z.string().trim().max(500, 'A descrição deve ter no máximo 500 caracteres.').optional(),
 })
 
+export const trailSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, 'O nome da trilha é obrigatório.')
+    .max(100, 'O nome deve ter no máximo 100 caracteres.'),
+  type: z.enum(['course', 'book', 'article', 'free', 'certification', 'research', 'tech']),
+  description: z
+    .string()
+    .trim()
+    .max(500, 'A descrição deve ter no máximo 500 caracteres.')
+    .optional(),
+  color: z.string().min(1, 'Selecione uma cor.'),
+  iconEmoji: z.string().min(1, 'Selecione um ícone.'),
+  goal: z.string().trim().max(300, 'O objetivo deve ter no máximo 300 caracteres.').optional(),
+})
+
 export type LoginFormValues = z.infer<typeof loginSchema>
 export type SignupFormValues = z.infer<typeof signupSchema>
 export type ContentFormValues = z.infer<typeof contentSchema>
+export type TrailFormValues = z.infer<typeof trailSchema>

@@ -15,11 +15,11 @@ import { contentSchema, type ContentFormValues } from '@/lib/validation/schemas'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 const TYPE_CONFIG: Record<ContentType, { icon: string; color: string }> = {
-  book:    { icon: '📚', color: '#7c3aed' },
-  course:  { icon: '🎓', color: '#06b6d4' },
-  video:   { icon: '🎥', color: '#ef4444' },
+  book: { icon: '📚', color: '#7c3aed' },
+  course: { icon: '🎓', color: '#06b6d4' },
+  video: { icon: '🎥', color: '#ef4444' },
   article: { icon: '📄', color: '#f59e0b' },
-  note:    { icon: '📝', color: '#10b981' },
+  note: { icon: '📝', color: '#10b981' },
 }
 
 interface AddContentModalProps {
@@ -46,9 +46,7 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
 
   // FIX BUG-04: foca no primeiro campo inválido ao submeter
   function onError(fieldErrors: FieldErrors<ContentFormValues>) {
-    const firstInvalid = (['title', 'type', 'author', 'desc'] as const).find(
-      (k) => fieldErrors[k],
-    )
+    const firstInvalid = (['title', 'type', 'author', 'desc'] as const).find((k) => fieldErrors[k])
     if (firstInvalid) setFocus(firstInvalid)
   }
 
@@ -73,6 +71,7 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
       color: TYPE_CONFIG[data.type]?.color ?? '#7c3aed',
       addedAt: new Date().toISOString(),
       progress: 0,
+      trailId: null,
     }
     onAdd(content)
   }
@@ -80,9 +79,14 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
-        zIndex: 200, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', padding: '20px',
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,.6)',
+        zIndex: 200,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
       }}
       onClick={() => tryClose()}
     >
@@ -92,7 +96,14 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cabeçalho */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
+          }}
+        >
           <h2 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text)' }}>
             Novo Conteúdo
           </h2>
@@ -145,7 +156,12 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
             </FormField>
 
             {/* FIX BUG-03: aria-describedby aponta para o id do erro renderizado por FormField */}
-            <FormField label="Descrição" htmlFor="desc" error={errors.desc?.message} hint="Opcional — resumo ou observações sobre o conteúdo">
+            <FormField
+              label="Descrição"
+              htmlFor="desc"
+              error={errors.desc?.message}
+              hint="Opcional — resumo ou observações sobre o conteúdo"
+            >
               <Textarea
                 id="desc"
                 placeholder="Do que se trata este conteúdo?"
@@ -157,7 +173,12 @@ export function AddContentModal({ onAdd, onClose }: AddContentModalProps) {
             </FormField>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-              <button className="btn-secondary" style={{ flex: 1 }} type="button" onClick={tryClose}>
+              <button
+                className="btn-secondary"
+                style={{ flex: 1 }}
+                type="button"
+                onClick={tryClose}
+              >
                 Cancelar
               </button>
               <LoadingButton

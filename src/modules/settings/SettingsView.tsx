@@ -17,49 +17,85 @@ const BackupDataSchema = z.object({
   version: z.string(),
   app: z.literal('NeuroLearn'),
   data: z.object({
-    contents: z.array(z.object({
-      id: z.string(),
-      title: z.string(),
-      type: z.enum(['book', 'course', 'video', 'article', 'note']),
-      author: z.string(),
-      desc: z.string(),
-      progress: z.number(),
-      color: z.string(),
-      addedAt: z.string(),
-    })),
-    cards: z.array(z.object({
-      id: z.string(),
-      cid: z.string(),
-      front: z.string(),
-      back: z.string(),
-      ef: z.number(),
-      interval: z.number(),
-      reps: z.number(),
-      nextReview: z.string().nullable(),
-      lastReview: z.string().nullable(),
-      mastery: z.enum(['new', 'learning', 'review', 'strong']),
-    })),
-    skills: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      level: z.number(),
-      xp: z.number(),
-      maxXp: z.number(),
-      cat: z.enum(['product','tech','soft','data','business','leadership','design','languages','methods','science']),
-      color: z.string(),
-    })),
-    sessions: z.array(z.object({
-      id: z.string(),
-      cid: z.string(),
-      date: z.string(),
-      duration: z.number(),
-      highlights: z.array(z.string()),
-      notes: z.string(),
-      teach: z.string(),
-    })),
+    contents: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        type: z.enum(['book', 'course', 'video', 'article', 'note']),
+        author: z.string(),
+        desc: z.string(),
+        progress: z.number(),
+        color: z.string(),
+        addedAt: z.string(),
+        trailId: z.string().nullable().optional().default(null),
+      })
+    ),
+    cards: z.array(
+      z.object({
+        id: z.string(),
+        cid: z.string(),
+        front: z.string(),
+        back: z.string(),
+        ef: z.number(),
+        interval: z.number(),
+        reps: z.number(),
+        nextReview: z.string().nullable(),
+        lastReview: z.string().nullable(),
+        mastery: z.enum(['new', 'learning', 'review', 'strong']),
+      })
+    ),
+    skills: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        level: z.number(),
+        xp: z.number(),
+        maxXp: z.number(),
+        cat: z.enum([
+          'product',
+          'tech',
+          'soft',
+          'data',
+          'business',
+          'leadership',
+          'design',
+          'languages',
+          'methods',
+          'science',
+        ]),
+        color: z.string(),
+      })
+    ),
+    sessions: z.array(
+      z.object({
+        id: z.string(),
+        cid: z.string(),
+        date: z.string(),
+        duration: z.number(),
+        highlights: z.array(z.string()),
+        notes: z.string(),
+        teach: z.string(),
+      })
+    ),
     streak: z.number(),
     lastStudyDate: z.string(),
     totalXp: z.number(),
+    trails: z
+      .array(
+        z.object({
+          id: z.string(),
+          title: z.string(),
+          type: z.enum(['course', 'book', 'article', 'free', 'certification', 'research', 'tech']),
+          description: z.string(),
+          color: z.string(),
+          iconEmoji: z.string(),
+          goal: z.string(),
+          skillId: z.string().nullable(),
+          createdAt: z.string(),
+        })
+      )
+      .optional()
+      .default([]),
   }),
 })
 
@@ -99,9 +135,11 @@ export function SettingsView() {
   // Email do usuário autenticado — useEffect evita side-effect no render (SEC-SET-01)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email ?? '')
-    })
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        setUserEmail(data.user?.email ?? '')
+      })
   }, [])
 
   // ── Export ─────────────────────────────────────────────────────────────────
@@ -147,7 +185,9 @@ export function SettingsView() {
         const raw = JSON.parse(evt.target?.result as string)
         const result = BackupDataSchema.safeParse(raw)
         if (!result.success) {
-          setImportError('Arquivo inválido ou incompatível. Certifique-se de usar um backup exportado pelo NeuroLearn.')
+          setImportError(
+            'Arquivo inválido ou incompatível. Certifique-se de usar um backup exportado pelo NeuroLearn.'
+          )
           return
         }
         setPendingImport(result.data)
@@ -207,18 +247,53 @@ export function SettingsView() {
     state.contents.length + state.cards.length + state.skills.length + state.sessions.length
 
   return (
-    <div className="slide-in" style={{ padding: 'var(--space-6)', maxWidth: '700px', margin: '0 auto' }}>
-      <PageHeader icon={<Settings />} title="Configurações" subtitle="Gerencie sua conta e seus dados" />
+    <div
+      className="slide-in"
+      style={{ padding: 'var(--space-6)', maxWidth: '700px', margin: '0 auto' }}
+    >
+      <PageHeader
+        icon={<Settings />}
+        title="Configurações"
+        subtitle="Gerencie sua conta e seus dados"
+      />
 
       {/* Seção: Conta */}
-      <section className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
-        <h2 style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--text)', margin: '0 0 var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+      <section
+        className="card"
+        style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}
+      >
+        <h2
+          style={{
+            fontSize: 'var(--text-md)',
+            fontWeight: '700',
+            color: 'var(--text)',
+            margin: '0 0 var(--space-4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+          }}
+        >
           <User /> Conta
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <div>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', margin: '0 0 var(--space-1)' }}>E-mail</p>
-            <p style={{ fontSize: 'var(--text-base)', color: 'var(--text)', fontWeight: 500, margin: 0 }}>
+            <p
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text3)',
+                margin: '0 0 var(--space-1)',
+              }}
+            >
+              E-mail
+            </p>
+            <p
+              style={{
+                fontSize: 'var(--text-base)',
+                color: 'var(--text)',
+                fontWeight: 500,
+                margin: 0,
+              }}
+            >
               {userEmail ?? '—'}
             </p>
           </div>
@@ -231,10 +306,26 @@ export function SettingsView() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                style={{ background: 'var(--bg2)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-2) var(--space-3)', textAlign: 'center', minWidth: '90px' }}
+                style={{
+                  background: 'var(--bg2)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: 'var(--space-2) var(--space-3)',
+                  textAlign: 'center',
+                  minWidth: '90px',
+                }}
               >
-                <div style={{ fontSize: 'var(--text-xl)', fontWeight: '800', color: 'var(--color-primary)' }}>{stat.value}</div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text3)' }}>{stat.label}</div>
+                <div
+                  style={{
+                    fontSize: 'var(--text-xl)',
+                    fontWeight: '800',
+                    color: 'var(--color-primary)',
+                  }}
+                >
+                  {stat.value}
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text3)' }}>
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
@@ -242,13 +333,32 @@ export function SettingsView() {
       </section>
 
       {/* Seção: Backup de Dados */}
-      <section className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
-        <h2 style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--text)', margin: '0 0 var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+      <section
+        className="card"
+        style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}
+      >
+        <h2
+          style={{
+            fontSize: 'var(--text-md)',
+            fontWeight: '700',
+            color: 'var(--text)',
+            margin: '0 0 var(--space-2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+          }}
+        >
           <Download /> Backup de Dados
         </h2>
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', margin: '0 0 var(--space-4)' }}>
-          Exporte todos os seus dados como JSON ou restaure a partir de um backup anterior.
-          Seus dados incluem {totalItems} itens no total.
+        <p
+          style={{
+            fontSize: 'var(--text-sm)',
+            color: 'var(--text3)',
+            margin: '0 0 var(--space-4)',
+          }}
+        >
+          Exporte todos os seus dados como JSON ou restaure a partir de um backup anterior. Seus
+          dados incluem {totalItems} itens no total.
         </p>
 
         {/* Export */}
@@ -261,15 +371,41 @@ export function SettingsView() {
             marginBottom: 'var(--space-4)',
           }}
         >
-          <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--color-primary-text)', margin: '0 0 var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <h3
+            style={{
+              fontSize: 'var(--text-base)',
+              fontWeight: '700',
+              color: 'var(--color-primary-text)',
+              margin: '0 0 var(--space-2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+            }}
+          >
             <Download /> Exportar dados
           </h3>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', margin: '0 0 var(--space-1)' }}>
+          <p
+            style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text3)',
+              margin: '0 0 var(--space-1)',
+            }}
+          >
             Baixa um arquivo JSON com todos os seus conteúdos, flashcards, habilidades e sessões.
             Útil como backup ou para migração.
           </p>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warning)', margin: '0 0 var(--space-3)', display: 'flex', alignItems: 'flex-start', gap: 'var(--space-1)' }}>
-            ⚠ O arquivo exportado contém dados pessoais. Guarde-o em local seguro e não compartilhe com terceiros.
+          <p
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--color-warning)',
+              margin: '0 0 var(--space-3)',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 'var(--space-1)',
+            }}
+          >
+            ⚠ O arquivo exportado contém dados pessoais. Guarde-o em local seguro e não compartilhe
+            com terceiros.
           </p>
           <button
             className="btn-primary"
@@ -280,7 +416,13 @@ export function SettingsView() {
             <Download /> Exportar neurolearn-backup.json
           </button>
           {totalItems === 0 && (
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text4)', margin: 'var(--space-2) 0 0' }}>
+            <p
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text4)',
+                margin: 'var(--space-2) 0 0',
+              }}
+            >
               Nenhum dado para exportar ainda.
             </p>
           )}
@@ -295,12 +437,29 @@ export function SettingsView() {
             padding: 'var(--space-4)',
           }}
         >
-          <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--color-info-text, var(--color-info))', margin: '0 0 var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <h3
+            style={{
+              fontSize: 'var(--text-base)',
+              fontWeight: '700',
+              color: 'var(--color-info-text, var(--color-info))',
+              margin: '0 0 var(--space-2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+            }}
+          >
             <Upload /> Importar dados
           </h3>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', margin: '0 0 var(--space-3)' }}>
+          <p
+            style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text3)',
+              margin: '0 0 var(--space-3)',
+            }}
+          >
             Restaura dados a partir de um backup exportado pelo NeuroLearn.{' '}
-            <strong style={{ color: 'var(--color-warning)' }}>Atenção:</strong> substituirá todos os dados atuais.
+            <strong style={{ color: 'var(--color-warning)' }}>Atenção:</strong> substituirá todos os
+            dados atuais.
           </p>
           <input
             ref={fileRef}
@@ -318,7 +477,14 @@ export function SettingsView() {
             <Upload /> Selecionar arquivo JSON
           </button>
           {importError && (
-            <p role="alert" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-danger)', margin: 'var(--space-2) 0 0' }}>
+            <p
+              role="alert"
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--color-danger)',
+                margin: 'var(--space-2) 0 0',
+              }}
+            >
               {importError}
             </p>
           )}
@@ -334,10 +500,26 @@ export function SettingsView() {
           background: 'rgba(239,68,68,.03)',
         }}
       >
-        <h2 style={{ fontSize: 'var(--text-md)', fontWeight: '700', color: 'var(--color-danger)', margin: '0 0 var(--space-3)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+        <h2
+          style={{
+            fontSize: 'var(--text-md)',
+            fontWeight: '700',
+            color: 'var(--color-danger)',
+            margin: '0 0 var(--space-3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+          }}
+        >
           <Trash /> Zona de Perigo
         </h2>
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text3)', margin: '0 0 var(--space-4)' }}>
+        <p
+          style={{
+            fontSize: 'var(--text-sm)',
+            color: 'var(--text3)',
+            margin: '0 0 var(--space-4)',
+          }}
+        >
           Exclusão permanente de conta e todos os dados associados. Esta ação é irreversível.
         </p>
         <button

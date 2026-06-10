@@ -52,6 +52,7 @@ export type Database = {
           id: string
           progress: number
           title: string
+          trail_id: string | null
           type: string
           updated_at: string
           user_id: string
@@ -64,6 +65,7 @@ export type Database = {
           id?: string
           progress?: number
           title: string
+          trail_id?: string | null
           type: string
           updated_at?: string
           user_id: string
@@ -76,6 +78,7 @@ export type Database = {
           id?: string
           progress?: number
           title?: string
+          trail_id?: string | null
           type?: string
           updated_at?: string
           user_id?: string
@@ -86,6 +89,70 @@ export type Database = {
             columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'contents_trail_id_fkey'
+            columns: ['trail_id']
+            isOneToOne: false
+            referencedRelation: 'learning_trails'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      learning_trails: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          goal: string | null
+          icon_emoji: string
+          id: string
+          skill_id: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          goal?: string | null
+          icon_emoji?: string
+          id?: string
+          skill_id?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          goal?: string | null
+          icon_emoji?: string
+          id?: string
+          skill_id?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'learning_trails_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'learning_trails_skill_id_fkey'
+            columns: ['skill_id']
+            isOneToOne: false
+            referencedRelation: 'skills'
             referencedColumns: ['id']
           },
         ]
@@ -651,3 +718,4 @@ export type DbSkill = Database['public']['Tables']['skills']['Row']
 export type DbUserSkill = Database['public']['Tables']['user_skills']['Row']
 export type DbSession = Database['public']['Tables']['study_sessions']['Row']
 export type DbDraft = Database['public']['Tables']['session_drafts']['Row']
+export type DbTrail = Database['public']['Tables']['learning_trails']['Row']
