@@ -54,6 +54,7 @@ export default defineConfig({
         '**/profile.spec.ts',
         '**/ai-validation.spec.ts',
         '**/help.spec.ts',
+        '**/ls01b.spec.ts',
       ],
     },
 
@@ -78,6 +79,7 @@ export default defineConfig({
         '**/profile.spec.ts',
         '**/ai-validation.spec.ts',
         '**/help.spec.ts',
+        '**/ls01b.spec.ts',
       ],
     },
   ],
