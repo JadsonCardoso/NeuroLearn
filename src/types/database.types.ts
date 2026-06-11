@@ -100,6 +100,50 @@ export type Database = {
           },
         ]
       }
+      exercises: {
+        Row: {
+          answer: string
+          content_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          question: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          content_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          question: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          content_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          question?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'exercises_content_id_fkey'
+            columns: ['content_id']
+            isOneToOne: false
+            referencedRelation: 'contents'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       flashcards: {
         Row: {
           back: string
@@ -786,3 +830,4 @@ export type DbDraft = Database['public']['Tables']['session_drafts']['Row']
 export type DbTrail = Database['public']['Tables']['learning_trails']['Row']
 export type DbUserMission = Database['public']['Tables']['user_missions']['Row']
 export type DbStreakShieldUse = Database['public']['Tables']['streak_shield_uses']['Row']
+export type DbExercise = Database['public']['Tables']['exercises']['Row']

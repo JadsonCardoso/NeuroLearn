@@ -254,8 +254,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         // Todas as queries em paralelo para minimizar latência
         const [contents, cards, skills, userResult, sessions, trails] = await Promise.all([
-          listContents(),
-          listAllFlashcards(),
+          listContents(user.id),
+          listAllFlashcards(user.id),
           listUserSkills(user.id),
           supabase
             .from('users')
@@ -263,7 +263,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .eq('id', user.id)
             .single(),
           listRecentSessions(user.id),
-          listTrails(),
+          listTrails(user.id),
         ])
 
         const userData = userResult.data
@@ -583,13 +583,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         case 'UPDATE_TRAIL': {
           const { id, ...fields } = action.payload
-          await updateTrail(id, fields as Partial<TrailInput>)
+          await updateTrail(id, userId, fields as Partial<TrailInput>)
           addToast('success', 'Trilha atualizada.')
           break
         }
 
         case 'DELETE_TRAIL': {
-          await deleteTrail(action.payload)
+          await deleteTrail(action.payload, userId)
           addToast('success', 'Trilha removida.')
           break
         }

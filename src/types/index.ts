@@ -37,6 +37,18 @@ export interface Content {
   trailId: string | null
 }
 
+export type ExerciseType = 'free_response' | 'multiple_choice'
+
+export interface Exercise {
+  id: string
+  contentId: string
+  question: string
+  answer: string
+  type: ExerciseType
+  notes: string | null
+  createdAt: string
+}
+
 export type CardMastery = 'new' | 'learning' | 'review' | 'strong'
 
 export interface FlashCard {

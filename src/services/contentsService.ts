@@ -17,11 +17,12 @@ function toContent(row: DbContent): Content {
   }
 }
 
-export async function listContents(): Promise<Content[]> {
+export async function listContents(userId: string): Promise<Content[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('contents')
     .select('*')
+    .eq('user_id', userId)
     .order('added_at', { ascending: false })
 
   if (error) throw error

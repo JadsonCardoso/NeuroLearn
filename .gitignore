@@ -3,6 +3,9 @@
 .env.local
 .env*.local
 
+# Base de conhecimento local
+project-knowledge/
+
 # Dependências
 node_modules/
 

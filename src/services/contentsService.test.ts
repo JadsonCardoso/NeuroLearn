@@ -61,7 +61,7 @@ beforeEach(() => {
 describe('listContents', () => {
   it('retorna array de Content mapeado corretamente', async () => {
     mockChain.order.mockResolvedValueOnce({ data: [dbRow], error: null })
-    const result = await listContents()
+    const result = await listContents('user-1')
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('uuid-1')
     expect(result[0].title).toBe('Clean Code')
@@ -70,13 +70,13 @@ describe('listContents', () => {
 
   it('retorna array vazio quando data é null', async () => {
     mockChain.order.mockResolvedValueOnce({ data: null, error: null })
-    const result = await listContents()
+    const result = await listContents('user-1')
     expect(result).toEqual([])
   })
 
   it('lança erro quando Supabase retorna error', async () => {
     mockChain.order.mockResolvedValueOnce({ data: null, error: new Error('DB error') })
-    await expect(listContents()).rejects.toThrow('DB error')
+    await expect(listContents('user-1')).rejects.toThrow('DB error')
   })
 
   it('converte author null para string vazia', async () => {
@@ -84,7 +84,7 @@ describe('listContents', () => {
       data: [{ ...dbRow, author: null }],
       error: null,
     })
-    const result = await listContents()
+    const result = await listContents('user-1')
     expect(result[0].author).toBe('')
   })
 
@@ -93,7 +93,7 @@ describe('listContents', () => {
       data: [{ ...dbRow, description: null }],
       error: null,
     })
-    const result = await listContents()
+    const result = await listContents('user-1')
     expect(result[0].desc).toBe('')
   })
 })

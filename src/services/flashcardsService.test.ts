@@ -4,13 +4,13 @@ import type { DbFlashcard } from '@/types/database.types'
 // ── Mock do Supabase ──────────────────────────────────────────────────────────
 
 const mockChain = {
-  from:   vi.fn(),
+  from: vi.fn(),
   select: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
-  eq:     vi.fn(),
-  lte:    vi.fn(),
-  order:  vi.fn(),
+  eq: vi.fn(),
+  lte: vi.fn(),
+  order: vi.fn(),
   single: vi.fn(),
 }
 
@@ -48,7 +48,9 @@ const dbCard: DbFlashcard = {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  Object.values(mockChain).forEach((fn) => (fn as ReturnType<typeof vi.fn>).mockReturnValue(mockChain))
+  Object.values(mockChain).forEach((fn) =>
+    (fn as ReturnType<typeof vi.fn>).mockReturnValue(mockChain)
+  )
 })
 
 // ── listFlashcardsByContent ───────────────────────────────────────────────────
@@ -56,22 +58,22 @@ beforeEach(() => {
 describe('listFlashcardsByContent', () => {
   it('retorna cards mapeados corretamente', async () => {
     mockChain.order.mockResolvedValueOnce({ data: [dbCard], error: null })
-    const result = await listFlashcardsByContent('content-1')
+    const result = await listFlashcardsByContent('user-1', 'content-1')
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('card-1')
     expect(result[0].cid).toBe('content-1')
-    expect(result[0].reps).toBe(0)        // repetitions → reps
+    expect(result[0].reps).toBe(0) // repetitions → reps
     expect(result[0].front).toBe('O que é SOLID?')
   })
 
   it('retorna array vazio quando data é null', async () => {
     mockChain.order.mockResolvedValueOnce({ data: null, error: null })
-    expect(await listFlashcardsByContent('content-1')).toEqual([])
+    expect(await listFlashcardsByContent('user-1', 'content-1')).toEqual([])
   })
 
   it('lança erro quando Supabase retorna error', async () => {
     mockChain.order.mockResolvedValueOnce({ data: null, error: new Error('DB error') })
-    await expect(listFlashcardsByContent('content-1')).rejects.toThrow('DB error')
+    await expect(listFlashcardsByContent('user-1', 'content-1')).rejects.toThrow('DB error')
   })
 })
 
@@ -80,18 +82,18 @@ describe('listFlashcardsByContent', () => {
 describe('listDueFlashcards', () => {
   it('retorna cards devidos', async () => {
     mockChain.order.mockResolvedValueOnce({ data: [dbCard], error: null })
-    const result = await listDueFlashcards()
+    const result = await listDueFlashcards('user-1')
     expect(result).toHaveLength(1)
   })
 
   it('retorna vazio quando não há cards devidos', async () => {
     mockChain.order.mockResolvedValueOnce({ data: [], error: null })
-    expect(await listDueFlashcards()).toEqual([])
+    expect(await listDueFlashcards('user-1')).toEqual([])
   })
 
   it('lança erro quando Supabase retorna error', async () => {
     mockChain.order.mockResolvedValueOnce({ data: null, error: new Error('Query error') })
-    await expect(listDueFlashcards()).rejects.toThrow('Query error')
+    await expect(listDueFlashcards('user-1')).rejects.toThrow('Query error')
   })
 })
 
@@ -99,8 +101,11 @@ describe('listDueFlashcards', () => {
 
 describe('listAllFlashcards', () => {
   it('retorna todos os cards do usuário', async () => {
-    mockChain.order.mockResolvedValueOnce({ data: [dbCard, { ...dbCard, id: 'card-2' }], error: null })
-    const result = await listAllFlashcards()
+    mockChain.order.mockResolvedValueOnce({
+      data: [dbCard, { ...dbCard, id: 'card-2' }],
+      error: null,
+    })
+    const result = await listAllFlashcards('user-1')
     expect(result).toHaveLength(2)
   })
 })
@@ -132,8 +137,12 @@ describe('updateFlashcardSM2', () => {
     mockChain.eq.mockResolvedValueOnce({ error: null })
     await expect(
       updateFlashcardSM2('card-1', {
-        ef: 2.8, interval: 4, reps: 1,
-        nextReview: '2026-01-06', lastReview: '2026-01-02', mastery: 'review',
+        ef: 2.8,
+        interval: 4,
+        reps: 1,
+        nextReview: '2026-01-06',
+        lastReview: '2026-01-02',
+        mastery: 'review',
       })
     ).resolves.toBeUndefined()
   })
@@ -142,7 +151,12 @@ describe('updateFlashcardSM2', () => {
     mockChain.eq.mockResolvedValueOnce({ error: new Error('Update failed') })
     await expect(
       updateFlashcardSM2('card-1', {
-        ef: 2.5, interval: 1, reps: 0, nextReview: null, lastReview: null, mastery: 'learning',
+        ef: 2.5,
+        interval: 1,
+        reps: 0,
+        nextReview: null,
+        lastReview: null,
+        mastery: 'learning',
       })
     ).rejects.toThrow('Update failed')
   })
@@ -150,7 +164,12 @@ describe('updateFlashcardSM2', () => {
   it('mapeador: nextReview null → undefined na query (não seta como null)', async () => {
     mockChain.eq.mockResolvedValueOnce({ error: null })
     await updateFlashcardSM2('card-1', {
-      ef: 2.5, interval: 1, reps: 0, nextReview: null, lastReview: null, mastery: 'learning',
+      ef: 2.5,
+      interval: 1,
+      reps: 0,
+      nextReview: null,
+      lastReview: null,
+      mastery: 'learning',
     })
     // Verifica que .update() foi chamado (sem erro de tipo)
     expect(mockChain.update).toHaveBeenCalled()

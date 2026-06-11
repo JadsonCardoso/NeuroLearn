@@ -1,7 +1,7 @@
 # NeuroLearn — Progresso do Projeto
 
-> **Última atualização:** 2026-06-10
-> **Status geral:** QA Global completo. 411 testes unitários. Fase α Soft Delete+Undo concluída. Suporte a usuário B (TC-SEC-008..010). 5 specs E2E de UX avançado (library-ux-functional, review-ux-functional, library-negative, library-security, library-ux-advanced — 68 cenários). 36 arquivos E2E. Production-security-gate: APROVADO COM RESSALVAS (rate limiter in-memory — pendente Upstash Redis).
+> **Última atualização:** 2026-06-11
+> **Status geral:** Sprint 01 Foundation Stabilization em andamento. 422 testes unitários (32 arquivos). 39 specs E2E (trails, exercises, api). Defense-in-depth aplicado em todos os list services (5 funções). Tabela `exercises` criada no Supabase com RLS. FocusExtractPhase integrado com criação de exercícios persistidos. API suites Playwright criadas (10 cenários de contratos HTTP). Knowledge Hub completo.
 
 ---
 
@@ -50,6 +50,7 @@
 | F-090                            | Gamificação v2: missões diárias/semanais, streak recovery (Streak Shields), MissionsPanel, StreakRecoveryBanner | ✅ Concluída |
 | LIBRARY-UX-REVISION-01           | ContentDrawer lateral, DnD @dnd-kit, collapse de trilhas + localStorage, ContextSelector, aba Exercícios (Prática Livre), MemoryView contextual | ✅ Concluída |
 | QA-GLOBAL-01                     | Análise completa do projeto (qa-estrategico + qa-expert + production-security-gate). BUG-GLOBAL-001 LGPD corrigido. 4 specs E2E novos (focus, active, skills, global-regression — 71+ cenários). | ✅ Concluída |
+| KNOWLEDGE-HUB-01                 | Base Central de Conhecimento: 13 documentos em `project-knowledge/` — RF, RNF, RN, CA, ADR, Riscos, Fluxos, UX, Arquitetura, QA, Segurança, Contexto | ✅ Concluída |
 | 7                                | Crescimento: ranking entre usuários, blog educacional, landing v2                                                                                              | 🔜 Futura    |
 | 7                                | Crescimento: blog educacional, landing v2, Open Graph                                                                                                          | 🔜 Futura    |
 
@@ -322,6 +323,7 @@ Executado com skill `qa-estrategico` (heurísticas CREA + ALTER FACE). **17 bugs
 | 2026-06-10 | PROFILE-UPGRADE: STUDY-GOALS-01 — metas configuráveis (cardsPerDay/minutesPerDay/daysPerWeek/streakGoal) persistidas em `users.study_goals` JSONB (migration MCP + database.types.ts atualizado); formulário RHF+Zod com `zodResolver` explicitamente tipado. ACTIVITY-HISTORY-01 — timeline compacta das últimas 7 sessões (conteúdo, fmtDuration, cardsCreated, relativeDate). STATS-PROFILE-01 — 3 chips no topo (flashcards, streak, dias ativos). DashboardView — card "Metas de Hoje" com 4 progress bars (cardsReviewedToday/minutesToday/activeWeekDays/streak). FocusView + SettingsView — `cardsCreated` adicionado ao `StudySession`. `profile-upgrade.spec.ts` TC-PROF-001..012. Gate: type-check ✅ lint ✅ 373/373 ✅ build ✅. |
 | 2026-06-10 | LIBRARY-UX-REVISION-01 Fase α + Cenários Avançados: `library-ux-advanced.spec.ts` — TC-ADV-001..019 (19 cenários). Implementados: drawer com métricas completas (progresso/retenção/flashcards/CTAs/ações); Inbox Cognitiva (criar sem trilha + excluir trilha move conteúdo para orphan); soft delete timer (TC-ADV-007/007b — conteúdo removido após 5s + segundo delete confirma o primeiro); exercício contextualizado end-to-end (flip + resposta sem RATE_CARD). Fixme: reordenação intra-trilha, persistência de ordem, filtro skill, tentativa de exercício, retenção backend. Gate: type-check ✅ lint ✅ 411/411 ✅. |
 | 2026-06-10 | LIBRARY-UX-REVISION-01 Fase α (Soft Delete + Undo): `initiateDelete`/`undoDelete` em `LibraryView.tsx` — remoção otimista com `visibleFiltered` (useMemo), timer 5s, toast "Desfazer". `global.setup.ts` refatorado: `authenticateUser` helper reutilizável; suporte a usuário B (`TEST_USER_EMAIL_B` → `tests/e2e/.auth/user-b.json`). 4 specs E2E novos: `library-ux-functional.spec.ts` (15 cenários), `review-ux-functional.spec.ts` (10 cenários), `library-negative.spec.ts` (14 cenários), `library-security.spec.ts` (10 cenários — TC-SEC-008..010 implementados com dois contextos de browser). Gate: type-check ✅ lint ✅ 411/411 ✅. |
+| 2026-06-11 | KNOWLEDGE-HUB-01: `project-knowledge/` criado — Base Central de Conhecimento Estruturado. 13 documentos: RF.md (75 requisitos funcionais), RNF.md (46 requisitos não funcionais), RN.md (38 regras de negócio), CA.md (13 critérios de aceite BDD), ADR.md (20 decisões arquiteturais), RISCOS.md (mapa de riscos com status), FLUXOS.md (9 fluxos detalhados), UX.md (padrões de feedback, formulários, acessibilidade), ARQUITETURA.md (stack, estrutura, banco, auth, crons), QA.md (estratégia completa, 411 testes, mandatos), SEGURANCA.md (OWASP, RLS, LGPD, headers, checklists), CONTEXTO.md (produto, personas, métricas, roadmap). Fonte: progress.md + product-ops-01.md + CLAUDE.md + código-fonte. |
 
 ---
 
@@ -1451,6 +1453,63 @@ Medir e corrigir os gargalos reais de LCP, CLS e INP no NeuroLearn com base em a
 - `npm run lint` — ✅ zero warnings
 - `npm run test:unit` — ✅ 373/373
 - `npm run build` — ✅ build limpo
+
+---
+
+## SPRINT-01-FOUNDATION — Foundation Stabilization ✅ (em andamento)
+
+**Data:** 2026-06-11 | **Branch:** `docs/neurolearn-governance` | **422 testes unitários**
+
+### P0-01: deleteTrail/updateTrail — Defense-in-depth ✅
+
+- `src/services/trailsService.ts` — adicionado `.eq('user_id', userId)` em `deleteTrail()` e `updateTrail()`
+- `src/store/AppContext.tsx` — callers atualizados para passar `userId`
+- `tests/e2e/trails.spec.ts` — TC-TRL-SEC-01/02/03 adicionados
+
+### P0-02: RLS validado ✅ (sem alterações — já ativo)
+
+- Verificação via SQL confirmou RLS ativo em todas as tabelas críticas
+
+### P0-03: Indicador * campos obrigatórios ✅ (sem alterações — já implementado)
+
+- `FormField.tsx` já exibia `*` para `required=true`
+
+### P0-06 + P0-07: Tabela exercises + CRUD ✅
+
+- Migration Supabase: tabela `exercises` com RLS, índices, ON DELETE CASCADE
+- `src/types/database.types.ts` — `DbExercise` adicionado
+- `src/types/index.ts` — `Exercise`, `ExerciseType` adicionados
+- `src/services/exercisesService.ts` — CRUD completo com defense-in-depth
+- `src/services/exercisesService.test.ts` — 11 testes unitários
+
+### P0-08: Exercícios integrados no FocusExtractPhase ✅
+
+- `src/modules/focus/FocusExtractPhase.tsx` — seção "Criar Exercício" adicionada (persiste imediatamente no Supabase)
+- `src/modules/focus/FocusView.tsx` — estado `ex` + `savedExCount` + `handleAddExercise`
+- `tests/e2e/exercises.spec.ts` — 9 cenários E2E (TC-EXE-01..09)
+
+### P1-01: Defense-in-depth em list services ✅
+
+- `contentsService.ts` — `listContents(userId)` com `.eq('user_id', userId)`
+- `trailsService.ts` — `listTrails(userId)` com `.eq('user_id', userId)`
+- `flashcardsService.ts` — `listAllFlashcards(userId)`, `listDueFlashcards(userId)`, `listFlashcardsByContent(userId, contentId)`
+- `AppContext.tsx` — todos os callers atualizados
+- Testes unitários atualizados (422 passando)
+
+### P1-02: Autosave indicator ✅ (sem alterações — já implementado)
+
+- `SaveIndicator` + `useAutoSave` + integração em `FocusView` já existiam
+
+### P1-03: Playwright API suites ✅
+
+- `tests/e2e/api.spec.ts` — 10 cenários: health check, auth guards (401), validação de input (422)
+
+### Gate final ✅
+
+- `npm run type-check` — zero erros
+- `npm run lint` — zero warnings
+- `npm run test:unit` — 422/422 passando (32 arquivos)
+- `npm run build` — build limpo
 
 ---
 

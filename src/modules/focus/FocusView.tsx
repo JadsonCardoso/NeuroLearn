@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Content, FlashCard, StudySession } from '@/types'
 import { useAppData } from '@/hooks/useAppData'
+import { useToast } from '@/hooks/useToast'
 import { uid } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useFocusSession } from '@/store/FocusSessionContext'
@@ -15,6 +16,7 @@ import { useAutoSave } from '@/hooks/useAutoSave'
 import { getDraft, deleteDraft } from '@/services/sessionDraftsService'
 import { SaveIndicator } from '@/components/ui/SaveIndicator'
 import { createClient } from '@/lib/supabase/client'
+import { createExercise } from '@/services/exercisesService'
 
 interface FocusViewProps {
   content: Content
@@ -36,6 +38,7 @@ const phases = [
 
 export function FocusView({ content }: FocusViewProps) {
   const { dispatch } = useAppData()
+  const { toast } = useToast()
   const router = useRouter()
   const { setIsRunning } = useFocusSession()
   const { track } = useAnalytics()
@@ -51,6 +54,8 @@ export function FocusView({ content }: FocusViewProps) {
   const [qs, setQs] = useState({ imp: '', gap: '', apply: '' })
   const [newCards, setNewCards] = useState<FlashCard[]>([])
   const [cf, setCf] = useState({ front: '', back: '' })
+  const [ex, setEx] = useState({ question: '', answer: '' })
+  const [savedExCount, setSavedExCount] = useState(0)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [showDraftBanner, setShowDraftBanner] = useState(false)
   const [userId, setUserId] = useState<string>('')
@@ -162,6 +167,20 @@ export function FocusView({ content }: FocusViewProps) {
       setShowLeaveConfirm(true)
     } else {
       router.push('/focus')
+    }
+  }
+
+  async function handleAddExercise() {
+    if (!ex.question.trim() || !ex.answer.trim() || !userId || !content?.id) return
+    try {
+      await createExercise(userId, content.id, {
+        question: ex.question.trim(),
+        answer: ex.answer.trim(),
+      })
+      setSavedExCount((n) => n + 1)
+      setEx({ question: '', answer: '' })
+    } catch {
+      toast.error('Erro ao salvar exercício. Tente novamente.')
     }
   }
 
@@ -347,10 +366,14 @@ export function FocusView({ content }: FocusViewProps) {
           qs={qs}
           cf={cf}
           newCards={newCards}
+          ex={ex}
+          savedExCount={savedExCount}
           onQsChange={setQs}
           onCfChange={setCf}
           onAddCard={addCard}
           onRemoveCard={(i) => setNewCards((p) => p.filter((_, j) => j !== i))}
+          onExChange={setEx}
+          onAddExercise={handleAddExercise}
           onNext={() => setPhase('teach')}
         />
       )}

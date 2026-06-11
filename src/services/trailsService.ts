@@ -26,11 +26,12 @@ function toTrail(row: DbTrail): LearningTrail {
   }
 }
 
-export async function listTrails(): Promise<LearningTrail[]> {
+export async function listTrails(userId: string): Promise<LearningTrail[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('learning_trails')
     .select('*')
+    .eq('user_id', userId)
     .order('created_at', { ascending: true })
 
   if (error) throw error
@@ -58,7 +59,11 @@ export async function createTrail(userId: string, input: TrailInput): Promise<Le
   return toTrail(data)
 }
 
-export async function updateTrail(id: string, input: Partial<TrailInput>): Promise<void> {
+export async function updateTrail(
+  id: string,
+  userId: string,
+  input: Partial<TrailInput>
+): Promise<void> {
   const supabase = createClient()
   const { error } = await supabase
     .from('learning_trails')
@@ -73,14 +78,19 @@ export async function updateTrail(id: string, input: Partial<TrailInput>): Promi
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .eq('user_id', userId)
 
   if (error) throw error
 }
 
-export async function deleteTrail(id: string): Promise<void> {
+export async function deleteTrail(id: string, userId: string): Promise<void> {
   const supabase = createClient()
-  // ON DELETE SET NULL no FK garante que contents.trail_id → null automaticamente
-  const { error } = await supabase.from('learning_trails').delete().eq('id', id)
+  // ON DELETE SET NULL no FK garante que contents.trail_id → null automaticamente (ADR-008)
+  const { error } = await supabase
+    .from('learning_trails')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
   if (error) throw error
 }
 

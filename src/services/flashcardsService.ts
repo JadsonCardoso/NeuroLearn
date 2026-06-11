@@ -17,11 +17,15 @@ function toFlashCard(row: DbFlashcard): FlashCard {
   }
 }
 
-export async function listFlashcardsByContent(contentId: string): Promise<FlashCard[]> {
+export async function listFlashcardsByContent(
+  userId: string,
+  contentId: string
+): Promise<FlashCard[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('flashcards')
     .select('*')
+    .eq('user_id', userId)
     .eq('content_id', contentId)
     .order('created_at', { ascending: true })
 
@@ -29,13 +33,14 @@ export async function listFlashcardsByContent(contentId: string): Promise<FlashC
   return (data ?? []).map(toFlashCard)
 }
 
-export async function listDueFlashcards(): Promise<FlashCard[]> {
+export async function listDueFlashcards(userId: string): Promise<FlashCard[]> {
   const supabase = createClient()
   const today = new Date().toISOString().split('T')[0]
 
   const { data, error } = await supabase
     .from('flashcards')
     .select('*')
+    .eq('user_id', userId)
     .lte('next_review', today)
     .order('next_review', { ascending: true })
 
@@ -43,11 +48,12 @@ export async function listDueFlashcards(): Promise<FlashCard[]> {
   return (data ?? []).map(toFlashCard)
 }
 
-export async function listAllFlashcards(): Promise<FlashCard[]> {
+export async function listAllFlashcards(userId: string): Promise<FlashCard[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('flashcards')
     .select('*')
+    .eq('user_id', userId)
     .order('created_at', { ascending: true })
 
   if (error) throw error
