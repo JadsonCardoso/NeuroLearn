@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useReducer, useEffect, useState } from 'react'
-import type { AppState, AppAction } from '@/types'
+import type { AppState, AppAction, Project } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { useToastContext } from '@/store/ToastContext'
 import {
@@ -19,7 +19,12 @@ import {
   updateFlashcard,
 } from '@/services/flashcardsService'
 import { recordReviewCycle } from '@/services/reviewService'
-import { createStudySession, listRecentSessions } from '@/services/sessionsService'
+import {
+  createStudySession,
+  listRecentSessions,
+  updateStudySession,
+  deleteStudySession,
+} from '@/services/sessionsService'
 import { deleteDraft } from '@/services/sessionDraftsService'
 import {
   listUserSkills,
@@ -49,6 +54,7 @@ import {
   createDefaultTrail,
 } from '@/services/trailsService'
 import type { TrailInput } from '@/services/trailsService'
+import { listProjects } from '@/services/projectsService'
 
 // ── Estado inicial vazio (antes de carregar do backend) ─────────────────────
 export const EMPTY_STATE: AppState = {
@@ -57,6 +63,7 @@ export const EMPTY_STATE: AppState = {
   skills: [],
   sessions: [],
   trails: [],
+  projects: [],
   streak: 0,
   lastStudyDate: '',
   totalXp: 0,
@@ -199,11 +206,53 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       }
     }
 
+    case 'ASSIGN_TRAIL_PROJECT': {
+      const { trailId, projectId } = action.payload
+      return {
+        ...state,
+        trails: (state.trails ?? []).map((t) => (t.id === trailId ? { ...t, projectId } : t)),
+      }
+    }
+
     case 'LOAD_SHIELDS':
       return { ...state, streakShields: action.payload }
 
     case 'USE_SHIELD':
       return { ...state, streakShields: Math.max(0, (state.streakShields ?? 1) - 1) }
+
+    case 'UPDATE_SESSION': {
+      const { id, ...updates } = action.payload
+      return {
+        ...state,
+        sessions: state.sessions.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+      }
+    }
+
+    case 'DELETE_SESSION':
+      return { ...state, sessions: state.sessions.filter((s) => s.id !== action.payload) }
+
+    case 'LOAD_PROJECTS':
+      return { ...state, projects: action.payload }
+
+    case 'ADD_PROJECT':
+      return { ...state, projects: [...(state.projects ?? []), action.payload] }
+
+    case 'UPDATE_PROJECT': {
+      const { id, ...updates } = action.payload
+      return {
+        ...state,
+        projects: (state.projects ?? []).map((p) => (p.id === id ? { ...p, ...updates } : p)),
+      }
+    }
+
+    case 'DELETE_PROJECT':
+      return {
+        ...state,
+        projects: (state.projects ?? []).filter((p) => p.id !== action.payload),
+        trails: (state.trails ?? []).map((t) =>
+          t.projectId === action.payload ? { ...t, projectId: null } : t
+        ),
+      }
 
     default:
       return state
@@ -252,19 +301,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setUserId(user.id)
 
       try {
-        // Todas as queries em paralelo para minimizar latência
-        const [contents, cards, skills, userResult, sessions, trails] = await Promise.all([
-          listContents(user.id),
-          listAllFlashcards(user.id),
-          listUserSkills(user.id),
-          supabase
-            .from('users')
-            .select('total_xp, streak, last_study_date, streak_shields')
-            .eq('id', user.id)
-            .single(),
-          listRecentSessions(user.id),
-          listTrails(user.id),
-        ])
+        // Todas as queries em paralelo para minimizar latência.
+        // listProjects tem .catch() isolado: falha não derruba o estado principal (CC-04).
+        const [contents, cards, skills, userResult, sessions, trails, projects] = await Promise.all(
+          [
+            listContents(user.id),
+            listAllFlashcards(user.id),
+            listUserSkills(user.id),
+            supabase
+              .from('users')
+              .select('total_xp, streak, last_study_date, streak_shields')
+              .eq('id', user.id)
+              .single(),
+            listRecentSessions(user.id),
+            listTrails(user.id),
+            listProjects(user.id).catch((err: unknown) => {
+              console.error('[AppContext] Falha ao carregar projetos:', err)
+              addToast('error', 'Não foi possível carregar os projetos. Tente recarregar a página.')
+              return [] as Project[]
+            }),
+          ]
+        )
 
         const userData = userResult.data
 
@@ -292,6 +349,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             skills,
             sessions,
             trails: finalTrails,
+            projects,
             streak: currentStreak,
             lastStudyDate,
             totalXp: userData?.total_xp ?? 0,
@@ -318,7 +376,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     loadFromSupabase()
-  }, [])
+  }, [addToast])
 
   // Sincroniza ações com Supabase (side effects assíncronos)
   const originalDispatch: React.Dispatch<AppAction> = async (action) => {
@@ -607,6 +665,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             })
             addToast('error', 'Não foi possível mover o conteúdo. Tente novamente.')
           }
+          break
+        }
+
+        case 'UPDATE_SESSION': {
+          const { id, notes, highlights, teach } = action.payload
+          try {
+            await updateStudySession(id, userId, {
+              ...(notes !== undefined && { notes }),
+              ...(highlights !== undefined && { highlights }),
+              ...(teach !== undefined && { teachText: teach }),
+            })
+            addToast('success', 'Sessão atualizada.')
+          } catch {
+            addToast(
+              'error',
+              'Não foi possível atualizar a sessão. Recarregue a página para sincronizar.'
+            )
+          }
+          break
+        }
+
+        case 'DELETE_SESSION': {
+          await deleteStudySession(action.payload, userId)
+          addToast('success', 'Sessão removida.')
           break
         }
       }

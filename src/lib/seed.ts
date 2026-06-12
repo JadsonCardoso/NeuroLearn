@@ -169,6 +169,7 @@ export const SEED: AppState = {
   ],
   sessions: [],
   trails: [],
+  projects: [],
   streak: 5,
   lastStudyDate: new Date().toDateString(),
   totalXp: 1040,

@@ -1,28 +1,23 @@
 'use client'
 
-/**
- * MemoryView — Caderno Cognitivo
- *
- * Exibe todas as sessões de estudo agrupadas por conteúdo, com accordions
- * por sessão que revelam notas, highlights e a explicação do modo Professor.
- * Permite busca por título do conteúdo (case-insensitive, normalizado).
- */
-
 import { useState, useMemo } from 'react'
+import { Pencil, Trash } from '@/components/icons'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAppData } from '@/hooks/useAppData'
+import { SessionEditModal } from './SessionEditModal'
+import { ExercisesSection } from './ExercisesSection'
 import type { Content, StudySession } from '@/types'
 
 // ── Tipos locais ──────────────────────────────────────────────────────────────
 
 interface MemoryGroup {
   content: Content
-  sessions: StudySession[] // ordenadas por date DESC
-  totalCards: number // flashcards do conteúdo
+  sessions: StudySession[]
+  totalCards: number
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Formata data ISO para pt-BR: "09 jun. 2026" */
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', {
     day: '2-digit',
@@ -31,12 +26,11 @@ function formatDate(iso: string): string {
   })
 }
 
-/** Normaliza string para comparação case-insensitive sem acentos */
 function normalize(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
 
-// ── Tipos de props ────────────────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 interface MemoryViewProps {
   contentId?: string
@@ -46,11 +40,12 @@ interface MemoryViewProps {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
-  const { state } = useAppData()
+  const { state, dispatch, userId } = useAppData()
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [editingSession, setEditingSession] = useState<StudySession | null>(null)
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
 
-  // Alterna o estado expandido de uma sessão no accordion
   function toggleSession(sessionId: string) {
     setExpanded((prev) => {
       const next = new Set(prev)
@@ -63,7 +58,12 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
     })
   }
 
-  // IDs de conteúdo permitidos pelo contexto (null = todos)
+  function handleDeleteSession() {
+    if (!deletingSessionId || !userId) return
+    dispatch({ type: 'DELETE_SESSION', payload: deletingSessionId })
+    setDeletingSessionId(null)
+  }
+
   const allowedContentIds = useMemo<Set<string> | null>(() => {
     if (contentId) return new Set([contentId])
     if (trailId) {
@@ -73,7 +73,6 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
     return null
   }, [contentId, trailId, state.contents])
 
-  // Agrupa sessões por conteúdo, ordenando as sessões por data decrescente
   const groups = useMemo<MemoryGroup[]>(() => {
     const map = new Map<string, StudySession[]>()
 
@@ -95,7 +94,6 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
       }))
   }, [state.sessions, state.contents, state.cards, allowedContentIds])
 
-  // Aplica filtro de busca por título do conteúdo
   const filteredGroups = useMemo<MemoryGroup[]>(() => {
     if (!search.trim()) return groups
     const query = normalize(search.trim())
@@ -106,7 +104,7 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
 
   return (
     <div data-testid="memory-view" style={{ padding: '24px', maxWidth: '860px', margin: '0 auto' }}>
-      {/* ── Cabeçalho ── */}
+      {/* Cabeçalho */}
       <div style={{ marginBottom: '24px' }}>
         <h1
           style={{
@@ -123,7 +121,7 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
         </p>
       </div>
 
-      {/* ── Campo de busca ── */}
+      {/* Campo de busca */}
       <div style={{ marginBottom: '24px' }}>
         <input
           data-testid="memory-search"
@@ -145,7 +143,7 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
         />
       </div>
 
-      {/* ── Estado vazio: sem sessões no geral ── */}
+      {/* Estado vazio: sem sessões */}
       {groups.length === 0 && (
         <div
           data-testid="memory-empty-state"
@@ -170,7 +168,7 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
         </div>
       )}
 
-      {/* ── Estado vazio: busca sem resultado ── */}
+      {/* Estado vazio: busca sem resultado */}
       {groups.length > 0 && filteredGroups.length === 0 && (
         <div
           data-testid="memory-empty-search"
@@ -189,7 +187,7 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
         </div>
       )}
 
-      {/* ── Lista de grupos por conteúdo ── */}
+      {/* Lista de grupos por conteúdo */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {filteredGroups.map((group) => (
           <div
@@ -203,7 +201,7 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
               overflow: 'hidden',
             }}
           >
-            {/* ── Cabeçalho do conteúdo ── */}
+            {/* Cabeçalho do conteúdo */}
             <div
               style={{
                 padding: '14px 16px',
@@ -214,7 +212,6 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
                 flexWrap: 'wrap',
               }}
             >
-              {/* Cor do conteúdo como indicator */}
               <div
                 style={{
                   width: '10px',
@@ -245,7 +242,6 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
                 )}
               </div>
 
-              {/* Badges: sessões e cards */}
               <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                 <span
                   className="badge"
@@ -276,7 +272,7 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
               </div>
             </div>
 
-            {/* ── Sessões do conteúdo ── */}
+            {/* Sessões do conteúdo */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {group.sessions.map((session, idx) => {
                 const isExpanded = expanded.has(session.id)
@@ -293,112 +289,162 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
                       borderTop: idx > 0 ? '1px solid var(--border)' : undefined,
                     }}
                   >
-                    {/* Accordion trigger */}
-                    <button
-                      data-testid="memory-session-accordion-trigger"
-                      onClick={() => toggleSession(session.id)}
-                      aria-expanded={isExpanded}
-                      style={{
-                        width: '100%',
-                        background: 'none',
-                        border: 'none',
-                        cursor: hasContent ? 'pointer' : 'default',
-                        padding: '10px 16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        textAlign: 'left',
-                        color: 'var(--text)',
-                        transition: 'background var(--duration-fast)',
-                      }}
-                    >
-                      {/* Chevron */}
-                      {hasContent && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
+                    {/* Linha da sessão: trigger + ações */}
+                    <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                      {/* Accordion trigger */}
+                      <button
+                        data-testid="memory-session-accordion-trigger"
+                        onClick={() => toggleSession(session.id)}
+                        aria-expanded={isExpanded}
+                        style={{
+                          flex: 1,
+                          background: 'none',
+                          border: 'none',
+                          cursor: hasContent ? 'pointer' : 'default',
+                          padding: '10px 16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          textAlign: 'left',
+                          color: 'var(--text)',
+                          transition: 'background var(--duration-fast)',
+                          minWidth: 0,
+                        }}
+                      >
+                        {/* Chevron */}
+                        {hasContent && (
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            style={{
+                              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                              transition: 'transform var(--duration-fast)',
+                              flexShrink: 0,
+                              color: 'var(--text3)',
+                            }}
+                          >
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        )}
+                        {!hasContent && <div style={{ width: '12px', flexShrink: 0 }} />}
+
+                        {/* Data */}
+                        <span
                           style={{
-                            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                            transition: 'transform var(--duration-fast)',
-                            flexShrink: 0,
-                            color: 'var(--text3)',
+                            fontSize: 'var(--text-sm)',
+                            fontWeight: 600,
+                            color: 'var(--text)',
+                            minWidth: '120px',
                           }}
                         >
-                          <polyline points="9 18 15 12 9 6" />
-                        </svg>
-                      )}
-                      {!hasContent && <div style={{ width: '12px', flexShrink: 0 }} />}
+                          {formatDate(session.date)}
+                        </span>
 
-                      {/* Data */}
-                      <span
+                        {/* Duração */}
+                        <span
+                          style={{
+                            fontSize: 'var(--text-xs)',
+                            color: 'var(--text3)',
+                            marginLeft: '4px',
+                          }}
+                        >
+                          {session.duration} min
+                        </span>
+
+                        {/* Indicadores */}
+                        <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
+                          {hasNotes && (
+                            <span
+                              style={{
+                                background: 'rgba(124,58,237,.1)',
+                                color: '#a78bfa',
+                                borderRadius: '20px',
+                                padding: '1px 7px',
+                                fontSize: '10px',
+                              }}
+                            >
+                              notas
+                            </span>
+                          )}
+                          {hasHighlights && (
+                            <span
+                              style={{
+                                background: 'rgba(245,158,11,.1)',
+                                color: '#fbbf24',
+                                borderRadius: '20px',
+                                padding: '1px 7px',
+                                fontSize: '10px',
+                              }}
+                            >
+                              highlights
+                            </span>
+                          )}
+                          {hasTeach && (
+                            <span
+                              style={{
+                                background: 'rgba(16,185,129,.1)',
+                                color: '#34d399',
+                                borderRadius: '20px',
+                                padding: '1px 7px',
+                                fontSize: '10px',
+                              }}
+                            >
+                              professor
+                            </span>
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Ações (fora do button para evitar nesting inválido) */}
+                      <div
                         style={{
-                          fontSize: 'var(--text-sm)',
-                          fontWeight: 600,
-                          color: 'var(--text)',
-                          minWidth: '120px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          paddingRight: 12,
+                          flexShrink: 0,
                         }}
                       >
-                        {formatDate(session.date)}
-                      </span>
-
-                      {/* Duração */}
-                      <span
-                        style={{
-                          fontSize: 'var(--text-xs)',
-                          color: 'var(--text3)',
-                          marginLeft: '4px',
-                        }}
-                      >
-                        {session.duration} min
-                      </span>
-
-                      {/* Indicadores de conteúdo disponível */}
-                      <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
-                        {hasNotes && (
-                          <span
-                            style={{
-                              background: 'rgba(124,58,237,.1)',
-                              color: '#a78bfa',
-                              borderRadius: '20px',
-                              padding: '1px 7px',
-                              fontSize: '10px',
-                            }}
-                          >
-                            notas
-                          </span>
-                        )}
-                        {hasHighlights && (
-                          <span
-                            style={{
-                              background: 'rgba(245,158,11,.1)',
-                              color: '#fbbf24',
-                              borderRadius: '20px',
-                              padding: '1px 7px',
-                              fontSize: '10px',
-                            }}
-                          >
-                            highlights
-                          </span>
-                        )}
-                        {hasTeach && (
-                          <span
-                            style={{
-                              background: 'rgba(16,185,129,.1)',
-                              color: '#34d399',
-                              borderRadius: '20px',
-                              padding: '1px 7px',
-                              fontSize: '10px',
-                            }}
-                          >
-                            professor
-                          </span>
-                        )}
+                        <button
+                          aria-label="Editar sessão"
+                          data-testid="session-edit-btn"
+                          onClick={() => setEditingSession(session)}
+                          style={{
+                            background: 'none',
+                            border: '1px solid var(--border2)',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '4px 7px',
+                            cursor: 'pointer',
+                            color: 'var(--text2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Pencil />
+                        </button>
+                        <button
+                          aria-label="Excluir sessão"
+                          data-testid="session-delete-btn"
+                          onClick={() => setDeletingSessionId(session.id)}
+                          style={{
+                            background: 'none',
+                            border: '1px solid var(--border2)',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '4px 7px',
+                            cursor: 'pointer',
+                            color: 'var(--color-danger)',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Trash />
+                        </button>
                       </div>
-                    </button>
+                    </div>
 
                     {/* Accordion body */}
                     {isExpanded && hasContent && (
@@ -510,9 +556,27 @@ export function MemoryView({ contentId, trailId }: MemoryViewProps = {}) {
                 )
               })}
             </div>
+
+            {/* Seção de exercícios do conteúdo */}
+            {userId && <ExercisesSection contentId={group.content.id} userId={userId} />}
           </div>
         ))}
       </div>
+
+      {/* Modal de edição de sessão */}
+      {editingSession && (
+        <SessionEditModal session={editingSession} onClose={() => setEditingSession(null)} />
+      )}
+
+      {/* Confirmação de exclusão de sessão */}
+      <ConfirmDialog
+        open={!!deletingSessionId}
+        title="Excluir sessão?"
+        description="Esta ação não pode ser desfeita. A sessão será removida permanentemente. Seus flashcards e habilidades adquiridas serão preservados."
+        confirmLabel="Excluir"
+        onConfirm={handleDeleteSession}
+        onCancel={() => setDeletingSessionId(null)}
+      />
     </div>
   )
 }

@@ -23,6 +23,7 @@ export default defineConfig({
       'src/store/**/*.test.{ts,tsx}',
       'src/hooks/**/*.test.{ts,tsx}',
       'src/components/**/*.test.{ts,tsx}',
+      'src/modules/**/*.test.{ts,tsx}',
     ],
 
     coverage: {
@@ -36,15 +37,12 @@ export default defineConfig({
         'src/store/**/*.{ts,tsx}',
         'src/hooks/**/*.{ts,tsx}',
       ],
-      exclude: [
-        '**/*.test.{ts,tsx}',
-        'src/test/**',
-      ],
+      exclude: ['**/*.test.{ts,tsx}', 'src/test/**'],
       thresholds: {
         statements: 80,
-        branches:   70,
-        functions:  80,
-        lines:      80,
+        branches: 70,
+        functions: 80,
+        lines: 80,
       },
     },
   },

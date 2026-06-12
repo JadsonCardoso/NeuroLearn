@@ -215,6 +215,7 @@ export type Database = {
           goal: string | null
           icon_emoji: string
           id: string
+          project_id: string | null
           skill_id: string | null
           title: string
           type: string
@@ -228,6 +229,7 @@ export type Database = {
           goal?: string | null
           icon_emoji?: string
           id?: string
+          project_id?: string | null
           skill_id?: string | null
           title: string
           type?: string
@@ -241,6 +243,7 @@ export type Database = {
           goal?: string | null
           icon_emoji?: string
           id?: string
+          project_id?: string | null
           skill_id?: string | null
           title?: string
           type?: string
@@ -249,6 +252,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: 'learning_trails_project_id_fkey'
+            columns: ['project_id']
+            isOneToOne: false
+            referencedRelation: 'projects'
+            referencedColumns: ['id']
+          },
+          {
             foreignKeyName: 'learning_trails_skill_id_fkey'
             columns: ['skill_id']
             isOneToOne: false
@@ -256,6 +266,33 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       push_subscriptions: {
         Row: {
@@ -828,6 +865,7 @@ export type DbUserSkill = Database['public']['Tables']['user_skills']['Row']
 export type DbSession = Database['public']['Tables']['study_sessions']['Row']
 export type DbDraft = Database['public']['Tables']['session_drafts']['Row']
 export type DbTrail = Database['public']['Tables']['learning_trails']['Row']
+export type DbProject = Database['public']['Tables']['projects']['Row']
 export type DbUserMission = Database['public']['Tables']['user_missions']['Row']
 export type DbStreakShieldUse = Database['public']['Tables']['streak_shield_uses']['Row']
 export type DbExercise = Database['public']['Tables']['exercises']['Row']

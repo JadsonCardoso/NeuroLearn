@@ -499,3 +499,133 @@ KOS é a fonte oficial de governança.
 # Regra Geral
 
 Toda nova decisão relevante deve gerar novo ADR.
+
+# ADR-026
+
+## Learning Projects as Organizational Aggregate
+
+Status
+
+Aceito
+
+---
+
+Decisão
+
+Projetos de Aprendizagem serão tratados como agregado organizacional do DOM-003 — Learning Trails.
+
+Não será criado novo domínio.
+
+---
+
+Estrutura
+
+Projeto
+↓
+Trilha
+↓
+Conteúdo
+↓
+Sessão
+↓
+Revisão
+↓
+Habilidade
+
+---
+
+Justificativa
+
+Projetos de Aprendizagem não representam novo domínio de negócio.
+
+Projetos não possuem bounded context próprio.
+
+Projetos dependem diretamente de Trilhas.
+
+Sua responsabilidade é exclusivamente organizacional.
+
+---
+
+Benefícios
+
+- melhor organização;
+- redução da carga cognitiva;
+- continuidade contextual;
+- escalabilidade da biblioteca;
+- preservação da simplicidade arquitetural.
+
+---
+
+Impacto
+
+DOM-003 — Learning Trails
+
+RF-191 → RF-198
+
+---
+
+Decisão Final
+
+Aceito.
+
+---
+
+# ADR-027
+
+## Operações de Projeto chamam services diretamente nos componentes
+
+Status
+
+Aceito
+
+---
+
+Contexto
+
+Durante a Sprint 02, o módulo de Projetos (RF-191–RF-198) foi implementado com CRUD completo. O AppContext já possui um `originalDispatch` que centraliza side effects assíncronos (chamadas a services) e sincroniza o estado com o Supabase para entidades como Conteúdos, Trilhas e Habilidades.
+
+Para essas entidades, o padrão é: o componente dispara um `AppAction`, o `originalDispatch` chama o service correspondente usando o id que já está no payload, e o banco persiste.
+
+Esse padrão tem uma pré-condição implícita: o id da entidade deve ser gerado no cliente (via `uid()`) e passado no insert ao banco — garantindo que o id no estado React e o id no banco sejam idênticos.
+
+A tabela `projects` utiliza `id UUID DEFAULT gen_random_uuid()` — o banco gera o id, não o cliente. Se o padrão do AppContext fosse aplicado (dispatch → service), o estado React teria um id temporário diferente do id real do banco, causando inconsistência em operações subsequentes (update, delete, assign).
+
+---
+
+Decisão
+
+Para o módulo de Projetos, as operações de mutação (criar, atualizar, excluir, associar/desassociar trilhas) são chamadas diretamente nos componentes React (`ProjectFormModal`, `AssignTrailModal`). O retorno do service fornece o id real do banco antes de qualquer dispatch.
+
+O fluxo é:
+
+```
+Componente → await service(…) → dispatch({ type: 'ACTION', payload: dadoReal })
+```
+
+O `AppContext` continua sendo a fonte de verdade do estado global. O dispatch atualiza o estado reativamente. O `originalDispatch` não precisa de casos adicionais para Projetos — ele apenas passa o action para o reducer.
+
+---
+
+Consequências
+
+- Sem inconsistência de id entre estado React e banco de dados.
+- Componentes de Projeto têm responsabilidade de chamar o service e tratar erros (incluindo sessão expirada).
+- Sem arquitetura paralela: Projeto permanece em DOM-003, sem novo contexto ou engine.
+- Padrão diferente do usado por Trilhas/Conteúdos — documentado aqui para evitar confusão futura.
+- Trilhas e Conteúdos mantêm o padrão original de id gerado no cliente; migração futura para UUID server-side exigiria refatoração similar.
+
+---
+
+Impacto
+
+DOM-003 — Learning Trails
+
+RF-191 → RF-198
+
+Sprint 02 — Knowledge Structure
+
+---
+
+Decisão Final
+
+Aceito.

@@ -21,6 +21,10 @@ supabase/.temp/
 .DS_Store
 Thumbs.db
 
+# Documentos locais (PDFs, DOCX exportados)
+*.docx.pdf
+*.docx
+
 # Documentação interna e estratégia de produto (não versionar)
 progress.md
 CLAUDE.md

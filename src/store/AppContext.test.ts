@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { appReducer, EMPTY_STATE } from './AppContext'
-import type { AppState, AppAction, Content, FlashCard, Skill } from '@/types'
+import type { AppState, AppAction, Content, FlashCard, Skill, StudySession } from '@/types'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -265,6 +265,93 @@ describe('appReducer — default', () => {
   it('retorna o estado sem alteração para action desconhecida', () => {
     const next = appReducer(EMPTY_STATE, { type: 'UNKNOWN', payload: null } as unknown as AppAction)
     expect(next).toBe(EMPTY_STATE)
+  })
+})
+
+// ── Fixtures de sessão ─────────────────────────────────────────────────────────
+
+const makeSession = (id = 's1', cid = 'c1'): StudySession => ({
+  id,
+  cid,
+  date: '2026-06-12T10:00:00.000Z',
+  duration: 25,
+  cardsCreated: 3,
+  highlights: ['conceito A', 'conceito B'],
+  notes: 'Minhas notas',
+  teach: 'Minha explicação',
+})
+
+// ── UPDATE_SESSION ─────────────────────────────────────────────────────────────
+
+describe('appReducer — UPDATE_SESSION', () => {
+  it('atualiza os campos da sessão correta', () => {
+    const state: AppState = { ...EMPTY_STATE, sessions: [makeSession('s1'), makeSession('s2')] }
+    const next = appReducer(state, {
+      type: 'UPDATE_SESSION',
+      payload: { id: 's1', notes: 'Notas atualizadas', highlights: ['novo'] },
+    })
+    const updated = next.sessions.find((s) => s.id === 's1')
+    expect(updated?.notes).toBe('Notas atualizadas')
+    expect(updated?.highlights).toEqual(['novo'])
+  })
+
+  it('não altera outras sessões', () => {
+    const state: AppState = { ...EMPTY_STATE, sessions: [makeSession('s1'), makeSession('s2')] }
+    const next = appReducer(state, {
+      type: 'UPDATE_SESSION',
+      payload: { id: 's1', notes: 'Nova nota' },
+    })
+    const other = next.sessions.find((s) => s.id === 's2')
+    expect(other?.notes).toBe('Minhas notas')
+  })
+
+  it('preserva campos não incluídos no payload', () => {
+    const state: AppState = { ...EMPTY_STATE, sessions: [makeSession('s1')] }
+    const next = appReducer(state, {
+      type: 'UPDATE_SESSION',
+      payload: { id: 's1', notes: 'Nova nota' },
+    })
+    const updated = next.sessions.find((s) => s.id === 's1')
+    expect(updated?.teach).toBe('Minha explicação')
+    expect(updated?.duration).toBe(25)
+  })
+
+  it('retorna novo array (imutabilidade)', () => {
+    const state: AppState = { ...EMPTY_STATE, sessions: [makeSession('s1')] }
+    const next = appReducer(state, {
+      type: 'UPDATE_SESSION',
+      payload: { id: 's1', notes: 'x' },
+    })
+    expect(next.sessions).not.toBe(state.sessions)
+  })
+})
+
+// ── DELETE_SESSION ─────────────────────────────────────────────────────────────
+
+describe('appReducer — DELETE_SESSION', () => {
+  it('remove a sessão pelo id', () => {
+    const state: AppState = { ...EMPTY_STATE, sessions: [makeSession('s1'), makeSession('s2')] }
+    const next = appReducer(state, { type: 'DELETE_SESSION', payload: 's1' })
+    expect(next.sessions).toHaveLength(1)
+    expect(next.sessions[0].id).toBe('s2')
+  })
+
+  it('não remove sessões com id diferente', () => {
+    const state: AppState = { ...EMPTY_STATE, sessions: [makeSession('s1'), makeSession('s2')] }
+    const next = appReducer(state, { type: 'DELETE_SESSION', payload: 's99' })
+    expect(next.sessions).toHaveLength(2)
+  })
+
+  it('retorna array vazio quando a única sessão é removida', () => {
+    const state: AppState = { ...EMPTY_STATE, sessions: [makeSession('s1')] }
+    const next = appReducer(state, { type: 'DELETE_SESSION', payload: 's1' })
+    expect(next.sessions).toHaveLength(0)
+  })
+
+  it('não altera outros campos do estado', () => {
+    const state: AppState = { ...EMPTY_STATE, sessions: [makeSession('s1')], totalXp: 500 }
+    const next = appReducer(state, { type: 'DELETE_SESSION', payload: 's1' })
+    expect(next.totalXp).toBe(500)
   })
 })
 

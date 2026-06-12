@@ -28,6 +28,7 @@ test.describe('Regressão Global — Rotas protegidas (sem auth)', () => {
     '/profile',
     '/settings',
     '/help',
+    '/projects',
   ]
 
   for (const route of protectedRoutes) {
@@ -192,7 +193,15 @@ test.describe('Regressão Global — Usuário autenticado (autenticado)', () => 
   test('TC-GLB-061: todas as rotas protegidas carregam sem 500 quando autenticado', async ({
     page,
   }) => {
-    const routes = ['/dashboard', '/library', '/review', '/memory', '/active', '/skills']
+    const routes = [
+      '/dashboard',
+      '/library',
+      '/review',
+      '/memory',
+      '/active',
+      '/skills',
+      '/projects',
+    ]
 
     for (const route of routes) {
       await page.goto(route)

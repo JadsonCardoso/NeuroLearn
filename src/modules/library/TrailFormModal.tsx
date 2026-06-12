@@ -92,6 +92,7 @@ export function TrailFormModal({ trail, onSave, onDelete, onClose }: TrailFormMo
       iconEmoji: data.iconEmoji,
       goal: data.goal ?? '',
       skillId: trail?.skillId ?? null,
+      projectId: trail?.projectId ?? null,
       createdAt: trail?.createdAt ?? new Date().toISOString(),
     }
     onSave(saved)

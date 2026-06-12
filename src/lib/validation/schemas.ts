@@ -64,7 +64,41 @@ export const trailSchema = z.object({
   goal: z.string().trim().max(300, 'O objetivo deve ter no máximo 300 caracteres.').optional(),
 })
 
+export const projectSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'O nome do projeto é obrigatório.')
+    .max(100, 'O nome deve ter no máximo 100 caracteres.'),
+  description: z
+    .string()
+    .trim()
+    .max(500, 'A descrição deve ter no máximo 500 caracteres.')
+    .optional(),
+})
+
+export const sessionEditSchema = z.object({
+  notes: z.string().max(5000, 'As notas devem ter no máximo 5000 caracteres.'),
+  teach: z.string().max(10000, 'A explicação deve ter no máximo 10000 caracteres.'),
+})
+
+export const exerciseEditSchema = z.object({
+  question: z
+    .string()
+    .trim()
+    .min(1, 'A pergunta é obrigatória.')
+    .max(2000, 'A pergunta deve ter no máximo 2000 caracteres.'),
+  answer: z
+    .string()
+    .trim()
+    .min(1, 'A resposta é obrigatória.')
+    .max(5000, 'A resposta deve ter no máximo 5000 caracteres.'),
+})
+
 export type LoginFormValues = z.infer<typeof loginSchema>
 export type SignupFormValues = z.infer<typeof signupSchema>
 export type ContentFormValues = z.infer<typeof contentSchema>
 export type TrailFormValues = z.infer<typeof trailSchema>
+export type ProjectFormValues = z.infer<typeof projectSchema>
+export type SessionEditFormValues = z.infer<typeof sessionEditSchema>
+export type ExerciseEditFormValues = z.infer<typeof exerciseEditSchema>

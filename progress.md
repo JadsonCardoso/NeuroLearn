@@ -1,7 +1,7 @@
 # NeuroLearn — Progresso do Projeto
 
-> **Última atualização:** 2026-06-11
-> **Status geral:** Sprint 01 Foundation Stabilization em andamento. 422 testes unitários (32 arquivos). 39 specs E2E (trails, exercises, api). Defense-in-depth aplicado em todos os list services (5 funções). Tabela `exercises` criada no Supabase com RLS. FocusExtractPhase integrado com criação de exercícios persistidos. API suites Playwright criadas (10 cenários de contratos HTTP). Knowledge Hub completo.
+> **Última atualização:** 2026-06-12
+> **Status geral:** Sprint 02 entregue. 484 testes unitários (34 arquivos), build limpo, zero erros de tipo. Módulo de Projetos completo (CRUD + associação de trilhas + progresso calculado). MemoryView com edição/exclusão de sessões e exercícios por conteúdo. LibraryView com filtros por tipo, status e busca textual. Novas rotas E2E autenticadas: projects, memory-crud, library-filters.
 
 ---
 
@@ -1555,6 +1555,17 @@ Medir e corrigir os gargalos reais de LCP, CLS e INP no NeuroLearn com base em a
 - [ ] **Migrar Supabase para `sa-east-1`** — latência atual ~150ms do Brasil; São Paulo seria ~30ms
 - [ ] **DMARC `p=none` → `p=quarantine`** — subir após 3+ semanas de monitoramento sem falsos positivos
 
+### Débito técnico E2E — falhas pré-existentes confirmadas (2026-06-12)
+
+Identificadas durante o gate da Sprint 02. **Não introduzidas nesta sprint** — confirmadas no código commitado anterior.
+
+| ID | Arquivo | Teste | Causa Raiz |
+|---|---|---|---|
+| E2E-DEBT-001 | `tests/e2e/app.spec.ts:6` | `TC-LAND-008` — root redireciona para `/auth/login` | Middleware exclui explicitamente `pathname !== '/'` do `isAppRoute`. A `/` é uma landing pública. O teste assume comportamento diferente do implementado. **Ação:** atualizar teste para refletir o comportamento real da landing, ou redirecionar `/` para `/auth/login` se não houver sessão. |
+| E2E-DEBT-002 | `tests/e2e/bugs-regression.spec.ts:19` | `BUG-REG-001` — `/app/library` sem sessão redireciona para login | URL legada `/app/library` não existe no App Router (rota correta: `/library`). O middleware não intercepta porque a rota não é reconhecida. **Ação:** atualizar teste para usar `/library` ou criar redirect de `/app/library`. |
+| E2E-DEBT-003 | `tests/e2e/bugs-regression.spec.ts:28` | `BUG-REG-002` — `/app/review` sem sessão redireciona para login | Mesmo problema que `BUG-REG-001`. URL legada `/app/review` → rota real é `/review`. **Ação:** atualizar teste. |
+| E2E-DEBT-004 | `tests/e2e/settings.spec.ts:193,201` | `TC-SET-015/016` — Settings "Excluir conta" | `settings.spec.ts` está ausente do `testIgnore` do projeto `chromium` e ausente do `testMatch` do projeto `authenticated`. Os testes rodam sem auth, a página redireciona para login e os elementos não são encontrados. **Ação:** adicionar `'**/settings.spec.ts'` ao `testMatch` do projeto `authenticated` em `playwright.config.ts`. |
+
 ---
 
 ## F-090 — Gamificação v2 (Missões + Streak Recovery) ✅
@@ -1592,6 +1603,85 @@ Medir e corrigir os gargalos reais de LCP, CLS e INP no NeuroLearn com base em a
 - lint ✅ zero warnings
 - test:unit ✅ 399/399 (26 novos)
 - build ✅ limpo
+
+---
+
+---
+
+## Sprint 02 — Projetos, MemoryView CRUD, Filtros de Biblioteca ✅
+
+**Data:** 2026-06-12 | **Gate:** APROVADO COM RESSALVAS | **484 testes unitários (34 arquivos)**
+
+### Funcionalidades entregues
+
+#### Módulo de Projetos (RF-191 a RF-196)
+
+CRUD completo de projetos com associação de Trilhas, cálculo de progresso e isolamento de ownership (ADR-004).
+
+| Arquivo | Papel |
+|---|---|
+| `src/modules/projects/ProjectsView.tsx` | Listagem com busca + master-detail |
+| `src/modules/projects/ProjectDetailView.tsx` | Detalhe com Trilhas associadas e progresso |
+| `src/modules/projects/ProjectCard.tsx` | Card de projeto com progresso visual |
+| `src/modules/projects/ProjectFormModal.tsx` | Criar / editar / excluir projeto |
+| `src/modules/projects/AssignTrailModal.tsx` | Associar / desassociar Trilhas |
+| `src/services/projectsService.ts` | 7 funções: list, create, update, delete, assign, remove, calculateProgress |
+| `src/services/projectsService.test.ts` | 18 testes unitários (RN-004, RN-009, RN-013 a RN-017) |
+| `src/app/(app)/projects/page.tsx` | Rota `/projects` (protegida pelo middleware) |
+
+**Supabase:** tabela `projects` com RLS (4 políticas granulares: SELECT/INSERT/UPDATE/DELETE).  
+**DB:** `learning_trails.project_id` FK com `ON DELETE SET NULL` (RN-006/007/008).
+
+#### MemoryView — Edição e Exclusão de Sessões e Exercícios
+
+| Arquivo | Papel |
+|---|---|
+| `src/modules/memory/SessionEditModal.tsx` | Editar notes, teach, highlights de uma sessão |
+| `src/modules/memory/ExercisesSection.tsx` | Listar exercícios por conteúdo (lazy load) com editar/excluir |
+| `src/modules/memory/ExerciseEditModal.tsx` | Editar question/answer de um exercício |
+| `src/modules/memory/MemoryView.tsx` | Integra novos modais + DELETE_SESSION dispatch |
+| `src/services/sessionsService.ts` | `updateStudySession`, `deleteStudySession` com ownership |
+
+#### LibraryView — Filtros Avançados (RF-201 a RF-209)
+
+| Funcionalidade | Implementação |
+|---|---|
+| Filtro por tipo | Chips multi-select: Livro, Curso, Vídeo, Artigo, Nota |
+| Filtro por status | Todos / Novos / Em andamento / Concluídos |
+| Busca textual | Título + autor + descrição + nome da trilha (normalizado, sem acento) |
+| Reset de filtros | Botão "Limpar filtros" quando qualquer filtro ativo |
+| `filterLogic.test.ts` | 26 testes unitários cobrindo todas as combinações |
+
+#### Outros
+
+- `src/lib/validation/schemas.ts` — `projectSchema`, `sessionEditSchema`, `exerciseEditSchema`
+- `src/types/index.ts` — tipo `Project`, `Exercise`, `ExerciseType`; novos actions de projetos e sessões
+- `src/services/trailsService.ts` — `projectId` no mapeamento `toTrail`
+- `src/services/localStorageService.ts` — `projects` no fallback local
+- `src/store/AppContext.tsx` — reducers para projetos, sessions; `listProjects` em paralelo no init
+- `src/store/AppContext.test.ts` — +8 testes (UPDATE_SESSION, DELETE_SESSION)
+- `src/modules/settings/SettingsView.tsx` — schema de backup inclui `projects` e `projectId`
+- `.gitignore` — padrões `*.docx.pdf` e `*.docx` adicionados
+
+### Novos testes E2E (projeto `authenticated`)
+
+| Arquivo | Cobertura |
+|---|---|
+| `tests/e2e/projects.spec.ts` | CRUD de projetos, associação de trilhas, progresso |
+| `tests/e2e/projects-api.spec.ts` | Contratos HTTP: health, auth 401, validações AI |
+| `tests/e2e/memory-crud.spec.ts` | Edição e exclusão de sessões e exercícios |
+| `tests/e2e/library-filters.spec.ts` | FilterBar: visibilidade, tipo, status, reset, combinações |
+
+### Gate final — 2026-06-12
+
+| Verificação | Resultado |
+|---|---|
+| `npm run type-check` | ✅ zero erros |
+| `npm run lint` | ✅ zero warnings |
+| `npm run test:unit` | ✅ 484/484 (34 arquivos) |
+| `npm run build` | ✅ 34 rotas |
+| `npm audit` | ✅ 0 vulnerabilidades |
+| RLS Supabase | ✅ 17 tabelas habilitadas |
 
 ---
 

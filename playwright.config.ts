@@ -65,6 +65,9 @@ export default defineConfig({
         '**/active.spec.ts',
         '**/skills.spec.ts',
         '**/global-regression.spec.ts',
+        '**/projects.spec.ts',
+        '**/memory-crud.spec.ts',
+        '**/library-filters.spec.ts',
       ],
     },
 
@@ -100,6 +103,10 @@ export default defineConfig({
         '**/active.spec.ts',
         '**/skills.spec.ts',
         '**/global-regression.spec.ts',
+        // Sprint 02 — novos testes autenticados (Fase 07)
+        '**/projects.spec.ts',
+        '**/memory-crud.spec.ts',
+        '**/library-filters.spec.ts',
       ],
     },
   ],

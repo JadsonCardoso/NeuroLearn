@@ -13,6 +13,14 @@ export type TrailType =
   | 'research'
   | 'tech'
 
+export interface Project {
+  id: string
+  name: string
+  description: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface LearningTrail {
   id: string
   title: string
@@ -22,6 +30,7 @@ export interface LearningTrail {
   iconEmoji: string
   goal: string
   skillId: string | null
+  projectId: string | null
   createdAt: string
 }
 
@@ -105,6 +114,7 @@ export interface AppState {
   skills: Skill[]
   sessions: StudySession[]
   trails: LearningTrail[]
+  projects: Project[]
   streak: number
   lastStudyDate: string
   totalXp: number
@@ -133,8 +143,15 @@ export type AppAction =
   | { type: 'UPDATE_TRAIL'; payload: Partial<LearningTrail> & { id: string } }
   | { type: 'DELETE_TRAIL'; payload: string }
   | { type: 'ASSIGN_CONTENT_TRAIL'; payload: { contentId: string; trailId: string | null } }
+  | { type: 'ASSIGN_TRAIL_PROJECT'; payload: { trailId: string; projectId: string | null } }
   | { type: 'LOAD_SHIELDS'; payload: number }
   | { type: 'USE_SHIELD' }
+  | { type: 'ADD_PROJECT'; payload: Project }
+  | { type: 'UPDATE_PROJECT'; payload: Partial<Project> & { id: string } }
+  | { type: 'DELETE_PROJECT'; payload: string }
+  | { type: 'LOAD_PROJECTS'; payload: Project[] }
+  | { type: 'UPDATE_SESSION'; payload: Partial<StudySession> & { id: string } }
+  | { type: 'DELETE_SESSION'; payload: string }
 
 export interface RateCardPayload {
   cardId: string

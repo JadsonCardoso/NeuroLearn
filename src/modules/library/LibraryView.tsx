@@ -60,6 +60,10 @@ export function LibraryView() {
   const { collapsed, toggle: toggleCollapse, remove: removeCollapse } = useTrailCollapse()
 
   const [search, setSearch] = useState('')
+  const [filterProject, setFilterProject] = useState<string | null>(null)
+  const [filterTrail, setFilterTrail] = useState<string | null>(null)
+  const [filterTypes, setFilterTypes] = useState<Set<ContentType>>(new Set())
+  const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'in_progress' | 'done'>('all')
   const [, startTransition] = useTransition()
 
   // Exclusão com desfazer — conteúdo aguardando confirmação por 5s
@@ -83,21 +87,57 @@ export function LibraryView() {
   }, [dispatch])
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return state.contents
-    const term = normalize(search)
-    return state.contents.filter(
-      (c) =>
-        normalize(c.title).includes(term) ||
-        normalize(c.author).includes(term) ||
-        normalize(c.desc).includes(term)
-    )
-  }, [state.contents, search])
+    let result = state.contents
+    const q = normalize(search.trim())
+    if (q) {
+      const trailMap = new Map((state.trails ?? []).map((t) => [t.id, t.title]))
+      result = result.filter((c) => {
+        const trailTitle = c.trailId ? (trailMap.get(c.trailId) ?? '') : ''
+        return (
+          normalize(c.title).includes(q) ||
+          normalize(c.author).includes(q) ||
+          normalize(c.desc).includes(q) ||
+          normalize(trailTitle).includes(q)
+        )
+      })
+    }
+    if (filterTypes.size > 0) {
+      result = result.filter((c) => filterTypes.has(c.type))
+    }
+    if (filterStatus !== 'all') {
+      result = result.filter((c) => {
+        if (filterStatus === 'new') return c.progress === 0
+        if (filterStatus === 'in_progress') return c.progress > 0 && c.progress < 100
+        return c.progress === 100
+      })
+    }
+    return result
+  }, [state.contents, state.trails, search, filterTypes, filterStatus])
 
   // Oculta o conteúdo aguardando confirmação de exclusão (atualização otimista)
   const visibleFiltered = useMemo(
     () => (pendingDelete ? filtered.filter((c) => c.id !== pendingDelete.id) : filtered),
     [filtered, pendingDelete]
   )
+
+  const hasActiveFilters =
+    !!filterProject || !!filterTrail || filterTypes.size > 0 || filterStatus !== 'all'
+
+  function toggleType(type: ContentType) {
+    setFilterTypes((prev) => {
+      const next = new Set(prev)
+      if (next.has(type)) next.delete(type)
+      else next.add(type)
+      return next
+    })
+  }
+
+  function clearFilters() {
+    setFilterProject(null)
+    setFilterTrail(null)
+    setFilterTypes(new Set())
+    setFilterStatus('all')
+  }
 
   const [trailModal, setTrailModal] = useState<null | 'create' | LearningTrail>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -227,16 +267,26 @@ export function LibraryView() {
     dispatch({ type: 'ASSIGN_CONTENT_TRAIL', payload: { contentId, trailId } })
   }
 
+  const filteredTrails = useMemo(() => {
+    let trails = state.trails ?? []
+    if (filterProject) trails = trails.filter((t) => t.projectId === filterProject)
+    if (filterTrail) trails = trails.filter((t) => t.id === filterTrail)
+    return trails
+  }, [state.trails, filterProject, filterTrail])
+
   const trailGroups = useMemo(
     () =>
-      (state.trails ?? []).map((trail) => ({
+      filteredTrails.map((trail) => ({
         trail,
         contents: visibleFiltered.filter((c) => c.trailId === trail.id),
       })),
-    [state.trails, visibleFiltered]
+    [filteredTrails, visibleFiltered]
   )
 
-  const orphanContents = useMemo(() => visibleFiltered.filter((c) => !c.trailId), [visibleFiltered])
+  const orphanContents = useMemo(
+    () => (filterTrail || filterProject ? [] : visibleFiltered.filter((c) => !c.trailId)),
+    [visibleFiltered, filterTrail, filterProject]
+  )
 
   if (loading) {
     return (
@@ -273,7 +323,7 @@ export function LibraryView() {
               Biblioteca de Conhecimento
             </h1>
             <p style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>
-              {search.trim()
+              {search.trim() || hasActiveFilters
                 ? `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''} de ${state.contents.length} itens`
                 : `${state.contents.length} ${state.contents.length === 1 ? 'item' : 'itens'}`}
             </p>
@@ -319,6 +369,189 @@ export function LibraryView() {
             </button>
           </div>
         </div>
+
+        {/* FilterBar — visível quando há conteúdos ou trilhas */}
+        {(state.contents.length > 0 || (state.trails?.length ?? 0) > 0) && (
+          <div
+            data-testid="filter-bar"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              alignItems: 'center',
+              marginBottom: '20px',
+              paddingBottom: '16px',
+              borderBottom: '1px solid var(--border)',
+            }}
+          >
+            {/* Filtro por projeto */}
+            {(state.projects?.length ?? 0) > 0 && (
+              <select
+                aria-label="Filtrar por projeto"
+                data-testid="filter-project"
+                value={filterProject ?? ''}
+                onChange={(e) => {
+                  setFilterProject(e.target.value || null)
+                  setFilterTrail(null)
+                }}
+                style={{
+                  background: filterProject ? 'rgba(124,58,237,.12)' : 'var(--card2)',
+                  border: `1px solid ${filterProject ? 'rgba(124,58,237,.4)' : 'var(--border2)'}`,
+                  borderRadius: '6px',
+                  padding: '5px 10px',
+                  fontSize: '12px',
+                  color: filterProject ? 'var(--color-primary)' : 'var(--text2)',
+                  fontFamily: 'inherit',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="">Todos os projetos</option>
+                {(state.projects ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* Filtro por trilha */}
+            {(state.trails?.length ?? 0) > 0 && (
+              <select
+                aria-label="Filtrar por trilha"
+                data-testid="filter-trail"
+                value={filterTrail ?? ''}
+                onChange={(e) => setFilterTrail(e.target.value || null)}
+                style={{
+                  background: filterTrail ? 'rgba(124,58,237,.12)' : 'var(--card2)',
+                  border: `1px solid ${filterTrail ? 'rgba(124,58,237,.4)' : 'var(--border2)'}`,
+                  borderRadius: '6px',
+                  padding: '5px 10px',
+                  fontSize: '12px',
+                  color: filterTrail ? 'var(--color-primary)' : 'var(--text2)',
+                  fontFamily: 'inherit',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="">Todas as trilhas</option>
+                {(filterProject
+                  ? (state.trails ?? []).filter((t) => t.projectId === filterProject)
+                  : (state.trails ?? [])
+                ).map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.iconEmoji} {t.title}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* Chips de tipo */}
+            {(
+              [
+                ['book', '📚', 'Livro'],
+                ['course', '🎓', 'Curso'],
+                ['video', '🎥', 'Vídeo'],
+                ['article', '📄', 'Artigo'],
+                ['note', '📝', 'Nota'],
+              ] as [ContentType, string, string][]
+            ).map(([type, icon, label]) => {
+              const active = filterTypes.has(type)
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  aria-pressed={active}
+                  data-testid={`filter-type-${type}`}
+                  onClick={() => toggleType(type)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: active ? 'rgba(124,58,237,.12)' : 'var(--card2)',
+                    border: `1px solid ${active ? 'rgba(124,58,237,.4)' : 'var(--border2)'}`,
+                    borderRadius: '20px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: active ? 600 : 400,
+                    color: active ? 'var(--color-primary)' : 'var(--text3)',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {icon} {label}
+                </button>
+              )
+            })}
+
+            {/* Filtro por status */}
+            <div
+              style={{
+                display: 'flex',
+                border: '1px solid var(--border2)',
+                borderRadius: '6px',
+                overflow: 'hidden',
+              }}
+            >
+              {(
+                [
+                  ['all', 'Todos'],
+                  ['new', 'Novos'],
+                  ['in_progress', 'Em andamento'],
+                  ['done', 'Concluídos'],
+                ] as ['all' | 'new' | 'in_progress' | 'done', string][]
+              ).map(([s, label]) => (
+                <button
+                  key={s}
+                  type="button"
+                  aria-pressed={filterStatus === s}
+                  data-testid={`filter-status-${s}`}
+                  onClick={() => setFilterStatus(s)}
+                  style={{
+                    background: filterStatus === s ? 'var(--color-primary)' : 'var(--card2)',
+                    color: filterStatus === s ? '#fff' : 'var(--text3)',
+                    border: 'none',
+                    borderRight: s !== 'done' ? '1px solid var(--border2)' : 'none',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: filterStatus === s ? 600 : 400,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.15s',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Limpar filtros */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                data-testid="clear-filters"
+                onClick={clearFilters}
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--border2)',
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  fontSize: '11px',
+                  color: 'var(--text3)',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                × Limpar filtros
+              </button>
+            )}
+          </div>
+        )}
 
         {trailModal !== null && (
           <TrailFormModal
@@ -383,12 +616,31 @@ export function LibraryView() {
         {filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>📚</div>
-            {search.trim() ? (
+            {search.trim() || hasActiveFilters ? (
               <>
                 <p style={{ fontSize: '15px', fontWeight: '600', marginBottom: '6px' }}>
-                  Nenhum conteúdo encontrado para &ldquo;{search}&rdquo;
+                  Nenhum conteúdo encontrado
                 </p>
-                <p style={{ fontSize: '12px' }}>Tente outro termo ou limpe a busca</p>
+                <p style={{ fontSize: '12px' }}>Tente outros termos ou limpe os filtros</p>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    style={{
+                      marginTop: '12px',
+                      background: 'var(--card2)',
+                      border: '1px solid var(--border2)',
+                      borderRadius: '6px',
+                      padding: '6px 14px',
+                      fontSize: '12px',
+                      color: 'var(--text2)',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    Limpar filtros
+                  </button>
+                )}
               </>
             ) : (
               <>

@@ -93,7 +93,20 @@ const BackupDataSchema = z.object({
           iconEmoji: z.string(),
           goal: z.string(),
           skillId: z.string().nullable(),
+          projectId: z.string().nullable().optional().default(null),
           createdAt: z.string(),
+        })
+      )
+      .optional()
+      .default([]),
+    projects: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          description: z.string().nullable(),
+          createdAt: z.string(),
+          updatedAt: z.string(),
         })
       )
       .optional()

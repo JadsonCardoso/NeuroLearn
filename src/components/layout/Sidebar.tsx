@@ -6,6 +6,7 @@ import { memo, useEffect, useState } from 'react'
 import {
   Brain,
   Book,
+  Folder,
   Timer,
   Refresh,
   Zap,
@@ -21,6 +22,13 @@ import { createClient } from '@/lib/supabase/client'
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: Brain, href: '/dashboard', testId: undefined },
+  {
+    id: 'projects',
+    label: 'Projetos',
+    icon: Folder,
+    href: '/projects',
+    testId: 'sidebar-projects-link',
+  },
   { id: 'library', label: 'Biblioteca', icon: Book, href: '/library', testId: undefined },
   { id: 'focus', label: 'Foco', icon: Timer, href: '/focus', testId: undefined },
   { id: 'review', label: 'Revisão', icon: Refresh, href: '/review', testId: undefined },

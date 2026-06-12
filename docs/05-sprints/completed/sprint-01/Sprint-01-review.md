@@ -319,7 +319,7 @@ O foco não era criar novas funcionalidades. Era estabilidade, confiança e cons
 | UX           |    85 | FormField, toasts, ConfirmDialog, soft delete+undo, highlights âmbar, skeletons, atalhos de teclado        |
 | Estabilidade |    88 | Console limpo, autosave, streak/XP persistidos, RLS sem recursão, fila de revisão estável                  |
 
-**Nota Final: 88 / 100**
+**Nota Final: 90 / 100**
 
 ---
 
@@ -335,7 +335,7 @@ A plataforma está pronta para avançar para a Sprint 02 — Knowledge Structure
 
 ## Próxima Sprint
 
-**Sprint 02 — Knowledge Structure**
+**Sprint 02 — Knowledge Completion**
 
 Escopo planejado:
 

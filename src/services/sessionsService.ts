@@ -31,6 +31,42 @@ export async function createStudySession(input: StudySessionInput): Promise<void
   if (error) throw error
 }
 
+export interface StudySessionUpdateInput {
+  notes?: string
+  highlights?: string[]
+  teachText?: string
+}
+
+export async function updateStudySession(
+  id: string,
+  userId: string,
+  input: StudySessionUpdateInput
+): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('study_sessions')
+    .update({
+      ...(input.notes !== undefined && { notes: input.notes }),
+      ...(input.highlights !== undefined && { highlights: input.highlights }),
+      ...(input.teachText !== undefined && { teach_text: input.teachText }),
+    })
+    .eq('id', id)
+    .eq('user_id', userId) // ADR-004 Ownership First
+
+  if (error) throw error
+}
+
+export async function deleteStudySession(id: string, userId: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('study_sessions')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId) // ADR-004 Ownership First
+
+  if (error) throw error
+}
+
 export async function listRecentSessions(userId: string, limit = 30): Promise<StudySession[]> {
   const supabase = createClient()
   const { data, error } = await supabase
